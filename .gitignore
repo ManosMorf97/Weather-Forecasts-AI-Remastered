@@ -1,1 +1,41 @@
+# Backend
+backend/bin/
+backend/obj/
+backend/.vs/
+backend/.vscode/
+backend/*.user
+backend/*.db
+backend/*.sqlite
+backend/Migrations/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.env.local
+frontend/.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Security
 secret.txt
+.env
+*.pem
+*.key
+
+# OS
+Thumbs.db
+.DS_Store
