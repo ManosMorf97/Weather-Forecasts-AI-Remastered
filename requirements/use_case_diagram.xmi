@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<XMI xmi.version="2.1" xmlns:uml="http://www.omg.org/spec/UML/20090901" xmlns:xmi="http://schema.omg.org/spec/XMI/2.1">
+  <uml:Model xmi:id="model1" name="WeatherForecastModel">
+    <packagedElement xmi:type="uml:Package" xmi:id="pkg1" name="UseCaseModel">
+
+      <!-- Actors -->
+      <packagedElement xmi:type="uml:Actor" xmi:id="actor1" name="End User"/>
+      <packagedElement xmi:type="uml:Actor" xmi:id="actor2" name="Forecast Service"/>
+      <packagedElement xmi:type="uml:Actor" xmi:id="actor3" name="System Scheduler"/>
+      <packagedElement xmi:type="uml:Actor" xmi:id="actor4" name="Administrator"/>
+
+      <!-- Use Cases -->
+      <packagedElement xmi:type="uml:UseCase" xmi:id="uc1" name="Register / Login"/>
+      <packagedElement xmi:type="uml:UseCase" xmi:id="uc2" name="Create / Edit Profile"/>
+      <packagedElement xmi:type="uml:UseCase" xmi:id="uc3" name="Search Forecast"/>
+      <packagedElement xmi:type="uml:UseCase" xmi:id="uc4" name="View Current Forecast"/>
+      <packagedElement xmi:type="uml:UseCase" xmi:id="uc5" name="View Hourly Forecast"/>
+      <packagedElement xmi:type="uml:UseCase" xmi:id="uc6" name="View Daily Forecast"/>
+      <packagedElement xmi:type="uml:UseCase" xmi:id="uc7" name="Rate Forecast"/>
+      <packagedElement xmi:type="uml:UseCase" xmi:id="uc8" name="Download Analytics / Aggregates"/>
+      <packagedElement xmi:type="uml:UseCase" xmi:id="uc9" name="Receive Warnings"/>
+      <packagedElement xmi:type="uml:UseCase" xmi:id="uc10" name="Push Forecast Updates"/>
+      <packagedElement xmi:type="uml:UseCase" xmi:id="uc11" name="Poll Partners / Ingest Forecasts"/>
+      <packagedElement xmi:type="uml:UseCase" xmi:id="uc12" name="Manage Partner Integrations"/>
+      <packagedElement xmi:type="uml:UseCase" xmi:id="uc13" name="Configure Alert Rules"/>
+
+      <!-- Associations: End User -->
+      <packagedElement xmi:type="uml:Association" xmi:id="a1" memberEnd="e1 e2">
+        <ownedEnd xmi:id="e1" type="actor1"/>
+        <ownedEnd xmi:id="e2" type="uc1"/>
+      </packagedElement>
+      <packagedElement xmi:type="uml:Association" xmi:id="a2" memberEnd="e3 e4">
+        <ownedEnd xmi:id="e3" type="actor1"/>
+        <ownedEnd xmi:id="e4" type="uc2"/>
+      </packagedElement>
+      <packagedElement xmi:type="uml:Association" xmi:id="a3" memberEnd="e5 e6">
+        <ownedEnd xmi:id="e5" type="actor1"/>
+        <ownedEnd xmi:id="e6" type="uc3"/>
+      </packagedElement>
+      <packagedElement xmi:type="uml:Association" xmi:id="a4" memberEnd="e7 e8">
+        <ownedEnd xmi:id="e7" type="actor1"/>
+        <ownedEnd xmi:id="e8" type="uc4"/>
+      </packagedElement>
+      <packagedElement xmi:type="uml:Association" xmi:id="a5" memberEnd="e9 e10">
+        <ownedEnd xmi:id="e9" type="actor1"/>
+        <ownedEnd xmi:id="e10" type="uc5"/>
+      </packagedElement>
+      <packagedElement xmi:type="uml:Association" xmi:id="a6" memberEnd="e11 e12">
+        <ownedEnd xmi:id="e11" type="actor1"/>
+        <ownedEnd xmi:id="e12" type="uc6"/>
+      </packagedElement>
+      <packagedElement xmi:type="uml:Association" xmi:id="a7" memberEnd="e13 e14">
+        <ownedEnd xmi:id="e13" type="actor1"/>
+        <ownedEnd xmi:id="e14" type="uc7"/>
+      </packagedElement>
+      <packagedElement xmi:type="uml:Association" xmi:id="a8" memberEnd="e15 e16">
+        <ownedEnd xmi:id="e15" type="actor1"/>
+        <ownedEnd xmi:id="e16" type="uc8"/>
+      </packagedElement>
+      <packagedElement xmi:type="uml:Association" xmi:id="a9" memberEnd="e17 e18">
+        <ownedEnd xmi:id="e17" type="actor1"/>
+        <ownedEnd xmi:id="e18" type="uc9"/>
+      </packagedElement>
+
+      <!-- Associations: Forecast Service -->
+      <packagedElement xmi:type="uml:Association" xmi:id="a10" memberEnd="e19 e20">
+        <ownedEnd xmi:id="e19" type="actor2"/>
+        <ownedEnd xmi:id="e20" type="uc10"/>
+      </packagedElement>
+
+      <!-- Associations: Scheduler -->
+      <packagedElement xmi:type="uml:Association" xmi:id="a11" memberEnd="e21 e22">
+        <ownedEnd xmi:id="e21" type="actor3"/>
+        <ownedEnd xmi:id="e22" type="uc11"/>
+      </packagedElement>
+
+      <!-- Associations: Administrator -->
+      <packagedElement xmi:type="uml:Association" xmi:id="a12" memberEnd="e23 e24">
+        <ownedEnd xmi:id="e23" type="actor4"/>
+        <ownedEnd xmi:id="e24" type="uc12"/>
+      </packagedElement>
+      <packagedElement xmi:type="uml:Association" xmi:id="a13" memberEnd="e25 e26">
+        <ownedEnd xmi:id="e25" type="actor4"/>
+        <ownedEnd xmi:id="e26" type="uc13"/>
+      </packagedElement>
+
+    </packagedElement>
+  </uml:Model>
+</XMI>
