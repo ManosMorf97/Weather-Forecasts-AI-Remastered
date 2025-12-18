@@ -1,0 +1,23 @@
+@startuml UC9_View_Daily_Forecast_Activity_Diagram
+
+title UC9: View Daily Forecast - Activity Diagram
+
+start
+:User selects "Daily Forecast" option;
+:System retrieves daily forecast data for next 3 days;
+
+if (Complete data available?) then (yes)
+  :System displays forecast for each day
+  showing three time slots (08:00, 15:00, 21:00);
+  :System shows which service(s) provided the data;
+else (partial)
+  :System displays available data with gaps indicated;
+endif
+
+if (User wants to rate?) then (yes)
+  :User rates individual forecasts (UC10);
+endif
+
+stop
+
+@enduml

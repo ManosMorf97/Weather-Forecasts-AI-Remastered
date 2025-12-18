@@ -1,0 +1,40 @@
+@startuml UC15_Poll_Forecasts_Activity_Diagram
+
+title UC15: Poll Forecasts - Activity Diagram
+
+start
+:Scheduler triggers polling job based on schedule;
+:System retrieves list of partner services to poll;
+
+repeat
+  :Select next service;
+  :System sends GET request to partner API;
+  
+  if (Service responds?) then (yes)
+    :Partner service returns forecast data;
+    :System validates received data;
+    if (Data valid?) then (yes)
+      :System invokes UC16 (Store Forecasts);
+    else (invalid)
+      :System logs validation error;
+    endif
+  else (no - service unavailable)
+    :System logs error;
+    if (Rate limit reached?) then (yes)
+      :System delays next poll for that service;
+    endif
+  endif
+  
+repeat while (More services to poll?) is (yes)
+->no;
+
+:System logs polling results;
+
+if (All services failed?) then (yes)
+  :System sends alert to administrators;
+endif
+
+:System schedules next polling cycle;
+stop
+
+@enduml

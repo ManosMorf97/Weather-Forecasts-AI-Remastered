@@ -1,0 +1,21 @@
+@startuml UC5_Select_Forecasting_Services_Activity_Diagram
+
+title UC5: Select Forecasting Services - Activity Diagram
+
+start
+:System displays list of available forecasting services;
+:System shows rating information for each service;
+:User selects one or more services;
+
+if (At least one service selected?) then (yes)
+  :User confirms selection;
+  :System saves service preferences;
+  stop
+else (no)
+  :System displays warning;
+  :Require at least one service selection;
+  :Return to service selection;
+  stop
+endif
+
+@enduml

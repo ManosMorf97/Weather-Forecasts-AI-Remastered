@@ -1,0 +1,22 @@
+@startuml UC8_View_Hourly_Forecast_Activity_Diagram
+
+title UC8: View Hourly Forecast - Activity Diagram
+
+start
+:User selects "Hourly Forecast" option;
+:System retrieves hourly forecast data for next 3 hours;
+
+if (Complete data available?) then (yes)
+  :System displays forecast for each hour;
+  :System shows which service(s) provided the data;
+else (partial)
+  :System displays available data with gaps indicated;
+endif
+
+if (User wants to rate?) then (yes)
+  :User rates individual forecasts (UC10);
+endif
+
+stop
+
+@enduml

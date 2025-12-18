@@ -1,0 +1,34 @@
+@startuml UC2_Create_Profile_Activity_Diagram
+
+title UC2: Create Profile - Activity Diagram
+
+start
+:User selects "Create Profile" option;
+:System displays profile creation form;
+:User enters profile details;
+
+partition "Select Cities (UC4)" {
+  :User searches for cities via API;
+  :System displays matching cities;
+  :User selects desired cities;
+}
+
+partition "Select Forecasting Services (UC5)" {
+  :System displays available services;
+  :User selects one or more services;
+}
+
+:User submits profile;
+:System validates input;
+
+if (Validation successful?) then (yes)
+  :System creates profile record;
+  :System displays confirmation message;
+  stop
+else (no)
+  :System displays error messages;
+  :Return to profile creation form;
+  stop
+endif
+
+@enduml

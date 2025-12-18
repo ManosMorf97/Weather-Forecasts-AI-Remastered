@@ -1,0 +1,38 @@
+@startuml UC6_Search_Forecast_Activity_Diagram
+
+title UC6: Search Forecast by City - Activity Diagram
+
+start
+
+if (User just logged in?) then (yes)
+  :System retrieves user's profile preferences;
+  :System retrieves forecast data for all saved cities;
+  :System sorts forecasts by SiteName, CityName, Time;
+  :System displays forecast dashboard;
+else (no - manual search)
+  :User enters city name in search field;
+  :User submits search request;
+  :System retrieves forecast data for the city;
+  if (Forecasts available?) then (yes)
+    :System displays search results;
+  else (no)
+    :System displays informative message;
+    stop
+  endif
+endif
+
+:User views forecasts;
+
+if (User wants specific forecast type?) then (yes)
+  fork
+    :View Current Weather (UC7);
+  fork again
+    :View Hourly Forecast (UC8);
+  fork again
+    :View Daily Forecast (UC9);
+  end fork
+endif
+
+stop
+
+@enduml

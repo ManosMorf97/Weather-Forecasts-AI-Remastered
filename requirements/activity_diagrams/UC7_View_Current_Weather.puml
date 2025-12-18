@@ -1,0 +1,23 @@
+@startuml UC7_View_Current_Weather_Activity_Diagram
+
+title UC7: View Current Weather - Activity Diagram
+
+start
+:User selects "Current Weather" option;
+:System retrieves latest current weather data from selected services;
+
+if (Current data available?) then (yes)
+  :System displays current conditions
+  (temperature, humidity, pressure, wind);
+  :System shows which service(s) provided the data;
+else (no)
+  :System displays last known data with timestamp;
+endif
+
+if (User wants to rate?) then (yes)
+  :User rates forecast (UC10);
+endif
+
+stop
+
+@enduml

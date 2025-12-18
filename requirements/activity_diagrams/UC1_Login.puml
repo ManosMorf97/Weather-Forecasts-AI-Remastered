@@ -1,0 +1,27 @@
+@startuml UC1_Login_Activity_Diagram
+
+title UC1: Login - Activity Diagram
+
+start
+:User navigates to login page;
+:System displays login form;
+:User enters credentials;
+:System validates credentials;
+
+if (Credentials valid?) then (yes)
+  :System creates user session;
+  :System redirects user to dashboard;
+  stop
+else (no)
+  :System displays error message;
+  :Return to login form;
+  stop
+endif
+
+note right
+  Alternative: Forgot Password
+  User can select "Forgot Password"
+  to initiate recovery process
+end note
+
+@enduml

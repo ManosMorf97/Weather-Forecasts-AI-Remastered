@@ -1,0 +1,30 @@
+@startuml UC13_View_Aggregated_Forecast_Activity_Diagram
+
+title UC13: View Aggregated Forecast - Activity Diagram
+
+start
+:User selects "View Aggregate Forecast" option;
+
+partition "Calculate Aggregates (UC18)" {
+  :System calculates aggregated forecasts;
+  :System selects best-rated service per city;
+}
+
+:System retrieves aggregated forecast data;
+
+if (Multiple services have data?) then (yes)
+  :System displays forecast from service
+  with maximum average rating for each city;
+  :System shows rating score and service name for each city;
+else (single service only)
+  :System displays that service's forecast;
+  :System indicates aggregation not applicable;
+endif
+
+if (User wants to compare?) then (yes)
+  :User compares with individual service forecasts;
+endif
+
+stop
+
+@enduml

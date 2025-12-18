@@ -1,0 +1,39 @@
+@startuml UC18_Calculate_Aggregates_Activity_Diagram
+
+title UC18: Calculate Aggregates - Activity Diagram
+
+start
+:System receives request with parameters
+(cities, timeframe, metrics);
+
+repeat
+  :Select next city;
+  :System retrieves forecasts from all selected services;
+  :System retrieves average rating for each service;
+  
+  if (Ratings available?) then (yes)
+    :System identifies service with maximum average rating;
+    
+    if (Multiple services have same max rating?) then (yes)
+      :System selects service name closest to A alphabetically;
+      :System indicates tie in metadata;
+    else (no)
+      :System selects highest-rated service;
+    endif
+  else (no ratings)
+    :System selects service name closest to A alphabetically;
+    :System flags result as "unrated selection";
+  endif
+  
+  :System selects forecast from chosen service;
+  :System adds to result with metadata
+  (service name, rating score);
+  
+repeat while (More cities to process?) is (yes)
+->no;
+
+:System packages aggregated data;
+:System returns aggregated forecast;
+stop
+
+@enduml

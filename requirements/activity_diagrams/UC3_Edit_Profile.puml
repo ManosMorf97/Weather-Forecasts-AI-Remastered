@@ -1,0 +1,36 @@
+@startuml UC3_Edit_Profile_Activity_Diagram
+
+title UC3: Edit Profile - Activity Diagram
+
+start
+:User selects "Edit Profile" option;
+:System retrieves and displays current profile data;
+:User modifies profile fields;
+
+if (User wants to modify cities?) then (yes)
+  partition "Select Cities (UC4)" {
+    :User searches/modifies cities;
+    :User adds or removes cities;
+  }
+endif
+
+if (User wants to modify services?) then (yes)
+  partition "Select Forecasting Services (UC5)" {
+    :User modifies selected services;
+  }
+endif
+
+:User submits changes;
+:System validates input;
+
+if (Validation successful?) then (yes)
+  :System updates profile record;
+  :System displays confirmation message;
+  stop
+else (no)
+  :System displays error;
+  :Return to edit form;
+  stop
+endif
+
+@enduml

@@ -1,0 +1,559 @@
+@startuml UC1_Login_Activity_Diagram
+
+title UC1: Login - Activity Diagram
+
+start
+:User navigates to login page;
+:System displays login form;
+:User enters credentials;
+:System validates credentials;
+
+if (Credentials valid?) then (yes)
+  :System creates user session;
+  :System redirects user to dashboard;
+  stop
+else (no)
+  :System displays error message;
+  :Return to login form;
+  stop
+endif
+
+note right
+  Alternative: Forgot Password
+  User can select "Forgot Password"
+  to initiate recovery process
+end note
+
+@enduml
+
+@startuml UC2_Create_Profile_Activity_Diagram
+
+title UC2: Create Profile - Activity Diagram
+
+start
+:User selects "Create Profile" option;
+:System displays profile creation form;
+:User enters profile details;
+
+partition "Select Cities (UC4)" {
+  :User searches for cities via API;
+  :System displays matching cities;
+  :User selects desired cities;
+}
+
+partition "Select Forecasting Services (UC5)" {
+  :System displays available services;
+  :User selects one or more services;
+}
+
+:User submits profile;
+:System validates input;
+
+if (Validation successful?) then (yes)
+  :System creates profile record;
+  :System displays confirmation message;
+  stop
+else (no)
+  :System displays error messages;
+  :Return to profile creation form;
+  stop
+endif
+
+@enduml
+
+@startuml UC3_Edit_Profile_Activity_Diagram
+
+title UC3: Edit Profile - Activity Diagram
+
+start
+:User selects "Edit Profile" option;
+:System retrieves and displays current profile data;
+:User modifies profile fields;
+
+if (User wants to modify cities?) then (yes)
+  partition "Select Cities (UC4)" {
+    :User searches/modifies cities;
+    :User adds or removes cities;
+  }
+endif
+
+if (User wants to modify services?) then (yes)
+  partition "Select Forecasting Services (UC5)" {
+    :User modifies selected services;
+  }
+endif
+
+:User submits changes;
+:System validates input;
+
+if (Validation successful?) then (yes)
+  :System updates profile record;
+  :System displays confirmation message;
+  stop
+else (no)
+  :System displays error;
+  :Return to edit form;
+  stop
+endif
+
+@enduml
+
+@startuml UC4_Select_Cities_Activity_Diagram
+
+title UC4: Select Cities - Activity Diagram
+
+start
+:System displays city selection interface
+with currently selected cities;
+:User searches for cities by name or location;
+:System calls external City API;
+
+if (API available?) then (yes)
+  :System retrieves matching cities from API;
+  if (Cities found?) then (yes)
+    :System displays matching cities;
+  else (no)
+    :System displays "No results" message;
+    :User can refine search criteria;
+  endif
+else (no - API unavailable)
+  :System uses cached city database;
+  :System displays limited results with warning;
+endif
+
+:User selects cities to add;
+
+if (User wants to delete cities?) then (yes)
+  :User selects city to remove;
+  :System removes city from selection;
+endif
+
+:User confirms selection;
+:System saves updated city preferences;
+stop
+
+@enduml
+
+@startuml UC5_Select_Forecasting_Services_Activity_Diagram
+
+title UC5: Select Forecasting Services - Activity Diagram
+
+start
+:System displays list of available forecasting services;
+:System shows rating information for each service;
+:User selects one or more services;
+
+if (At least one service selected?) then (yes)
+  :User confirms selection;
+  :System saves service preferences;
+  stop
+else (no)
+  :System displays warning;
+  :Require at least one service selection;
+  :Return to service selection;
+  stop
+endif
+
+@enduml
+
+@startuml UC6_Search_Forecast_Activity_Diagram
+
+title UC6: Search Forecast by City - Activity Diagram
+
+start
+
+if (User just logged in?) then (yes)
+  :System retrieves user's profile preferences;
+  :System retrieves forecast data for all saved cities;
+  :System sorts forecasts by SiteName, CityName, Time;
+  :System displays forecast dashboard;
+else (no - manual search)
+  :User enters city name in search field;
+  :User submits search request;
+  :System retrieves forecast data for the city;
+  if (Forecasts available?) then (yes)
+    :System displays search results;
+  else (no)
+    :System displays informative message;
+    stop
+  endif
+endif
+
+:User views forecasts;
+
+if (User wants specific forecast type?) then (yes)
+  fork
+    :View Current Weather (UC7);
+  fork again
+    :View Hourly Forecast (UC8);
+  fork again
+    :View Daily Forecast (UC9);
+  end fork
+endif
+
+stop
+
+@enduml
+
+@startuml UC7_View_Current_Weather_Activity_Diagram
+
+title UC7: View Current Weather - Activity Diagram
+
+start
+:User selects "Current Weather" option;
+:System retrieves latest current weather data from selected services;
+
+if (Current data available?) then (yes)
+  :System displays current conditions
+  (temperature, humidity, pressure, wind);
+  :System shows which service(s) provided the data;
+else (no)
+  :System displays last known data with timestamp;
+endif
+
+if (User wants to rate?) then (yes)
+  :User rates forecast (UC10);
+endif
+
+stop
+
+@enduml
+
+@startuml UC8_View_Hourly_Forecast_Activity_Diagram
+
+title UC8: View Hourly Forecast - Activity Diagram
+
+start
+:User selects "Hourly Forecast" option;
+:System retrieves hourly forecast data for next 3 hours;
+
+if (Complete data available?) then (yes)
+  :System displays forecast for each hour;
+  :System shows which service(s) provided the data;
+else (partial)
+  :System displays available data with gaps indicated;
+endif
+
+if (User wants to rate?) then (yes)
+  :User rates individual forecasts (UC10);
+endif
+
+stop
+
+@enduml
+
+@startuml UC9_View_Daily_Forecast_Activity_Diagram
+
+title UC9: View Daily Forecast - Activity Diagram
+
+start
+:User selects "Daily Forecast" option;
+:System retrieves daily forecast data for next 3 days;
+
+if (Complete data available?) then (yes)
+  :System displays forecast for each day
+  showing three time slots (08:00, 15:00, 21:00);
+  :System shows which service(s) provided the data;
+else (partial)
+  :System displays available data with gaps indicated;
+endif
+
+if (User wants to rate?) then (yes)
+  :User rates individual forecasts (UC10);
+endif
+
+stop
+
+@enduml
+
+@startuml UC10_Rate_Forecast_Activity_Diagram
+
+title UC10: Rate Forecast - Activity Diagram
+
+start
+:User selects "Rate This Forecast" option;
+
+if (User previously rated this forecast?) then (yes)
+  :System displays rating interface
+  with existing rating;
+else (no)
+  :System displays rating interface (1-5 scale);
+endif
+
+:User selects rating value (1-5);
+
+if (User wants to add comments?) then (yes)
+  :User adds comments;
+endif
+
+:User submits rating;
+:System validates rating;
+:System stores rating with associated
+forecast, service, and city;
+:System updates aggregate rating for the service;
+:System displays confirmation message;
+
+stop
+
+@enduml
+
+@startuml UC11_Request_Analytics_Activity_Diagram
+
+title UC11: Request Analytics - Activity Diagram
+
+start
+:User selects "Request Analytics" option;
+:System displays analytics request form;
+:User specifies parameters
+(cities, date range, services, metrics);
+:User submits request;
+:System validates parameters;
+
+if (Parameters valid?) then (yes)
+  if (Aggregates needed?) then (yes)
+    :System invokes UC18 (Calculate Aggregates);
+  endif
+  :System generates analytics report;
+  :System presents report preview;
+  stop
+else (no)
+  :System displays error;
+  :Return to request form;
+  stop
+endif
+
+@enduml
+
+@startuml UC12_Download_Analytics_Activity_Diagram
+
+title UC12: Download Analytics - Activity Diagram
+
+start
+:User selects "Download" option;
+:System displays format options (JSON, CSV, PDF);
+:User selects desired format;
+:System converts report to selected format;
+
+if (File size acceptable?) then (yes)
+  :System initiates download;
+  :User receives file;
+  stop
+else (large file)
+  :System sends download link via email;
+  :User can download from link later;
+  stop
+endif
+
+@enduml
+
+@startuml UC13_View_Aggregated_Forecast_Activity_Diagram
+
+title UC13: View Aggregated Forecast - Activity Diagram
+
+start
+:User selects "View Aggregate Forecast" option;
+
+partition "Calculate Aggregates (UC18)" {
+  :System calculates aggregated forecasts;
+  :System selects best-rated service per city;
+}
+
+:System retrieves aggregated forecast data;
+
+if (Multiple services have data?) then (yes)
+  :System displays forecast from service
+  with maximum average rating for each city;
+  :System shows rating score and service name for each city;
+else (single service only)
+  :System displays that service's forecast;
+  :System indicates aggregation not applicable;
+endif
+
+if (User wants to compare?) then (yes)
+  :User compares with individual service forecasts;
+endif
+
+stop
+
+@enduml
+
+@startuml UC14_Receive_Warning_Notification_Activity_Diagram
+
+title UC14: Receive Warning Notification - Activity Diagram
+
+start
+:System (UC17) triggers warning notification;
+:System retrieves user notification preferences;
+:System sends notification via configured channel
+(email/SMS/push);
+
+if (Notification delivered successfully?) then (yes)
+  :User receives notification with warning details;
+  if (User clicks notification link?) then (yes)
+    :User views full forecast details;
+  endif
+  stop
+else (no - delivery failed)
+  :System retries using alternative channel;
+  stop
+endif
+
+note right
+  Multiple cities affected:
+  System consolidates into
+  single notification
+end note
+
+@enduml
+
+@startuml UC15_Poll_Forecasts_Activity_Diagram
+
+title UC15: Poll Forecasts - Activity Diagram
+
+start
+:Scheduler triggers polling job based on schedule;
+:System retrieves list of partner services to poll;
+
+repeat
+  :Select next service;
+  :System sends GET request to partner API;
+  
+  if (Service responds?) then (yes)
+    :Partner service returns forecast data;
+    :System validates received data;
+    if (Data valid?) then (yes)
+      :System invokes UC16 (Store Forecasts);
+    else (invalid)
+      :System logs validation error;
+    endif
+  else (no - service unavailable)
+    :System logs error;
+    if (Rate limit reached?) then (yes)
+      :System delays next poll for that service;
+    endif
+  endif
+  
+repeat while (More services to poll?) is (yes)
+->no;
+
+:System logs polling results;
+
+if (All services failed?) then (yes)
+  :System sends alert to administrators;
+endif
+
+:System schedules next polling cycle;
+stop
+
+@enduml
+
+@startuml UC16_Store_Forecasts_Activity_Diagram
+
+title UC16: Store Forecasts - Activity Diagram
+
+start
+:System receives forecast data with metadata
+(serviceId, cityId, timestamp, type);
+:System checks for duplicate entries;
+
+if (Exact duplicate exists?) then (yes)
+  :System skips storage;
+  :Return success without modification;
+  stop
+else (no)
+  if (Newer version exists?) then (yes)
+    :System prepares update transaction;
+  else (no)
+    :System prepares insert transaction;
+  endif
+  
+  :System inserts/updates forecast records;
+  :System indexes data for efficient searching;
+  :System updates cache with latest forecasts;
+  
+  if (Transaction successful?) then (yes)
+    :System commits transaction;
+    :Return success status;
+    stop
+  else (no - transaction failed)
+    :System rolls back;
+    :System logs error;
+    stop
+  endif
+endif
+
+@enduml
+
+@startuml UC17_Send_Warnings_Activity_Diagram
+
+title UC17: Send Warnings - Activity Diagram
+
+start
+:Scheduler triggers warning detection job;
+:System analyzes stored forecasts for hazardous conditions;
+:System identifies cities with life-threatening weather;
+
+if (Hazards detected?) then (yes)
+  :System queries users subscribed to affected cities;
+  
+  repeat
+    :Select next affected user;
+    
+    if (Warning already sent for same condition?) then (no)
+      :System invokes UC14 (Receive Warning Notification);
+      :System logs warning event;
+      :System tracks notification delivery status;
+    else (yes)
+      :System skips duplicate notification;
+    endif
+    
+  repeat while (More affected users?) is (yes)
+  ->no;
+  
+else (no hazards)
+  :System completes normally;
+endif
+
+stop
+
+@enduml
+
+@startuml UC18_Calculate_Aggregates_Activity_Diagram
+
+title UC18: Calculate Aggregates - Activity Diagram
+
+start
+:System receives request with parameters
+(cities, timeframe, metrics);
+
+repeat
+  :Select next city;
+  :System retrieves forecasts from all selected services;
+  :System retrieves average rating for each service;
+  
+  if (Ratings available?) then (yes)
+    :System identifies service with maximum average rating;
+    
+    if (Multiple services have same max rating?) then (yes)
+      :System selects service name closest to A alphabetically;
+      :System indicates tie in metadata;
+    else (no)
+      :System selects highest-rated service;
+    endif
+  else (no ratings)
+    :System selects service name closest to A alphabetically;
+    :System flags result as "unrated selection";
+  endif
+  
+  :System selects forecast from chosen service;
+  :System adds to result with metadata
+  (service name, rating score);
+  
+repeat while (More cities to process?) is (yes)
+->no;
+
+:System packages aggregated data;
+:System returns aggregated forecast;
+stop
+
+@enduml

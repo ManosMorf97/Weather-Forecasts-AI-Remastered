@@ -1,0 +1,28 @@
+@startuml UC14_Receive_Warning_Notification_Activity_Diagram
+
+title UC14: Receive Warning Notification - Activity Diagram
+
+start
+:System (UC17) triggers warning notification;
+:System retrieves user notification preferences;
+:System sends notification via configured channel
+(email/SMS/push);
+
+if (Notification delivered successfully?) then (yes)
+  :User receives notification with warning details;
+  if (User clicks notification link?) then (yes)
+    :User views full forecast details;
+  endif
+  stop
+else (no - delivery failed)
+  :System retries using alternative channel;
+  stop
+endif
+
+note right
+  Multiple cities affected:
+  System consolidates into
+  single notification
+end note
+
+@enduml

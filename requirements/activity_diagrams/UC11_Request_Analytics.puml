@@ -1,0 +1,26 @@
+@startuml UC11_Request_Analytics_Activity_Diagram
+
+title UC11: Request Analytics - Activity Diagram
+
+start
+:User selects "Request Analytics" option;
+:System displays analytics request form;
+:User specifies parameters
+(cities, date range, services, metrics);
+:User submits request;
+:System validates parameters;
+
+if (Parameters valid?) then (yes)
+  if (Aggregates needed?) then (yes)
+    :System invokes UC18 (Calculate Aggregates);
+  endif
+  :System generates analytics report;
+  :System presents report preview;
+  stop
+else (no)
+  :System displays error;
+  :Return to request form;
+  stop
+endif
+
+@enduml

@@ -1,0 +1,36 @@
+@startuml UC16_Store_Forecasts_Activity_Diagram
+
+title UC16: Store Forecasts - Activity Diagram
+
+start
+:System receives forecast data with metadata
+(serviceId, cityId, timestamp, type);
+:System checks for duplicate entries;
+
+if (Exact duplicate exists?) then (yes)
+  :System skips storage;
+  :Return success without modification;
+  stop
+else (no)
+  if (Newer version exists?) then (yes)
+    :System prepares update transaction;
+  else (no)
+    :System prepares insert transaction;
+  endif
+  
+  :System inserts/updates forecast records;
+  :System indexes data for efficient searching;
+  :System updates cache with latest forecasts;
+  
+  if (Transaction successful?) then (yes)
+    :System commits transaction;
+    :Return success status;
+    stop
+  else (no - transaction failed)
+    :System rolls back;
+    :System logs error;
+    stop
+  endif
+endif
+
+@enduml

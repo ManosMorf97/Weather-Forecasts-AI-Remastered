@@ -1,0 +1,35 @@
+@startuml UC4_Select_Cities_Activity_Diagram
+
+title UC4: Select Cities - Activity Diagram
+
+start
+:System displays city selection interface
+with currently selected cities;
+:User searches for cities by name or location;
+:System calls external City API;
+
+if (API available?) then (yes)
+  :System retrieves matching cities from API;
+  if (Cities found?) then (yes)
+    :System displays matching cities;
+  else (no)
+    :System displays "No results" message;
+    :User can refine search criteria;
+  endif
+else (no - API unavailable)
+  :System uses cached city database;
+  :System displays limited results with warning;
+endif
+
+:User selects cities to add;
+
+if (User wants to delete cities?) then (yes)
+  :User selects city to remove;
+  :System removes city from selection;
+endif
+
+:User confirms selection;
+:System saves updated city preferences;
+stop
+
+@enduml
