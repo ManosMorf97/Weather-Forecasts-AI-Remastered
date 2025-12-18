@@ -1,0 +1,93 @@
+@startuml Weather_Forecasts_UseCase_Diagram
+
+title Weather Forecasts System - Use Case Diagram
+
+' Actors
+actor "End User" as User
+actor "Scheduler" as Scheduler
+
+' System boundary
+rectangle "Weather Forecasts System" {
+    
+    ' User Management
+    usecase "Login" as UC1
+    usecase "Create Profile" as UC2
+    usecase "Edit Profile" as UC3
+    
+    ' Service and City Selection
+    usecase "Select Cities" as UC4
+    usecase "Select Forecasting Services" as UC5
+    
+    ' Forecast Operations
+    usecase "Search Forecast by City" as UC6
+    usecase "View Current Weather" as UC7
+    usecase "View Hourly Forecast\n(Next 3 Hours)" as UC8
+    usecase "View Daily Forecast\n(Next 3 Days)" as UC9
+    
+    ' Rating and Analytics
+    usecase "Rate Forecast" as UC10
+    usecase "Request Analytics" as UC11
+    usecase "Download Analytics" as UC12
+    usecase "View Aggregated Forecast" as UC13
+    
+    ' Alerts
+    usecase "Receive Warning\nNotification" as UC14
+    
+    ' System Operations
+    usecase "Poll Forecasts" as UC15
+    usecase "Store Forecasts" as UC16
+    usecase "Send Warnings" as UC17
+    usecase "Calculate Aggregates" as UC18
+}
+
+' User relationships
+User --> UC1
+User --> UC2
+User --> UC3
+User --> UC4
+User --> UC5
+User --> UC6
+User --> UC7
+User --> UC8
+User --> UC9
+User --> UC10
+User --> UC11
+User --> UC12
+User --> UC13
+User --> UC14
+
+' Scheduler relationships
+Scheduler --> UC15
+Scheduler --> UC16
+Scheduler --> UC17
+
+' Use case dependencies
+UC2 ..> UC4 : <<include>>
+UC2 ..> UC5 : <<include>>
+UC3 ..> UC4 : <<include>>
+UC3 ..> UC5 : <<include>>
+
+UC6 ..> UC7 : <<extend>>
+UC6 ..> UC8 : <<extend>>
+UC6 ..> UC9 : <<extend>>
+
+UC12 ..> UC11 : <<include>>
+UC13 ..> UC18 : <<include>>
+
+UC17 ..> UC14 : <<include>>
+UC15 ..> UC16 : <<include>>
+
+' Notes
+note right of UC14
+  Triggered for life-threatening
+  weather conditions in
+  subscribed Cities
+end note
+
+note right of UC18
+  Uses ratings to weight
+  forecasts from different
+  services
+end note
+
+@enduml
