@@ -203,20 +203,25 @@ This document provides detailed specifications for each use case identified in t
 2. System retrieves forecast data for all saved cities from selected services
 3. System sorts forecasts by SiteName (service), CityName, and Time
 4. System displays forecast dashboard with organized forecast information
-5. User can view forecasts for their preferred cities
-6. User may optionally extend to UC7, UC8, or UC9 to view specific forecast types
+5. User views forecasts for their preferred cities and their selected services
 
 **Alternative Flows:**
-- **A1: No Profile Preferences**
+- **A1: Manual Search**
+  - At step 1, user enters city name in search field instead of viewing saved cities
+  - User submits search request
+  - System retrieves forecast data for the specified city
+  - If forecasts available, system displays search results
+  - If no forecasts available, system displays informative message and activity ends
+- **A2: No Profile Preferences**
   - At step 1, if user has no saved cities or services, system displays empty dashboard
   - System prompts user to configure profile (UC3)
-- **A2: No Forecasts Available for Saved Cities**
+- **A3: No Forecasts Available for Saved Cities**
   - At step 2, if no forecasts exist for saved cities, system displays informative message
   - User can search for other cities or update profile
 
 **Postconditions:**
 - Forecast data is displayed to user ordered by SiteName, CityName, and Time
-- User can view detailed forecast information for saved and searched cities
+- User has viewed forecast information for saved and/or searched cities
 
 **Exceptions:**
 - **E1:** Forecast retrieval timeout - system displays cached data if available

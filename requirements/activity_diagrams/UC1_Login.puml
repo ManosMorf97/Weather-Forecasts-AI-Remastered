@@ -4,19 +4,18 @@ title UC1: Login - Activity Diagram
 
 start
 :User navigates to login page;
-:System displays login form;
-:User enters credentials;
-:System validates credentials;
-
-if (Credentials valid?) then (yes)
-  :System creates user session;
-  :System redirects user to dashboard;
-  stop
-else (no)
-  :System displays error message;
-  :Return to login form;
-  stop
-endif
+repeat
+  :System displays login form;
+  :User enters credentials;
+  :System validates credentials;
+  if (Credentials valid?) then (yes)
+    :System creates user session;
+    :System redirects user to dashboard;
+    stop
+  else (no)
+    :System displays error message;
+  endif
+repeat while (Retry?) is (yes) not (no)
 
 note right
   Alternative: Forgot Password

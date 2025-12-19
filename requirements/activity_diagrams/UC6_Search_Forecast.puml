@@ -22,17 +22,6 @@ else (no - manual search)
 endif
 
 :User views forecasts;
-
-if (User wants specific forecast type?) then (yes)
-  fork
-    :View Current Weather (UC7);
-  fork again
-    :View Hourly Forecast (UC8);
-  fork again
-    :View Daily Forecast (UC9);
-  end fork
-endif
-
 stop
 
 @enduml

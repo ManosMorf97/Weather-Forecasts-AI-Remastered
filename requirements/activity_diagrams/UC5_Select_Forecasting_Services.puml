@@ -3,19 +3,19 @@
 title UC5: Select Forecasting Services - Activity Diagram
 
 start
-:System displays list of available forecasting services;
-:System shows rating information for each service;
-:User selects one or more services;
+repeat
+  :System displays list of available forecasting services;
+  :System shows rating information for each service;
+  :User selects one or more services;
 
-if (At least one service selected?) then (yes)
-  :User confirms selection;
-  :System saves service preferences;
-  stop
-else (no)
-  :System displays warning;
-  :Require at least one service selection;
-  :Return to service selection;
-  stop
-endif
+  if (At least one service selected?) then (yes)
+    :User confirms selection;
+    :System saves service preferences;
+    stop
+  else (no)
+    :System displays warning;
+    :Require at least one service selection;
+  endif
+repeat while (Retry?) is (yes) not (no)
 
 @enduml

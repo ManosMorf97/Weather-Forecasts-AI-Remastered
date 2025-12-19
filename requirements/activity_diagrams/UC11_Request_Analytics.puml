@@ -4,23 +4,23 @@ title UC11: Request Analytics - Activity Diagram
 
 start
 :User selects "Request Analytics" option;
-:System displays analytics request form;
-:User specifies parameters
-(cities, date range, services, metrics);
-:User submits request;
-:System validates parameters;
+repeat
+  :System displays analytics request form;
+  :User specifies parameters
+  (cities, date range, services, metrics);
+  :User submits request;
+  :System validates parameters;
 
-if (Parameters valid?) then (yes)
-  if (Aggregates needed?) then (yes)
-    :System invokes UC18 (Calculate Aggregates);
+  if (Parameters valid?) then (yes)
+    if (Aggregates needed?) then (yes)
+      :System invokes UC18 (Calculate Aggregates);
+    endif
+    :System generates analytics report;
+    :System presents report preview;
+    stop
+  else (no)
+    :System displays error;
   endif
-  :System generates analytics report;
-  :System presents report preview;
-  stop
-else (no)
-  :System displays error;
-  :Return to request form;
-  stop
-endif
+repeat while (Retry?) is (yes) not (no)
 
 @enduml
