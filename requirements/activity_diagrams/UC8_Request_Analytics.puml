@@ -1,6 +1,6 @@
-@startuml UC11_Request_Analytics_Activity_Diagram
+@startuml UC8_Request_Analytics_Activity_Diagram
 
-title UC11: Request Analytics - Activity Diagram
+title UC8: Request Analytics - Activity Diagram
 
 start
 :User selects "Request Analytics" option;
@@ -13,7 +13,7 @@ repeat
 
   if (Parameters valid?) then (yes)
     if (Aggregates needed?) then (yes)
-      :System invokes UC18 (Calculate Aggregates);
+      :System invokes UC15 (Calculate Aggregates);
     endif
     :System generates analytics report;
     :System presents report preview;

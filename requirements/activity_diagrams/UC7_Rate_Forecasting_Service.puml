@@ -1,0 +1,42 @@
+@startuml UC7_Rate_Forecasting_Service_Activity_Diagram
+
+title UC7: Rate Forecasting Service - Activity Diagram
+
+start
+:User views forecasts in system (via UC6);
+:System displays forecasts with rating option
+for each (city, service, timestamp) combination;
+:User selects specific forecast to rate;
+:System displays current rating (if any)
+and rating scale (1-5 stars);
+
+repeat
+  :User submits rating value (1-5)
+  or selects remove rating option;
+  :System validates rating input;
+  
+  if (Valid input?) then (yes)
+    if (Remove rating selected?) then (yes)
+      :System deletes rating record
+      for (city, service, timestamp);
+      :System recalculates average rating for service;
+      :System displays confirmation message;
+      stop
+    else (rating submitted)
+      if (User already rated this forecast?) then (yes)
+        :System updates existing rating record;
+      else (no)
+        :System stores new rating record
+        associated with (user, city, service, timestamp);
+      endif
+      :System recalculates average rating for service
+      based on all ratings across cities and timestamps;
+      :System displays confirmation message;
+      stop
+    endif
+  else (invalid)
+    :System displays error;
+  endif
+repeat while (Retry?) is (yes) not (no)
+
+@enduml

@@ -1,11 +1,11 @@
-@startuml UC13_View_Aggregated_Forecast_Activity_Diagram
+@startuml UC10_View_Aggregated_Forecast_Activity_Diagram
 
-title UC13: View Aggregated Forecast - Activity Diagram
+title UC10: View Aggregated Forecast - Activity Diagram
 
 start
 :User selects "View Aggregate Forecast" option;
 
-partition "Calculate Aggregates (UC18)" {
+partition "Calculate Aggregates (UC15)" {
   :System calculates aggregated forecasts;
   :System selects best-rated service per city;
 }

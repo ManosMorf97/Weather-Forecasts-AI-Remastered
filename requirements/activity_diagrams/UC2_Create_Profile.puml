@@ -23,6 +23,7 @@ repeat
   :System validates input;
 
   if (Validation successful?) then (yes)
+    :System hashes the password;
     :System creates profile record;
     :System displays confirmation message;
     stop

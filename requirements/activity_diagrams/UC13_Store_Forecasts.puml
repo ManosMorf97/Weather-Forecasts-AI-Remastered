@@ -1,18 +1,20 @@
-@startuml UC16_Store_Forecasts_Activity_Diagram
+@startuml UC13_Store_Forecasts_Activity_Diagram
 
-title UC16: Store Forecasts - Activity Diagram
+title UC13: Store Forecasts - Activity Diagram
 
 start
 :System receives forecast data with metadata
 (serviceId, cityId, timestamp, type);
-:System checks for duplicate entries;
+:System checks if an identical forecast record exists
+(matching serviceId, cityId, timestamp, type, and data values);
 
 if (Exact duplicate exists?) then (yes)
   :System skips storage;
   :Return success without modification;
   stop
 else (no)
-  if (Newer version exists?) then (yes)
+  if (Forecast with matching serviceId, cityId, timestamp
+  exists but with different data values?) then (yes)
     :System prepares update transaction;
   else (no)
     :System prepares insert transaction;

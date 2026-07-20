@@ -1,6 +1,6 @@
-@startuml UC12_Download_Analytics_Activity_Diagram
+@startuml UC9_Download_Analytics_Activity_Diagram
 
-title UC12: Download Analytics - Activity Diagram
+title UC9: Download Analytics - Activity Diagram
 
 start
 :User selects "Download" option;

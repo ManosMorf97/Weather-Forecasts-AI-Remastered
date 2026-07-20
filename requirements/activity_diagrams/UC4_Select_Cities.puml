@@ -29,7 +29,14 @@ if (User wants to delete cities?) then (yes)
 endif
 
 :User confirms selection;
-:System saves updated city preferences;
-stop
+:System validates that at least one city remains selected;
+
+if (At least one city selected?) then (yes)
+  :System saves updated city preferences;
+  stop
+else (no)
+  :System displays error;
+  :User returns to search/select;
+endif
 
 @enduml

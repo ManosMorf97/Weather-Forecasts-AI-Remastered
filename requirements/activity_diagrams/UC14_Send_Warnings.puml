@@ -1,0 +1,26 @@
+@startuml UC14_Send_Warnings_Activity_Diagram
+
+title UC14: Send Warnings - Activity Diagram
+
+start
+:Scheduler triggers warning detection job;
+:System checks stored forecast data
+for danger/warning flags by (city, service) combinations;
+:System identifies (city, service) pairs
+with life-threatening weather conditions;
+
+if (Hazards detected?) then (yes)
+  repeat
+    :Select next affected (city, service) pair;
+    :System invokes UC11 (Receive Warning Notification);
+    :System logs warning event;
+    :System tracks notification delivery status;
+  repeat while (More affected (city, service) pairs?) is (yes)
+  ->no;
+else (no hazards)
+  :System completes normally;
+endif
+
+stop
+
+@enduml

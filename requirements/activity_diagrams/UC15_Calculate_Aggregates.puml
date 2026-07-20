@@ -1,10 +1,10 @@
-@startuml UC18_Calculate_Aggregates_Activity_Diagram
+@startuml UC15_Calculate_Aggregates_Activity_Diagram
 
-title UC18: Calculate Aggregates - Activity Diagram
+title UC15: Calculate Aggregates - Activity Diagram
 
 start
 :System receives request with parameters
-(cities, timeframe, metrics);
+(cities, timeframe, metrics, selected services);
 
 repeat
   :Select next city;
