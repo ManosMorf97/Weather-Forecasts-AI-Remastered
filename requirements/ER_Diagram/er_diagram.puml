@@ -1,0 +1,116 @@
+@startuml Weather_Forecasts_ER_Diagram
+
+title Weather Forecasts System - Entity-Relationship Diagram
+
+hide circle
+skinparam linetype ortho
+
+entity "User" as user {
+  * user_id : INT <<PK>>
+  --
+  username : VARCHAR
+  email : VARCHAR
+  password_hash : VARCHAR
+  created_at : DATETIME
+}
+
+entity "City" as city {
+  * city_id : INT <<PK>>
+  --
+  name : VARCHAR
+  country : VARCHAR
+  latitude : DECIMAL
+  longitude : DECIMAL
+}
+
+entity "ForecastingService" as service {
+  * service_id : INT <<PK>>
+  --
+  name : VARCHAR
+  api_endpoint : VARCHAR
+}
+
+entity "CitySite" as citysite {
+  * citysite_id : INT <<PK>>
+  --
+  city_id : INT <<FK>>
+  service_id : INT <<FK>>
+  ..
+  unique (city_id, service_id)
+}
+
+entity "UserCitySite" as user_citysite {
+  * user_id : INT <<PK, FK>>
+  * citysite_id : INT <<PK, FK>>
+  --
+  added_at : DATETIME
+}
+
+entity "Forecast" as forecast {
+  * forecast_id : INT <<PK>>
+  --
+  citysite_id : INT <<FK>>
+  timestamp : DATETIME
+  type : VARCHAR
+  temperature : DECIMAL
+  humidity : DECIMAL
+  wind_speed : DECIMAL
+  danger_flag : BOOLEAN
+  retrieved_at : DATETIME
+  ..
+  unique (citysite_id, timestamp, type)
+}
+
+entity "Rating" as rating {
+  * rating_id : INT <<PK>>
+  --
+  user_id : INT <<FK>>
+  forecast_id : INT <<FK>>
+  value : INT
+  created_at : DATETIME
+  updated_at : DATETIME
+  ..
+  unique (user_id, forecast_id)
+}
+
+entity "Notification" as notification {
+  * notification_id : INT <<PK>>
+  --
+  user_id : INT <<FK>>
+  forecast_id : INT <<FK>>
+  channel : VARCHAR
+  status : VARCHAR
+  sent_at : DATETIME
+}
+
+entity "AnalyticsReport" as report {
+  * report_id : INT <<PK>>
+  --
+  user_id : INT <<FK>>
+  cities : VARCHAR
+  services : VARCHAR
+  date_range_start : DATE
+  date_range_end : DATE
+  metrics : VARCHAR
+  format : VARCHAR
+  status : VARCHAR
+  created_at : DATETIME
+}
+
+city    ||--o{ citysite : has
+service ||--o{ citysite : offers
+
+user     ||--o{ user_citysite : selects
+citysite ||--o{ user_citysite : "selected by"
+
+citysite ||--o{ forecast : "has data for"
+
+user     ||--o{ rating : submits
+forecast ||--o{ rating : "rated by"
+
+user     ||--o{ notification : receives
+forecast ||--o{ notification : triggers
+
+user ||--o{ report : requests
+
+@enduml

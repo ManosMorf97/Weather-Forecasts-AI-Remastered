@@ -6,7 +6,21 @@ start
 :User navigates to login page;
 repeat
   :System displays login form;
+
+  if (User selects "Forgot Password"?) then (yes)
+    :System initiates password recovery process;
+    note right: Alternative Flow A2 - Forgot Password
+    stop
+  endif
+
   :User enters credentials;
+
+  if (Authentication service available?) then (no)
+    :System displays maintenance message;
+    note right: Exception E1 - Authentication service unavailable
+    stop
+  endif
+
   :System validates credentials;
   if (Credentials valid?) then (yes)
     :System creates user session;
@@ -16,11 +30,5 @@ repeat
     :System displays error message;
   endif
 repeat while (Retry?) is (yes) not (no)
-
-note right
-  Alternative: Forgot Password
-  User can select "Forgot Password"
-  to initiate recovery process
-end note
 
 @enduml

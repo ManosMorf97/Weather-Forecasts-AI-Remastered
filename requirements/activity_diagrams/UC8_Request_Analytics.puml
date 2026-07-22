@@ -13,11 +13,18 @@ repeat
 
   if (Parameters valid?) then (yes)
     if (Aggregates needed?) then (yes)
-      :System invokes UC15 (Calculate Aggregates);
+      :System invokes UC14 (Calculate Aggregates);
     endif
-    :System generates analytics report;
-    :System presents report preview;
-    stop
+
+    if (Report generation times out?) then (yes)
+      :System queues request for async processing;
+      note right: Exception E1 - Report generation timeout
+      stop
+    else (no)
+      :System generates analytics report;
+      :System presents report preview;
+      stop
+    endif
   else (no)
     :System displays error;
   endif

@@ -3,7 +3,7 @@
 **ID:** UC7  
 **Name:** Rate Forecasting Service  
 **Actor:** End User  
-**Description:** User submits a rating for a specific forecast (city, service, timestamp combination) based on their experience with forecast accuracy. Ratings are aggregated to calculate average service ratings used in aggregated forecasts.
+**Description:** User submits a rating for a specific forecast (city, service, timestamp)  combination based on their experience with forecast accuracy. Ratings are aggregated to calculate average service ratings used in aggregated forecasts.
 
 **Preconditions:**
 - User is logged in
@@ -30,15 +30,12 @@
   - System deletes the rating record for that (city, service, timestamp)
   - System recalculates average rating for the service
   - System displays confirmation message
-- **A3: Rate from Forecast Dashboard**
-  - At step 1, user can access rating interface directly from forecast display
-  - System pre-selects the (city, service, timestamp) of the displayed forecast
-  - Flow continues to step 5
+
 
 **Postconditions:**
 - User's rating is stored and associated with the specific (city, service, timestamp) combination
 - Service's average rating is updated across all rated forecasts
-- Updated ratings are available for aggregated forecast calculations (UC10, UC15)
+- Updated ratings are available for aggregated forecast calculations (UC10, UC14)
 
 **Exceptions:**
 - **E1:** Database update fails - system displays error and allows retry

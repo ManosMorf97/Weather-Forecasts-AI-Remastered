@@ -8,17 +8,23 @@ with currently selected cities;
 :User searches for cities by name or location;
 :System calls external City API;
 
-if (API available?) then (yes)
+if (API responds?) then (yes)
   :System retrieves matching cities from API;
-  if (Cities found?) then (yes)
-    :System displays matching cities;
+else (no - timeout/unavailable)
+  :System retries API call once;
+  if (API responds on retry?) then (yes)
+    :System retrieves matching cities from API;
   else (no)
-    :System displays "No results" message;
-    :User can refine search criteria;
+    :System uses cached city database;
+    :System displays limited results with warning;
   endif
-else (no - API unavailable)
-  :System uses cached city database;
-  :System displays limited results with warning;
+endif
+
+if (Cities found?) then (yes)
+  :System displays matching cities;
+else (no)
+  :System displays "No results" message;
+  :User can refine search criteria;
 endif
 
 :User selects cities to add;

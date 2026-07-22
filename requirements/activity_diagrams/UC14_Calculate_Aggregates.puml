@@ -1,6 +1,6 @@
-@startuml UC15_Calculate_Aggregates_Activity_Diagram
+@startuml UC14_Calculate_Aggregates_Activity_Diagram
 
-title UC15: Calculate Aggregates - Activity Diagram
+title UC14: Calculate Aggregates - Activity Diagram
 
 start
 :System receives request with parameters
@@ -9,22 +9,31 @@ start
 repeat
   :Select next city;
   :System retrieves forecasts from all selected services;
-  :System retrieves average rating for each service;
-  
-  if (Ratings available?) then (yes)
-    :System identifies service with maximum average rating;
-    
-    if (Multiple services have same max rating?) then (yes)
+
+  if (Any selected service has forecast data for this city?) then (no)
+    :System returns error indicating minimum requirements not met;
+    note right: Exception E1 - Insufficient Data
+    stop
+  endif
+
+  :System retrieves rating count and average rating for each service;
+
+  if (At least one service has a minimum of 2 ratings for this city?) then (yes)
+    :System identifies, among services with at least 2 ratings,
+    the service with maximum average rating;
+
+    if (Multiple qualifying services have same max rating?) then (yes)
       :System selects service name closest to A alphabetically;
       :System indicates tie in metadata;
     else (no)
       :System selects highest-rated service;
     endif
-  else (no ratings)
+  else (no)
     :System selects service name closest to A alphabetically;
     :System flags result as "unrated selection";
+    note right: Alternative Flow A1 - fewer than 2 ratings available
   endif
-  
+
   :System selects forecast from chosen service;
   :System adds to result with metadata
   (service name, rating score);

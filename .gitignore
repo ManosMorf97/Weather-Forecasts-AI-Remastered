@@ -43,3 +43,6 @@ Thumbs.db
 #Python Code Diagram Generation
 requirements/generate_diagram.py
 requirements/activity_diagrams/generate_all_diagrams.py
+
+#Other
+Notes.txt

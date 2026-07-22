@@ -16,13 +16,13 @@
 5. System saves updated service preferences.
 
 **Alternative Flows:**
-- **A1: No Service Selected**
-  - At step 5, if no service selected, system displays warning.
-  - System requires at least one service selection.
-- **A2: Remove Service**
+- **A1: Remove Service**
   - At step 3, user selects service to remove from their list.
   - System removes service from selection.
   - User can continue adding/removing more services.
+- **A2: All Services Removed**
+  - At step 4, if user attempts to confirm with no services selected, system displays error.
+  - User returns to step 2 to select at least one service.
 
 **Postconditions:**
 - Selected services are associated with user profile.

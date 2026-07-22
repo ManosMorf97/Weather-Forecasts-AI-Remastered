@@ -3,19 +3,49 @@
 title UC5: Select Forecasting Services - Activity Diagram
 
 start
-repeat
-  :System displays list of available forecasting services;
-  :System shows rating information for each service;
-  :User selects one or more services;
+:System displays list of available forecasting services
+with currently selected services (if any);
+note right
+  Main Flow Step 1
+end note
 
-  if (At least one service selected?) then (yes)
-    :User confirms selection;
-    :System saves service preferences;
-    stop
+repeat
+  :User selects one or more services to add;
+  note right
+    Main Flow Step 2
+  end note
+  
+  if (User wants to remove service?) then (yes)
+    :User selects service to remove;
+    :System removes service from selection;
+    note right
+      Alternative Flow A1:
+      Remove Service
+    end note
   else (no)
-    :System displays warning;
-    :Require at least one service selection;
   endif
-repeat while (Retry?) is (yes) not (no)
+  
+repeat while (More changes?) is (yes) not (no)
+
+:User confirms selection;
+note right
+  Main Flow Step 4
+end note
+
+if (At least one service selected?) then (yes)
+  :System saves updated service preferences;
+  note right
+    Main Flow Step 5
+  end note
+  stop
+else (no)
+  :System displays error;
+  :User returns to select at least one service;
+  note right
+    Alternative Flow A2:
+    All Services Removed
+  end note
+  detach
+endif
 
 @enduml

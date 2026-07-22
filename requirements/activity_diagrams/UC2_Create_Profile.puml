@@ -24,9 +24,14 @@ repeat
 
   if (Validation successful?) then (yes)
     :System hashes the password;
-    :System creates profile record;
-    :System displays confirmation message;
-    stop
+    if (Database connection available?) then (yes)
+      :System creates profile record;
+      :System displays confirmation message;
+      stop
+    else (no)
+      :System displays database error;
+      note right: Exception E1 - Database connection failure
+    endif
   else (no)
     :System displays error messages;
   endif

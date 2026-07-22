@@ -5,7 +5,7 @@ title UC10: View Aggregated Forecast - Activity Diagram
 start
 :User selects "View Aggregate Forecast" option;
 
-partition "Calculate Aggregates (UC15)" {
+partition "Calculate Aggregates (UC14)" {
   :System calculates aggregated forecasts;
   :System selects best-rated service per city;
 }
@@ -19,10 +19,6 @@ if (Multiple services have data?) then (yes)
 else (single service only)
   :System displays that service's forecast;
   :System indicates aggregation not applicable;
-endif
-
-if (User wants to compare?) then (yes)
-  :User compares with individual service forecasts;
 endif
 
 stop

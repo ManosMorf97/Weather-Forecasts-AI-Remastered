@@ -33,10 +33,9 @@ rectangle "Weather Forecasts System" {
     ' System Operations (Scheduler)
     usecase "Poll Forecasts" as UC12
     usecase "Store Forecasts" as UC13
-    usecase "Send Warnings" as UC14
-    
+
     ' Calculation (invoked by UC8 and UC10)
-    usecase "Calculate Aggregates" as UC15
+    usecase "Calculate Aggregates" as UC14
 }
 
 ' End User relationships
@@ -51,7 +50,7 @@ User --> UC10
 
 ' Scheduler relationships
 Scheduler --> UC12
-Scheduler --> UC14
+Scheduler --> UC11
 
 ' Use case dependencies
 UC2 ..> UC4 : <<include>>
@@ -60,12 +59,11 @@ UC3 ..> UC4 : <<include>>
 UC3 ..> UC5 : <<include>>
 
 UC7 ..> UC6 : <<extend>>
-UC8 ..> UC15 : <<include>>
+UC8 ..> UC14 : <<include>>
 UC9 ..> UC8 : <<precondition>>
-UC10 ..> UC15 : <<include>>
+UC10 ..> UC14 : <<include>>
 
 UC12 ..> UC13 : <<include>>
-UC14 ..> UC11 : <<include>>
 
 ' Notes
 note right of UC7
@@ -83,7 +81,7 @@ note right of UC11
   combinations
 end note
 
-note right of UC15
+note right of UC14
   Invoked by UC8 and UC10.
   Uses aggregated service ratings
   from UC7 to select best-rated

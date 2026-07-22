@@ -15,7 +15,7 @@
 3. User specifies parameters (cities, date range, services, metrics)
 4. User submits request
 5. System validates parameters
-6. System invokes UC15 (Calculate Aggregates) if needed
+6. System invokes UC14 (Calculate Aggregates) if needed
 7. System generates analytics report
 8. System presents report preview
 

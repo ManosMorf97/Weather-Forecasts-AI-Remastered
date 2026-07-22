@@ -22,19 +22,30 @@ repeat
   endif
 
   :User submits changes;
+
+  if (Any changes detected?) then (no)
+    :System displays "no changes made" message;
+    stop
+  endif
+
   :System validates input and checks that
   updated email and username are not already
   used by another account;
 
   if (Validation successful and no conflicts?) then (yes)
-    if (Password was changed?) then (yes)
-      :System hashes the new password;
+    if (Concurrent update conflict detected?) then (yes)
+      :System displays concurrent update error;
+      :System reloads current profile data;
+    else (no)
+      if (Password was changed?) then (yes)
+        :System hashes the new password;
+      endif
+      :System updates profile record;
+      :System displays confirmation message;
+      stop
     endif
-    :System updates profile record;
-    :System displays confirmation message;
-    stop
   else (validation failed or conflict)
-    :System displays error;
+    :System displays conflict/validation error;
   endif
 repeat while (Retry?) is (yes) not (no)
 

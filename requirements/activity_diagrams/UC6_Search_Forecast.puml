@@ -4,21 +4,42 @@ title UC6: Search Forecast by City - Activity Diagram
 
 start
 
-if (User just logged in?) then (yes)
+if (User is logged in?) then (yes)
+else (no)
+  :System redirects user to login page;
+  note right: Exception E3 - User not logged in
+  stop
+endif
+
+if (User searches manually?) then (no)
   :System retrieves user's profile preferences;
   :System retrieves forecast data for all saved cities;
-  :System sorts forecasts by SiteName, CityName, Time;
-  :System displays forecast dashboard;
-else (no - manual search)
+  note right
+    Exception E1: Forecast retrieval timeout -
+    system displays cached data if available
+  end note
+  if (Forecasts available for saved cities?) then (yes)
+    :System sorts forecasts by SiteName, CityName, Time;
+    :System displays forecast dashboard;
+  else (no)
+    :System displays informative message;
+    note right: Alternative Flow A2 - No Forecasts Available for Saved Cities
+  endif
+else (yes - user searches manually)
   :User enters city name in search field;
   :User submits search request;
   :System retrieves forecast data for the city;
+  note right
+    Exception E2: Search service timeout -
+    system displays error and suggests retry
+  end note
   if (Forecasts available?) then (yes)
     :System displays search results;
   else (no)
     :System displays informative message;
     stop
   endif
+  note right: Alternative Flow A1 - Manual Search
 endif
 
 :User views forecasts;

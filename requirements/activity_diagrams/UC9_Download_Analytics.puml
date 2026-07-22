@@ -6,16 +6,25 @@ start
 :User selects "Download" option;
 :System displays format options (JSON, CSV, PDF);
 :User selects desired format;
-:System converts report to selected format;
 
-if (File size acceptable?) then (yes)
-  :System initiates download;
-  :User receives file;
-  stop
-else (large file)
-  :System sends download link via email;
-  :User can download from link later;
-  stop
-endif
+repeat
+  :System converts report to selected format;
+
+  if (Conversion successful?) then (yes)
+    if (File size acceptable?) then (yes)
+      :System initiates download;
+      :User receives file;
+      stop
+    else (large file)
+      :System sends download link via email;
+      :User can download from link later;
+      stop
+    endif
+  else (no)
+    :System offers alternative format;
+    note right: Exception E1 - Format conversion fails
+    :User selects alternative format;
+  endif
+repeat while (Retry?) is (yes) not (no)
 
 @enduml

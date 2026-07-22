@@ -3,8 +3,6 @@
 title UC11: Receive Warning Notification - Activity Diagram
 
 start
-:System (UC14) triggers warning notification
-for specific (city, service) pair;
 :Scheduler checks stored forecast data
 for danger/warning flags by city and service;
 :System identifies users who have both
@@ -15,14 +13,11 @@ if (Matching users found?) then (yes)
     :Select next user;
     :System retrieves user notification preferences;
     :System sends notification via configured channel
-    (email/SMS/push);
+    (email/push);
 
     if (Notification delivered successfully?) then (yes)
       :User receives notification with warning details;
       :System logs notification delivery;
-      if (User clicks notification link?) then (yes)
-        :User views full forecast details;
-      endif
     else (no - delivery failed)
       :System retries using alternative channel;
     endif
