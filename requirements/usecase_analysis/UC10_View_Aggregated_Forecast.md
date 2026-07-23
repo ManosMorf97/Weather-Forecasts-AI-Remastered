@@ -12,7 +12,7 @@
 
 **Main Flow:**
 1. User selects "View Aggregate Forecast" option
-2. System invokes UC14 (Calculate Aggregates)
+2. System invokes UC12 (Calculate Aggregates)
 3. System retrieves aggregated forecast data showing best-rated service per city from user's selected services
 4. System displays forecast from service with maximum average rating for each city among user's selected services
 5. System shows rating score and service name for each city and the forecast

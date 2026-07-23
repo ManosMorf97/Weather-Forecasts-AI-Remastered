@@ -1,0 +1,120 @@
+@startuml UC11_Poll_Forecasts_And_Notify_Users_Activity_Diagram
+
+title UC11: Poll Forecasts and Notify Users - Activity Diagram
+
+start
+:Scheduler triggers polling job based on schedule;
+:System retrieves unique (city, service) combinations
+from all user profiles;
+
+if (User preferences exist?) then (yes)
+  repeat
+    :Select next service;
+    :System identifies cities that users
+    have selected for that service;
+    :System sends GET request to partner API
+    for those specific cities;
+
+    if (Service responds?) then (yes)
+      :Partner service returns forecast data;
+      :System validates received data;
+      if (Data valid?) then (yes)
+        if (Exact duplicate record exists?) then (yes)
+          :System skips storage for this record;
+          note right: Alternative Flow A4 - Duplicate Forecast Data
+        else (no)
+          if (Forecast with same city, service, timestamp
+          exists with different data values?) then (yes)
+            :System updates the existing forecast record;
+            note right: Alternative Flow A5 - Updated Forecast Data
+          else (no)
+            :System inserts new forecast record;
+          endif
+          if (Storage transaction successful?) then (yes)
+          else (no)
+            :System rolls back and logs error;
+            note right: Exception E2 - Storage transaction fails
+          endif
+        endif
+      else (invalid)
+        :System logs validation error;
+      endif
+    else (no - service unavailable)
+      :System logs error;
+      note right: Alternative Flow A1 - Service Unavailable
+      if (Rate limit reached?) then (yes)
+        :System delays next poll for that service;
+        note right: Alternative Flow A2 - Rate Limiting
+      endif
+    endif
+
+  repeat while (More services to poll?) is (yes)
+  ->no;
+
+  :System logs polling results;
+
+  if (All services failed?) then (yes)
+    :System sends alert to administrators;
+    note right: Exception E1 - All services fail
+  endif
+
+  partition "Notify Users of Danger Forecasts" {
+    :System finds all stored forecast records
+    with a danger flag, per (city, service);
+    :System identifies, for each danger record,
+    the users who have that city and service
+    in their preferences;
+    note right: Alternative Flow A6 - No Matching Users (per record)
+    :System excludes users already notified
+    for that specific forecast record;
+    note right
+      Alternative Flow A7 - New Subscriber to an
+      Existing Danger: a user who has not been
+      notified for a record is always included,
+      even if the record wasn't polled this cycle
+    end note
+    :System groups remaining danger records
+    by user into one consolidated warning list
+    per affected user;
+
+    if (Any users have unnotified warnings?) then (yes)
+      repeat
+        :Select next user with warnings;
+        :System retrieves user notification preferences;
+        :System sends single notification containing
+        the user's full list of warnings via configured
+        channel (email/push);
+
+        if (Notification delivered successfully?) then (yes)
+          :User receives consolidated notification
+          with all warning details;
+          :System logs notification delivery
+          for these forecast records;
+        else (no - delivery failed)
+          :System retries using alternative channel;
+          if (Alternative channel delivery successful?) then (yes)
+            :User receives consolidated notification
+            with all warning details;
+            :System logs notification delivery
+            for these forecast records;
+          else (no)
+            :System logs delivery failure - all channels failed;
+            note right: Exception E3 - Notification delivery fails
+          endif
+        endif
+      repeat while (More users to notify?) is (yes)
+      ->no;
+    else (no unnotified warnings)
+      :System logs event;
+    endif
+  }
+
+else (no - no user preferences)
+  :System skips polling;
+  note right: Alternative Flow A3 - No User Preferences
+endif
+
+:System schedules next polling cycle;
+stop
+
+@enduml

@@ -1,6 +1,6 @@
-@startuml UC14_Calculate_Aggregates_Activity_Diagram
+@startuml UC12_Calculate_Aggregates_Activity_Diagram
 
-title UC14: Calculate Aggregates - Activity Diagram
+title UC12: Calculate Aggregates - Activity Diagram
 
 start
 :System receives request with parameters

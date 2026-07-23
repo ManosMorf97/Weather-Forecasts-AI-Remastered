@@ -5,7 +5,7 @@ title UC10: View Aggregated Forecast - Activity Diagram
 start
 :User selects "View Aggregate Forecast" option;
 
-partition "Calculate Aggregates (UC14)" {
+partition "Calculate Aggregates (UC12)" {
   :System calculates aggregated forecasts;
   :System selects best-rated service per city;
 }

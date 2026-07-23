@@ -1,6 +1,6 @@
-# UC14: Calculate Aggregates
+# UC12: Calculate Aggregates
 
-**ID:** UC14  
+**ID:** UC12  
 **Name:** Calculate Aggregates  
 **Actor:** End User  
 **Description:** System calculates aggregated forecasts by selecting the forecast from the service with the maximum average rating for each city, considering only services with at least 2 ratings so the average is reliable. This use case is invoked by UC8 (Request Analytics) and UC10 (View Aggregated Forecast).

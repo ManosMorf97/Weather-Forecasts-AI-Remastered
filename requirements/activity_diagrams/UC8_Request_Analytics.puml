@@ -13,7 +13,7 @@ repeat
 
   if (Parameters valid?) then (yes)
     if (Aggregates needed?) then (yes)
-      :System invokes UC14 (Calculate Aggregates);
+      :System invokes UC12 (Calculate Aggregates);
     endif
 
     if (Report generation times out?) then (yes)

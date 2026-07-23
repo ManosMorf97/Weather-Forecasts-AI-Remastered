@@ -14,10 +14,8 @@ This index organizes the use case analysis into one markdown file per documented
 - [UC8_Request_Analytics](./usecase_analysis/UC8_Request_Analytics.md)
 - [UC9_Download_Analytics](./usecase_analysis/UC9_Download_Analytics.md)
 - [UC10_View_Aggregated_Forecast](./usecase_analysis/UC10_View_Aggregated_Forecast.md)
-- [UC11_Receive_Warning_Notification](./usecase_analysis/UC11_Receive_Warning_Notification.md)
-- [UC12_Poll_Forecasts](./usecase_analysis/UC12_Poll_Forecasts.md)
-- [UC13_Store_Forecasts](./usecase_analysis/UC13_Store_Forecasts.md)
-- [UC14_Calculate_Aggregates](./usecase_analysis/UC14_Calculate_Aggregates.md)
+- [UC11_Poll_Forecasts_And_Notify_Users](./usecase_analysis/UC11_Poll_Forecasts_And_Notify_Users.md)
+- [UC12_Calculate_Aggregates](./usecase_analysis/UC12_Calculate_Aggregates.md)
 
 ## Notes
 The current use case analysis source includes detailed specifications for the use cases listed above. Any additional use cases should be added as separate files in this folder.
