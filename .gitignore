@@ -41,8 +41,7 @@ Thumbs.db
 .DS_Store
 
 #Python Code Diagram Generation
-requirements/generate_diagram.py
-requirements/activity_diagrams/generate_all_diagrams.py
+requirements/*.py
 
 #Other
 Notes.txt

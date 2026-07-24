@@ -46,6 +46,19 @@ entity "UserCitySite" as user_citysite {
   added_at : DATETIME
 }
 
+entity "UserService" as user_service {
+  * user_id : INT <<PK, FK>>
+  * service_id : INT <<PK, FK>>
+  --
+  added_at : DATETIME
+  ..
+  Pending service picks with no
+  city yet (e.g. City API was down
+  during signup). Cleared once the
+  user's first city materializes
+  these into UserCitySite rows.
+}
+
 entity "Forecast" as forecast {
   * forecast_id : INT <<PK>>
   --
@@ -102,6 +115,9 @@ service ||--o{ citysite : offers
 
 user     ||--o{ user_citysite : selects
 citysite ||--o{ user_citysite : "selected by"
+
+user    ||--o{ user_service : "selects (pending)"
+service ||--o{ user_service : "selected by (pending)"
 
 citysite ||--o{ forecast : "has data for"
 
