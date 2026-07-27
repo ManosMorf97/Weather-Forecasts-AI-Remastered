@@ -3,11 +3,30 @@
 title UC2: Create Profile - Activity Diagram
 
 start
-:User selects "Create Profile" option;
-repeat
-  :System displays profile creation form;
-  :User enters profile details;
+:System receives verified Firebase ID token
+from Login / Sign Up (UC1);
+:System extracts user_id (Firebase uid)
+from the token;
 
+if (User row exists for user_id?) then (yes)
+else (no)
+  :System inserts new User row
+  (user_id, created_at);
+  note right: idempotent upsert - ON CONFLICT (user_id) DO NOTHING
+endif
+
+if (Database write successful?) then (no)
+  :System displays error and allows retry;
+  note right: Exception E1 - Database write failure during upsert
+  stop
+endif
+
+:System checks whether user has at least
+one CitySite selection;
+
+if (At least one CitySite selection exists?) then (yes)
+  note right: Alternative Flow A1 - Existing, Already Configured User
+else (no)
   partition "Select Cities (UC4)" {
     :User searches for cities via API;
     :System displays matching cities;
@@ -18,23 +37,9 @@ repeat
     :System displays available services;
     :User selects one or more services;
   }
+endif
 
-  :User submits profile;
-  :System validates input;
-
-  if (Validation successful?) then (yes)
-    :System hashes the password;
-    if (Database connection available?) then (yes)
-      :System creates profile record;
-      :System displays confirmation message;
-      stop
-    else (no)
-      :System displays database error;
-      note right: Exception E1 - Database connection failure
-    endif
-  else (no)
-    :System displays error messages;
-  endif
-repeat while (Retry?) is (yes) not (no)
+:System returns control to Login / Sign Up (UC1);
+stop
 
 @enduml

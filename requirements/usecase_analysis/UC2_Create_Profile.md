@@ -2,35 +2,26 @@
 
 **ID:** UC2  
 **Name:** Create Profile  
-**Actor:** End User  
-**Description:** User creates a new profile with cities of interest and preferred forecasting services.
+**Actor:** System (invoked by UC1)  
+**Description:** On every successful authentication, the system ensures a local profile row exists for the authenticated user, keyed by the Authentication Service's user_id. No username, email, or password is copied into this row - those live only in the Authentication Service (Firebase Authentication) and are fetched on demand when actually needed (e.g. UC9, UC11).
 
 **Preconditions:**
-- User is not logged in
-- User does not already have an account
+- User holds a valid Firebase ID token issued by the Authentication Service (see UC1: Login / Sign Up)
 
 **Main Flow:**
-1. User selects "Create Profile" option
-2. System displays profile creation form
-3. User enters profile details (email, username, and password)
-4. System invokes UC4 (Select Cities)
-5. System invokes UC5 (Select Forecasting Services)
-6. User submits profile
-7. System validates input
-8. System hashes the password and creates the profile record
-9. System displays confirmation message
+1. System extracts user_id from the verified ID token
+2. System performs an idempotent upsert of the User row keyed by user_id (insert if absent; no-op if already present)
+3. System checks whether the user has at least one CitySite selection
+4. If none exists, system invokes UC4 (Select Cities) and UC5 (Select Forecasting Services) to complete initial setup
+5. System returns control to UC1 (Login / Sign Up)
 
 **Alternative Flows:**
-- **A1: Validation Errors**
-  - At step 7, if validation fails, system displays error messages
-  - User returns to step 3 to correct errors
-- **A2: User Exists Error**
-  - At step 7, if user already exists, system displays error messages
-  - User returns to step 3 to correct errors
+- **A1: Existing, Already Configured User**
+  - At step 3, if the user already has at least one CitySite selection, step 4 is skipped
 
 **Postconditions:**
-- Profile is created and saved in database
-- User has selected cities and forecasting services configured
+- Local profile row exists, keyed by user_id
+- New users are routed into initial city/service selection
 
 **Exceptions:**
-- **E1:** Database connection failure - system displays error and allows retry
+- **E1:** Database write failure during upsert - system displays an error and allows retry; user is treated as not yet provisioned until the profile row exists

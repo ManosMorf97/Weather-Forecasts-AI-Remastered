@@ -1,0 +1,112 @@
+@startuml Weather_Forecasts_System_Design
+
+title Weather Forecasts System - System Design (Service Architecture)
+
+skinparam componentStyle rectangle
+skinparam linetype ortho
+
+actor "End User" as User
+
+node "Frontend Service\n<<Web / Mobile Client>>" as Frontend
+
+node "Authentication Service\n<<Firebase Authentication>>" as Auth
+
+node "User Actions Server" as UserServer {
+  component "Login/Sign Up, Profile,\nCity/Service Selection, Search,\nRate, Analytics & Aggregation API" as UserServerAPI
+}
+
+node "Scheduler Server" as Scheduler {
+  component "Polling &\nNotification Dispatch" as SchedulerJob
+}
+
+database "Database Service" as DB
+
+cloud "Partner Forecasting\nServices" as PartnerAPIs
+
+cloud "Notification Providers\n(Email / SMS / Push)" as NotifyProviders
+
+' --- Relationships ---
+User --> Frontend : HTTPS
+
+Frontend --> Auth : Firebase Client SDK:\nsign-in/sign-up/password-reset\n(UC1); account changes (UC13)
+Frontend --> UserServer : REST/HTTPS\n(Bearer Firebase ID token)
+
+UserServer --> Auth : verify ID token\n(Firebase Admin SDK);\nfetch single user's email\n(UC9 large-file download link)
+UserServer --> DB : upsert user_id\n(JIT, on conflict do nothing);\nread/write cities, services,\nratings, analytics
+
+Scheduler --> DB : read subscriptions,\nwrite forecasts
+Scheduler --> Auth : batch-fetch emails\n(Firebase Admin SDK getUsers(),\nup to 100 ids per call)
+Scheduler --> PartnerAPIs : poll forecasts
+Scheduler --> NotifyProviders : dispatch warnings
+
+' --- Notes ---
+note right of Frontend
+  Implements UC13 (Change
+  Authentication Details) entirely
+  client-side: calls the Firebase
+  Client SDK directly for sign-in,
+  sign-up, password reset, and
+  account changes. No backend
+  service is involved in any of
+  these, and nothing is cached
+  locally as a result.
+end note
+
+note right of Auth
+  Sole source of truth for
+  accounts: registration,
+  credentials, sessions,
+  username and email - none of
+  it is ever copied into the app
+  DB. Issues Firebase ID tokens,
+  keyed by user_id (Firebase uid).
+  Exposes a batch user-lookup
+  call (up to 100 ids/request)
+  used by UC11's notification
+  dispatch.
+end note
+
+note right of DB
+  Single shared datastore
+  (see ER diagram) holding
+  domain data: Users(user_id,
+  created_at - JIT-provisioned,
+  no account fields), Cities,
+  Services, Forecasts, Ratings,
+  Notifications, AnalyticsReports.
+  No account data is stored here.
+end note
+
+note bottom of UserServer
+  Implements UC1-UC10 and UC12:
+  Login/Sign Up (incl. first-login JIT
+  provisioning + redirect to
+  City/Service selection if the
+  user has no CitySite yet),
+  Edit Selections (city/service
+  picks only), Select
+  Cities/Services, Search
+  Forecast, Rate Forecasting
+  Service, Request/Download
+  Analytics (fetches email from
+  Auth only for the large-file
+  case), View Aggregated
+  Forecast, Calculate Aggregates
+  (invoked by UC8/UC10, both
+  End User actions).
+end note
+
+note bottom of Scheduler
+  Implements UC11 (Poll Forecasts
+  and Notify Users). Runs
+  independently of user requests
+  on a fixed schedule. Batch-fetches
+  recipient emails from Auth once
+  per cycle rather than caching
+  them locally; retries a failed
+  batch with backoff before
+  excluding those users for
+  this cycle (see UC11 A8).
+end note
+
+@enduml

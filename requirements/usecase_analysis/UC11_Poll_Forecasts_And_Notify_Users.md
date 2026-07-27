@@ -20,10 +20,11 @@
 8. System finds all stored forecast records with a danger flag for a (city, service) combination and identifies the users who have both that city and service in their preferences
 9. System excludes, for each danger forecast record, any user who has already been notified for that specific record
 10. System groups the remaining danger forecasts by user, building one consolidated warning list per user who has at least one unnotified warning
-11. System sends each such user a single notification containing their full list of warnings via configured channel (email/push)
-12. System logs notification delivery for each user, associated with the specific forecast records covered
-13. System logs polling results
-14. System schedules next polling cycle
+11. System batch-fetches emails for all these users' ids from the Authentication Service (Firebase Admin SDK, up to 100 ids per call)
+12. System sends each such user a single notification containing their full list of warnings via configured channel (email/push)
+13. System logs notification delivery for each user, associated with the specific forecast records covered
+14. System logs polling results
+15. System schedules next polling cycle
 
 **Alternative Flows:**
 - **A1: Service Unavailable**
@@ -42,6 +43,9 @@
   - At step 8, if no users have the affected (city, service) combination in their preferences, system logs the event and sends no notification for that forecast
 - **A7: New Subscriber to an Existing Danger**
   - If a user adds a (city, service) combination that already has a stored danger forecast they have not been notified about, that forecast is included the next time this use case runs, since the user has not yet received a notification for that specific record
+- **A8: Batch Lookup Failure**
+  - At step 11, if a batch call to the Authentication Service fails, system retries that batch with backoff
+  - If it still fails, system logs the failure and excludes the affected users from this cycle; they remain unnotified and are retried next cycle
 
 **Postconditions:**
 - Latest forecasts are retrieved and stored for user-requested (city, service) combinations

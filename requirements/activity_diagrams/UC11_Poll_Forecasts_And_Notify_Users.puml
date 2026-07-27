@@ -78,8 +78,19 @@ if (User preferences exist?) then (yes)
     per affected user;
 
     if (Any users have unnotified warnings?) then (yes)
+      :System batch-fetches emails for all these
+      users' ids from Authentication Service
+      (Firebase Admin SDK, up to 100 ids per call);
+
+      if (Batch lookup fails after retry?) then (yes)
+        :System logs failure and excludes affected
+        users from this cycle;
+        note right: Alternative Flow A8 - Batch Lookup Failure
+      endif
+
       repeat
         :Select next user with warnings;
+
         :System retrieves user notification preferences;
         :System sends single notification containing
         the user's full list of warnings via configured

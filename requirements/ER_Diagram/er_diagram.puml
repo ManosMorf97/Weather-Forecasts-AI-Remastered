@@ -8,10 +8,23 @@ skinparam linetype ortho
 entity "User" as user {
   * user_id : INT <<PK>>
   --
-  username : VARCHAR
-  email : VARCHAR
-  password_hash : VARCHAR
   created_at : DATETIME
+  ..
+  No username/email/password
+  stored here. All account data
+  lives only in the Auth Service
+  (Firebase Authentication),
+  keyed by the same user_id
+  (Firebase uid). Row is created
+  lazily (JIT) on first login.
+  Whenever a username or email
+  is needed (e.g. notifications,
+  UC9's email-download link),
+  the app fetches it from Auth
+  by user_id on demand - single
+  lookup for one user, or a
+  batch lookup (up to 100 ids
+  per call) for many at once.
 }
 
 entity "City" as city {

@@ -1,0 +1,43 @@
+@startuml UC3_Edit_Selections_Activity_Diagram
+
+title UC3: Edit Selections - Activity Diagram
+
+start
+:User selects "Edit Selections" option;
+repeat
+  :System retrieves and displays current
+  city and service selections;
+
+  if (User wants to modify cities?) then (yes)
+    partition "Select Cities (UC4)" {
+      :User searches/modifies cities;
+      :User adds or removes cities;
+    }
+  endif
+
+  if (User wants to modify services?) then (yes)
+    partition "Select Forecasting Services (UC5)" {
+      :User modifies selected services;
+    }
+  endif
+
+  :User confirms changes;
+
+  if (Any changes detected?) then (no)
+    :System displays "no changes made" message;
+    note right: Alternative Flow A1 - No Changes Made
+    stop
+  endif
+
+  if (Concurrent update conflict detected?) then (yes)
+    :System displays concurrent update error;
+    note right: Exception E1 - Concurrent update conflict
+    :System reloads current selections;
+  else (no)
+    :System saves updated preferences;
+    :System displays confirmation message;
+    stop
+  endif
+repeat while (Retry?) is (yes) not (no)
+
+@enduml

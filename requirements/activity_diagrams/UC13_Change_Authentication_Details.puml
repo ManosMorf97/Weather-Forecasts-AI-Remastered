@@ -1,0 +1,35 @@
+@startuml UC13_Change_Authentication_Details_Activity_Diagram
+
+title UC13: Change Authentication Details - Activity Diagram
+
+start
+:User selects "Account Settings" option;
+
+if (Authentication Service available?) then (no)
+  :Frontend displays error and allows retry later;
+  note right: Exception E1 - Authentication Service unavailable
+  stop
+endif
+
+:Frontend displays editable username, email,
+and password fields, pre-filled from the
+current Firebase user object;
+:User updates one or more fields and confirms;
+:Frontend calls the corresponding Firebase
+Client SDK method (updateProfile, updateEmail,
+updatePassword) directly against
+Authentication Service;
+
+if (Session recent enough?) then (no)
+  :Frontend prompts user to re-enter password;
+  :Frontend calls SDK's re-authentication method;
+  note right: Alternative Flow A1 - Re-authentication Required
+  :Frontend retries the change;
+endif
+
+:Authentication Service validates
+and applies the change;
+:Frontend displays confirmation message;
+stop
+
+@enduml

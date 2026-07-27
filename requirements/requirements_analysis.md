@@ -38,8 +38,9 @@ This document captures functional and non-functional requirements, actors, use c
 - Localisation: support timezones and localization for area names and times.
 
 ## Use Cases (brief)
-- Login
-- Create / Edit Profile (Cities + selected services)
+- Login / Sign Up
+- Create Profile / Edit Selections (Cities + selected services)
+- Change Authentication Details (username, email, password - handled by Auth Service)
 - Search Forecast by Area
 - View Current / Hourly / Daily Forecast
 - Rate Forecast

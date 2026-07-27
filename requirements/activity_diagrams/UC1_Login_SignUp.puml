@@ -1,0 +1,75 @@
+@startuml UC1_Login_SignUp_Activity_Diagram
+
+title UC1: Login / Sign Up - Activity Diagram
+
+start
+:User opens the application;
+:Frontend's Firebase SDK restores any
+existing session from local persistence;
+
+if (Session restored?) then (yes)
+else (no)
+  :Frontend displays its own login form;
+
+  if (User selects "Register"?) then (yes)
+    :Frontend calls Firebase Client SDK
+    to create account (username, email,
+    password) on Authentication Service;
+    note right: Alternative Flow A1 - New Account
+  else (no)
+  endif
+
+  if (User selects "Forgot Password"?) then (yes)
+    :Frontend calls Firebase Client SDK's
+    password-reset flow;
+    note right: Alternative Flow A3 - Forgot Password
+    stop
+  endif
+
+  :User enters credentials into
+  Frontend's form;
+
+  if (Authentication Service available?) then (no)
+    :System displays maintenance message;
+    note right: Exception E1 - Authentication Service unavailable
+    stop
+  endif
+
+  :Frontend calls Firebase Client SDK
+  to sign in;
+
+  if (Credentials valid?) then (no)
+    :Firebase Client SDK returns error;
+    :Frontend displays it and re-prompts;
+    note right: Alternative Flow A2 - Invalid Credentials
+    stop
+  endif
+
+  :Authentication Service issues
+  Firebase ID token to the Frontend;
+endif
+
+:System verifies Firebase ID token
+(Firebase Admin SDK);
+
+if (Token valid?) then (no)
+  :System treats user as unauthenticated;
+  note right: Exception E2 - Token verification fails
+  stop
+endif
+
+partition "Create Profile (UC2)" {
+  :System invokes Create Profile (UC2)
+  to ensure a local profile row exists;
+}
+
+if (User has at least one CitySite selection?) then (no)
+  :System redirects into Select Cities (UC4)
+  and Select Forecasting Services (UC5);
+else (yes)
+  :System redirects user to dashboard;
+endif
+
+stop
+
+@enduml

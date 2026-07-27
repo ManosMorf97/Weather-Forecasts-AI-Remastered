@@ -34,4 +34,4 @@
 **Exceptions:**
 - **E1:** Forecast retrieval timeout - system displays cached data if available
 - **E2:** Search service timeout - system displays error and suggests retry
-- **E3:** User not logged in - system redirects user to login page (UC1: Login) and denies access to forecast dashboard and search; use case ends
+- **E3:** User not logged in - system redirects user to login page (UC1: Login / Sign Up) and denies access to forecast dashboard and search; use case ends

@@ -6,7 +6,7 @@
 **Description:** User selects one or more cities to track weather forecasts, and can delete cities they are no longer interested in.
 
 **Preconditions:**
-- User is in Create Profile (UC2) or Edit Profile (UC3) flow
+- User is in Create Profile (UC2) or Edit Selections (UC3) flow
 
 **Main Flow:**
 1. System displays city selection interface with currently selected cities (if any)

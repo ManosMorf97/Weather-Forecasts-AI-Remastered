@@ -10,10 +10,11 @@ actor "Scheduler" as Scheduler
 rectangle "Weather Forecasts System" {
     
     ' User Management
-    usecase "Login" as UC1
+    usecase "Login /\nSign Up" as UC1
     usecase "Create Profile" as UC2
-    usecase "Edit Profile" as UC3
-    
+    usecase "Edit Selections" as UC3
+    usecase "Change Authentication\nDetails" as UC13
+
     ' Service and City Selection
     usecase "Select Cities" as UC4
     usecase "Select Forecasting\nServices" as UC5
@@ -36,8 +37,8 @@ rectangle "Weather Forecasts System" {
 
 ' End User relationships
 User --> UC1
-User --> UC2
 User --> UC3
+User --> UC13
 User --> UC6
 User --> UC7
 User --> UC8
@@ -48,6 +49,7 @@ User --> UC10
 Scheduler --> UC11
 
 ' Use case dependencies
+UC1 ..> UC2 : <<include>>
 UC2 ..> UC4 : <<include>>
 UC2 ..> UC5 : <<include>>
 UC4 ..> UC3 : <<extend>>
@@ -59,6 +61,34 @@ UC9 ..> UC8 : <<precondition>>
 UC10 ..> UC12 : <<include>>
 
 ' Notes
+note right of UC2
+  Not directly triggered by the
+  End User. Included by every
+  Login / Sign Up (UC1): ensures a local
+  profile row exists (JIT), then
+  includes UC4/UC5 only if the
+  user has no city/service
+  selection yet. Account creation
+  itself (username/email/password)
+  happens directly against the
+  Authentication Service (Firebase)
+  via the Frontend's own SDK calls,
+  outside this system - no username
+  or email is ever stored locally.
+end note
+
+note right of UC13
+  User-triggered, but the actual
+  username/email/password change
+  happens via the Frontend calling
+  the Firebase Client SDK directly -
+  no backend service is involved,
+  and nothing is cached locally to
+  keep in sync. UC9/UC11 fetch
+  email on demand from Auth
+  whenever they need it.
+end note
+
 note right of UC7
   User rates specific forecast
   instances: (city, service,

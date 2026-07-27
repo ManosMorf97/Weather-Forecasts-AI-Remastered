@@ -4,9 +4,9 @@
 This index organizes the use case analysis into one markdown file per documented use case.
 
 ## Use Cases
-- [UC1_Login](./usecase_analysis/UC1_Login.md)
+- [UC1_Login_SignUp](./usecase_analysis/UC1_Login_SignUp.md)
 - [UC2_Create_Profile](./usecase_analysis/UC2_Create_Profile.md)
-- [UC3_Edit_Profile](./usecase_analysis/UC3_Edit_Profile.md)
+- [UC3_Edit_Selections](./usecase_analysis/UC3_Edit_Selections.md)
 - [UC4_Select_Cities](./usecase_analysis/UC4_Select_Cities.md)
 - [UC5_Select_Forecasting_Services](./usecase_analysis/UC5_Select_Forecasting_Services.md)
 - [UC6_Search_Forecast](./usecase_analysis/UC6_Search_Forecast.md)
@@ -16,6 +16,7 @@ This index organizes the use case analysis into one markdown file per documented
 - [UC10_View_Aggregated_Forecast](./usecase_analysis/UC10_View_Aggregated_Forecast.md)
 - [UC11_Poll_Forecasts_And_Notify_Users](./usecase_analysis/UC11_Poll_Forecasts_And_Notify_Users.md)
 - [UC12_Calculate_Aggregates](./usecase_analysis/UC12_Calculate_Aggregates.md)
+- [UC13_Change_Authentication_Details](./usecase_analysis/UC13_Change_Authentication_Details.md)
 
 ## Notes
 The current use case analysis source includes detailed specifications for the use cases listed above. Any additional use cases should be added as separate files in this folder.

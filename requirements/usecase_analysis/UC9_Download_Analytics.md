@@ -19,7 +19,7 @@
 
 **Alternative Flows:**
 - **A1: Large File**
-  - At step 5, if file too large, system sends download link via email
+  - At step 5, if file too large, system fetches the user's email from the Authentication Service (single-user Firebase Admin SDK lookup, since email is never stored locally) and sends the download link there
   - User can download from link later
 
 **Postconditions:**

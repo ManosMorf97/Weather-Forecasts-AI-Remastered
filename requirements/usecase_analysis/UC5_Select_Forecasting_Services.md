@@ -6,7 +6,7 @@
 **Description:** User selects which partner forecasting services to include in their forecast data, and can remove services they no longer want.
 
 **Preconditions:**
-- User is in Create Profile (UC2) or Edit Profile (UC3) flow
+- User is in Create Profile (UC2) or Edit Selections (UC3) flow
 
 **Main Flow:**
 1. System displays list of available forecasting services with currently selected services (if any).
