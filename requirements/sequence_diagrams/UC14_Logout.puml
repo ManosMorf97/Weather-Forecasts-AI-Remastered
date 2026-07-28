@@ -1,0 +1,24 @@
+@startuml UC14_Logout_Sequence_Diagram
+
+title UC14: Logout - Sequence Diagram
+
+actor "End User" as User
+participant "Frontend" as Frontend
+
+User -> Frontend: Select "Log out"
+Frontend -> Frontend: Call Firebase Client SDK\nsign-out method
+Frontend -> Frontend: Clear cached ID token and\nrefresh token from local\npersistence (this device only)
+
+note over Frontend
+  Option A - local-only logout: no call
+  to the Authentication Service or the
+  User Actions Server, no server-side
+  token revocation. Other devices/
+  sessions remain logged in; a token
+  stolen before logout still works
+  elsewhere until it naturally expires.
+end note
+
+Frontend -> User: Redirect to login form (UC1)
+
+@enduml

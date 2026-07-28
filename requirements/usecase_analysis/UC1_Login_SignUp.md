@@ -3,7 +3,7 @@
 **ID:** UC1  
 **Name:** Login / Sign Up  
 **Actor:** End User  
-**Description:** User authenticates via the Authentication Service (Firebase Authentication) using the Frontend's own sign-in form, which calls the Firebase Client SDK directly. On success, the system provisions a local profile if one does not exist yet (UC2) and routes the user to city/service selection if their setup is incomplete, otherwise to the dashboard.
+**Description:** User authenticates via the Authentication Service (Firebase Authentication) using the Frontend's own sign-in form, which calls the Firebase Client SDK directly. This use case is entirely a Frontend-to-Authentication-Service interaction - the User Actions Server (backend) plays no part in it. It ends once the Frontend holds a valid Firebase ID token; the Frontend's first authenticated call to the backend then triggers Create Profile (UC2), which JIT-provisions the user's profile and reports back whether the user has a city/service selection, leaving the Frontend to decide where to redirect based on that response.
 
 **Preconditions:**
 - None (applies to both first-time and returning users)
@@ -11,12 +11,11 @@
 **Main Flow:**
 1. User opens the application
 2. Frontend's Firebase SDK restores any existing session from local persistence and fires its auth-state listener
-3. If a valid session is restored, system proceeds directly to step 6
+3. If a valid session is restored, flow ends here with an active session
 4. Otherwise, Frontend displays its own login form (no external redirect)
 5. User enters credentials into the Frontend's form; Frontend calls the Firebase Client SDK to sign in, which validates them directly against the Authentication Service
-6. System verifies the resulting Firebase ID token (Firebase Admin SDK) and invokes UC2 (Create Profile) to ensure a local profile record exists
-7. If the user has no city/service selection yet, system redirects into UC4 (Select Cities) and UC5 (Select Forecasting Services)
-8. Otherwise, system redirects the user to the dashboard
+6. Authentication Service issues a Firebase ID token to the Frontend; flow ends with an active session
+7. Frontend proceeds to make its first authenticated call to the User Actions Server, which continues into Create Profile (UC2)
 
 **Alternative Flows:**
 - **A1: New Account**
@@ -31,9 +30,7 @@
 
 **Postconditions:**
 - User holds a valid Firebase ID token and an active session
-- A local profile record exists for the user (see UC2)
-- User is on the dashboard, or on the city/service selection screen if setup is incomplete
+- Frontend proceeds into Create Profile (UC2) on its next call to the backend, which determines profile provisioning and redirect target
 
 **Exceptions:**
 - **E1:** Authentication Service unavailable - display maintenance message
-- **E2:** Token verification fails - treat user as unauthenticated and return to step 4

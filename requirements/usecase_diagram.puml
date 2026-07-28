@@ -14,6 +14,7 @@ rectangle "Weather Forecasts System" {
     usecase "Create Profile" as UC2
     usecase "Edit Selections" as UC3
     usecase "Change Authentication\nDetails" as UC13
+    usecase "Logout" as UC14
 
     ' Service and City Selection
     usecase "Select Cities" as UC4
@@ -39,6 +40,7 @@ rectangle "Weather Forecasts System" {
 User --> UC1
 User --> UC3
 User --> UC13
+User --> UC14
 User --> UC6
 User --> UC7
 User --> UC8
@@ -87,6 +89,20 @@ note right of UC13
   keep in sync. UC9/UC11 fetch
   email on demand from Auth
   whenever they need it.
+end note
+
+note right of UC14
+  Entirely client-side, same as
+  UC13: Frontend calls the Firebase
+  Client SDK's sign-out method,
+  which clears the cached ID and
+  refresh tokens on this device
+  only (Option A - local-only
+  logout). No backend call is
+  made and no server-side token
+  revocation occurs; other
+  devices/sessions remain
+  logged in.
 end note
 
 note right of UC7

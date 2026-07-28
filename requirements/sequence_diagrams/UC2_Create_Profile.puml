@@ -1,0 +1,46 @@
+@startuml UC2_Create_Profile_Sequence_Diagram
+
+title UC2: Create Profile - Sequence Diagram
+
+actor "End User" as User
+participant "Frontend" as Frontend
+participant "Authentication Service\n(Firebase Auth)" as Auth
+participant "User Actions Server" as UserServer
+database "Database" as DB
+
+note over Frontend: Follows UC1 (Login / Sign Up):\nFrontend holds a valid Firebase ID token
+
+Frontend -> UserServer: Request with Bearer\nFirebase ID token
+UserServer -> Auth: Verify Firebase ID token\n(Admin SDK)
+
+alt E2: Token verification fails
+  Auth --> UserServer: Invalid
+  UserServer --> Frontend: 401 Unauthenticated
+  Frontend -> User: Return to login form
+  note right: Flow ends (E2)
+else Token valid
+  Auth --> UserServer: Valid, user_id
+
+  UserServer -> DB: Upsert user_id\n(JIT, on conflict do nothing)
+
+  alt E1: Database write failure
+    DB --> UserServer: Write error
+    UserServer --> Frontend: Error response
+    Frontend -> User: Display error,\nallow retry
+    note right: Flow ends (E1)
+  else Write succeeded
+    DB --> UserServer: Profile ensured
+
+    UserServer -> DB: Check CitySite selection
+    DB --> UserServer: Selection result
+    UserServer --> Frontend: CitySite-selection result
+
+    alt A1: No CitySite selection
+      Frontend -> User: Redirect to Select\nCities (UC4) / Services (UC5)
+    else Selection exists
+      Frontend -> User: Redirect to dashboard
+    end
+  end
+end
+
+@enduml

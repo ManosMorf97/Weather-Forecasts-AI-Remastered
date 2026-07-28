@@ -30,7 +30,7 @@ else (no)
   Frontend's form;
 
   if (Authentication Service available?) then (no)
-    :System displays maintenance message;
+    :Frontend displays maintenance message;
     note right: Exception E1 - Authentication Service unavailable
     stop
   endif
@@ -49,26 +49,14 @@ else (no)
   Firebase ID token to the Frontend;
 endif
 
-:System verifies Firebase ID token
-(Firebase Admin SDK);
+:Frontend holds a valid Firebase ID
+token and an active session;
 
-if (Token valid?) then (no)
-  :System treats user as unauthenticated;
-  note right: Exception E2 - Token verification fails
-  stop
-endif
-
-partition "Create Profile (UC2)" {
-  :System invokes Create Profile (UC2)
-  to ensure a local profile row exists;
-}
-
-if (User has at least one CitySite selection?) then (no)
-  :System redirects into Select Cities (UC4)
-  and Select Forecasting Services (UC5);
-else (yes)
-  :System redirects user to dashboard;
-endif
+note right
+  Continues into Create Profile (UC2)
+  on the Frontend's first authenticated
+  call to the User Actions Server
+end note
 
 stop
 

@@ -1,0 +1,69 @@
+@startuml UC1_Login_SignUp_Sequence_Diagram
+
+title UC1: Login / Sign Up - Sequence Diagram
+
+actor "End User" as User
+participant "Frontend" as Frontend
+participant "Authentication Service\n(Firebase Auth)" as Auth
+
+User -> Frontend: Open application
+Frontend -> Frontend: Check local persistence\nfor cached refresh token
+
+alt Session restored (refresh token cached)
+  alt Cached ID token still valid (< ~1hr old)
+    Frontend -> Frontend: Reuse cached ID token
+  else Cached ID token expired
+    Frontend -> Auth: Silently refresh using\ncached refresh token\n(no password re-entry)
+    Auth --> Frontend: New Firebase ID token
+  end
+else No session restored (no cached refresh token)
+  Frontend -> User: Display login form
+
+  opt A1: New Account
+    User -> Frontend: Select "Register" +\nusername/email/password
+    Frontend -> Auth: Create account
+    Auth --> Frontend: Account created
+  end
+
+  opt A3: Forgot Password
+    User -> Frontend: Select "Forgot Password"
+    Frontend -> Auth: Request password reset
+    Auth --> Frontend: Reset email sent
+    note right: Flow ends (A3)
+  end
+
+  User -> Frontend: Enter credentials
+
+  alt E1: Authentication Service unavailable
+    Frontend -> Auth: Sign in
+    Auth --> Frontend: Service unavailable
+    Frontend -> User: Display maintenance message
+    note right: Flow ends (E1)
+  else Authentication Service available
+    Frontend -> Auth: Sign in with credentials
+
+    alt A2: Invalid credentials
+      Auth --> Frontend: Error
+      Frontend -> User: Display error,\nre-prompt for credentials
+      note right: Flow ends (A2)
+    else Credentials valid
+      Auth --> Frontend: Firebase ID token +\nrefresh token
+      Frontend -> Frontend: Cache refresh token\nin local persistence
+    end
+  end
+end
+
+note over Frontend
+  Frontend now holds a valid Firebase ID
+  token and an active session. Continues
+  into Create Profile (UC2) on its first
+  authenticated call to the User Actions
+  Server (see UC2 sequence diagram) -
+  no backend involvement in UC1 itself.
+  Only the ID token is ever sent to the
+  User Actions Server; the refresh token
+  stays cached client-side and is only
+  ever shown to the Authentication Service.
+end note
+
+@enduml

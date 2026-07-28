@@ -3,43 +3,62 @@
 title UC2: Create Profile - Activity Diagram
 
 start
-:System receives verified Firebase ID token
-from Login / Sign Up (UC1);
-:System extracts user_id (Firebase uid)
-from the token;
+:Frontend calls User Actions Server
+with Firebase ID token as Bearer token,
+after Login / Sign Up (UC1);
+
+:User Actions Server verifies ID token
+against Authentication Service
+(Firebase Admin SDK);
+
+if (Token valid?) then (no)
+  :User Actions Server responds
+  as unauthenticated;
+  :Frontend returns to
+  Login / Sign Up (UC1) form;
+  note right: Exception E2 - Token verification fails
+  stop
+endif
+
+:User Actions Server extracts user_id
+(Firebase uid) from the token;
 
 if (User row exists for user_id?) then (yes)
 else (no)
-  :System inserts new User row
-  (user_id, created_at);
+  :User Actions Server inserts new
+  User row (user_id, created_at);
   note right: idempotent upsert - ON CONFLICT (user_id) DO NOTHING
 endif
 
 if (Database write successful?) then (no)
-  :System displays error and allows retry;
+  :User Actions Server displays error
+  and allows retry;
   note right: Exception E1 - Database write failure during upsert
   stop
 endif
 
-:System checks whether user has at least
-one CitySite selection;
+:User Actions Server checks whether user
+has at least one CitySite selection;
+
+:User Actions Server responds to Frontend
+with the CitySite-selection result;
 
 if (At least one CitySite selection exists?) then (yes)
+  :Frontend redirects user to dashboard;
   note right: Alternative Flow A1 - Existing, Already Configured User
 else (no)
   partition "Select Cities (UC4)" {
     :User searches for cities via API;
-    :System displays matching cities;
+    :Frontend displays matching cities;
     :User selects desired cities;
   }
 
   partition "Select Forecasting Services (UC5)" {
-    :System displays available services;
+    :Frontend displays available services;
     :User selects one or more services;
   }
 endif
 
-:System returns control to Login / Sign Up (UC1);
 stop
 
 @enduml

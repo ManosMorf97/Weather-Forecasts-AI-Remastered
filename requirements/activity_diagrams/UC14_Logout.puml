@@ -1,0 +1,26 @@
+@startuml UC14_Logout_Activity_Diagram
+
+title UC14: Logout - Activity Diagram
+
+start
+:User selects "Log out";
+:Frontend calls Firebase Client SDK's
+sign-out method;
+:Firebase Client SDK clears the cached
+ID token and refresh token from local
+persistence on this device;
+
+note right
+  Option A - local-only logout: no
+  backend call, no server-side token
+  revocation. Other devices/sessions
+  remain logged in. A stolen token
+  from before logout still works
+  elsewhere until it naturally expires.
+end note
+
+:Frontend redirects user to
+login form (UC1);
+stop
+
+@enduml
