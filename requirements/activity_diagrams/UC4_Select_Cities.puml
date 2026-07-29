@@ -3,46 +3,53 @@
 title UC4: Select Cities - Activity Diagram
 
 start
-:System displays city selection interface
-with currently selected cities;
+:Frontend displays city selection interface
+with currently selected cities (fetched
+from User Actions Server);
 :User searches for cities by name or location;
-:System calls external City API;
+:Frontend calls external City API directly;
+note right: No backend involvement - stateless lookup, no auth required
 
 if (API responds?) then (yes)
-  :System retrieves matching cities from API;
+  :Frontend retrieves matching cities from API;
 else (no - timeout/unavailable)
-  :System retries API call once;
+  :Frontend retries API call once;
+  note right: Exception E1 - City API timeout
   if (API responds on retry?) then (yes)
-    :System retrieves matching cities from API;
+    :Frontend retrieves matching cities from API;
   else (no)
-    :System uses cached city database;
-    :System displays limited results with warning;
+    :Frontend requests cached city data\nfrom User Actions Server;
+    :Frontend displays limited results with warning;
+    note right: Alternative Flow A4 - API Unavailable
   endif
 endif
 
 if (Cities found?) then (yes)
-  :System displays matching cities;
+  :Frontend displays matching cities;
 else (no)
-  :System displays "No results" message;
+  :Frontend displays "No results" message;
   :User can refine search criteria;
+  note right: Alternative Flow A1 - City Not Found
 endif
 
 :User selects cities to add;
 
 if (User wants to delete cities?) then (yes)
   :User selects city to remove;
-  :System removes city from selection;
+  :Frontend removes city from local selection;
+  note right: Alternative Flow A2 - Delete City
 endif
 
 :User confirms selection;
-:System validates that at least one city remains selected;
+:Frontend validates that at least one\ncity remains selected;
 
 if (At least one city selected?) then (yes)
-  :System saves updated city preferences;
+  :Frontend sends updated selection to\nUser Actions Server, which saves it;
   stop
 else (no)
-  :System displays error;
+  :Frontend displays error;
   :User returns to search/select;
+  note right: Alternative Flow A3 - All Cities Deleted
 endif
 
 @enduml

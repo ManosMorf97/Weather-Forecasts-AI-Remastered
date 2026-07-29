@@ -1,0 +1,60 @@
+@startuml UC8_Request_Analytics_Sequence_Diagram
+
+title UC8: Request Analytics - Sequence Diagram
+
+actor "End User" as User
+participant "Frontend" as Frontend
+participant "User Actions Server" as UserServer
+participant "Authentication Service\n(Firebase Auth)" as Auth
+database "Database" as DB
+
+note over User, DB
+  Preconditions: user is logged in;
+  historical forecast data exists
+end note
+
+User -> Frontend: Select "Request Analytics"
+Frontend -> User: Display analytics request form
+User -> Frontend: Specify parameters (cities,\ndate range, services, metrics)
+User -> Frontend: Submit request
+
+Frontend -> UserServer: Submit analytics request\n(params, Bearer ID token)
+UserServer -> Auth: Verify ID token (Admin SDK)
+Auth --> UserServer: Valid, user_id
+note right of Auth
+  Every Frontend -> UserServer call is
+  independently token-verified this way;
+  omitted from later steps for brevity
+end note
+
+UserServer -> UserServer: Validate parameters
+
+alt A1: Invalid parameters
+  UserServer --> Frontend: Validation error
+  Frontend -> User: Display error
+  note right: User returns to specifying parameters (step 3)
+else Parameters valid
+  opt Aggregates needed
+    group Calculate Aggregates (UC12)
+      UserServer -> DB: Read forecasts + ratings\nper requested city/service
+      DB --> UserServer: Forecasts + ratings
+      UserServer -> UserServer: Select highest-rated service\nper city (tie/no-rating rules\nper UC12 A1/A2)
+    end
+  end
+
+  alt E1: Report generation timeout
+    UserServer -> UserServer: Queue request for\nasync processing
+    UserServer --> Frontend: Queued (processing async)
+    Frontend -> User: Display "report queued" message
+    note right: Report will be ready for download (UC9) once complete
+  else Generation completes
+    UserServer -> DB: Read report data (cities, date\nrange, services, metrics)
+    DB --> UserServer: Report data
+    UserServer -> UserServer: Generate analytics report
+    UserServer --> Frontend: Report preview
+    Frontend -> User: Display report preview
+    note right: Report is ready for download (UC9)
+  end
+end
+
+@enduml

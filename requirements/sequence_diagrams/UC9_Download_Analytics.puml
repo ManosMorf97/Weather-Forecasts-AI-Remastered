@@ -1,0 +1,58 @@
+@startuml UC9_Download_Analytics_Sequence_Diagram
+
+title UC9: Download Analytics - Sequence Diagram
+
+actor "End User" as User
+participant "Frontend" as Frontend
+participant "User Actions Server" as UserServer
+participant "Authentication Service\n(Firebase Auth)" as Auth
+participant "Notification Providers\n(Email / SMS / Push)" as NotifyProviders
+database "Database" as DB
+
+note over User, DB
+  Preconditions: user has requested analytics (UC8)
+  and the report has been generated
+end note
+
+User -> Frontend: Select "Download"
+Frontend -> User: Display format options\n(JSON, CSV, PDF)
+User -> Frontend: Select desired format
+
+loop Until success or user gives up
+  Frontend -> UserServer: Request report in selected\nformat (Bearer ID token)
+  UserServer -> Auth: Verify ID token (Admin SDK)
+  Auth --> UserServer: Valid, user_id
+  note right of Auth
+    Every Frontend -> UserServer call is
+    independently token-verified this way;
+    omitted from later steps for brevity
+  end note
+
+  UserServer -> UserServer: Convert report to\nselected format
+
+  alt E1: Format conversion fails
+    UserServer --> Frontend: Conversion error
+    Frontend -> User: Offer alternative format
+    User -> Frontend: Select alternative format
+  else Conversion succeeds
+    alt A1: Large file
+      UserServer -> Auth: Fetch user's email\n(single-user Admin SDK lookup)
+      Auth --> UserServer: Email address
+      note right
+        Email is fetched on demand from Auth
+        and never stored locally - see UC1/UC13
+      end note
+      UserServer -> NotifyProviders: Send download link\nto fetched email
+      NotifyProviders --> UserServer: Queued/sent
+      UserServer --> Frontend: Download link sent
+      Frontend -> User: Display "link sent to\nyour email" message
+      note right: User can download from the link later
+    else File size acceptable
+      UserServer --> Frontend: Converted file
+      Frontend -> User: Initiate download
+      Frontend -> User: User receives file
+    end
+  end
+end
+
+@enduml

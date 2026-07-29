@@ -1,0 +1,54 @@
+@startuml UC5_Select_Forecasting_Services_Sequence_Diagram
+
+title UC5: Select Forecasting Services - Sequence Diagram
+
+actor "End User" as User
+participant "Frontend" as Frontend
+participant "User Actions Server" as UserServer
+participant "Authentication Service\n(Firebase Auth)" as Auth
+database "Database" as DB
+
+note over User, DB
+  Preconditions: reached from Create Profile
+  (UC2) or Edit Selections (UC3)
+end note
+
+User -> Frontend: Open service selection
+Frontend -> UserServer: Request available +\ncurrent services (Bearer ID token)
+UserServer -> Auth: Verify ID token (Admin SDK)
+Auth --> UserServer: Valid, user_id
+note right of Auth
+  Every Frontend -> UserServer call is
+  independently token-verified this way;
+  omitted from later steps for brevity
+end note
+UserServer -> DB: Read available services +\ncurrent selections for user_id
+DB --> UserServer: Services + current selections
+UserServer --> Frontend: Services + current selections
+Frontend -> User: Display available services\nwith current selections
+
+loop More changes
+  opt Add services
+    User -> Frontend: Select one or more\nservices to add
+  end
+
+  opt A1: Remove service
+    User -> Frontend: Select service to remove
+    Frontend -> Frontend: Remove service from\nlocal selection
+  end
+end
+
+User -> Frontend: Confirm selection
+
+alt A2: All services removed
+  Frontend -> User: Display error - at least\none service required
+  note right: User returns to select at least one service (step 2)
+else At least one service selected
+  Frontend -> UserServer: Save updated service\nselections (Bearer ID token)
+  UserServer -> DB: Write updated service\npreferences for user_id
+  DB --> UserServer: Saved
+  UserServer --> Frontend: Success
+  Frontend -> User: Display confirmation
+end
+
+@enduml

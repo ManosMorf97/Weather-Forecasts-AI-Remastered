@@ -1,0 +1,79 @@
+@startuml UC7_Rate_Forecasting_Service_Sequence_Diagram
+
+title UC7: Rate Forecasting Service - Sequence Diagram
+
+actor "End User" as User
+participant "Frontend" as Frontend
+participant "User Actions Server" as UserServer
+participant "Authentication Service\n(Firebase Auth)" as Auth
+database "Database" as DB
+
+note over User, DB
+  Preconditions: user is logged in and has viewed
+  forecasts from at least one (city, service)
+  combination (UC6)
+end note
+
+User -> Frontend: View forecasts (UC6)
+Frontend -> User: Display forecasts with rating\noption per (city, service, timestamp)
+User -> Frontend: Select a specific forecast to rate
+
+Frontend -> UserServer: Request existing rating for\n(city, service, timestamp)\n(Bearer ID token)
+UserServer -> Auth: Verify ID token (Admin SDK)
+Auth --> UserServer: Valid, user_id
+note right of Auth
+  Every Frontend -> UserServer call is
+  independently token-verified this way;
+  omitted from later steps for brevity
+end note
+UserServer -> DB: Read rating for (user_id,\ncity, service, timestamp)
+DB --> UserServer: Existing rating (if any)
+UserServer --> Frontend: Existing rating or none
+
+alt A1: Update Existing Rating
+  Frontend -> User: Display existing rating\n+ rating scale (1-5 stars)
+else No existing rating
+  Frontend -> User: Display rating scale (1-5 stars)
+end
+
+alt A2: Remove Rating
+  User -> Frontend: Select "remove rating"
+  Frontend -> UserServer: Delete rating\n(Bearer ID token)
+  UserServer -> DB: Delete rating record for\n(user_id, city, service, timestamp)
+
+  alt E1: Database update fails
+    DB --> UserServer: Write error
+    UserServer --> Frontend: Error
+    Frontend -> User: Display error,\nallow retry
+  else Delete succeeds
+    DB --> UserServer: Rating deleted
+    UserServer -> DB: Recalculate average rating\nfor the service
+    DB --> UserServer: Updated average
+    UserServer --> Frontend: Success
+    Frontend -> User: Display confirmation message
+  end
+else Submit rating
+  User -> Frontend: Submit rating value (1-5)
+  Frontend -> UserServer: Save rating\n(Bearer ID token, value)
+  UserServer -> UserServer: Validate rating input
+  UserServer -> DB: Store or update rating record\nfor (user_id, city, service, timestamp)
+
+  alt E1: Database update fails
+    DB --> UserServer: Write error
+    UserServer --> Frontend: Error
+    Frontend -> User: Display error,\nallow retry
+  else Write succeeds
+    DB --> UserServer: Rating saved
+    UserServer -> DB: Recalculate average rating\nfor the service (across all\ncities and timestamps)
+    DB --> UserServer: Updated average
+    UserServer --> Frontend: Success
+    Frontend -> User: Display confirmation message
+  end
+end
+
+note over UserServer, DB
+  Updated averages feed into Calculate
+  Aggregates (UC12), used by UC8/UC10
+end note
+
+@enduml

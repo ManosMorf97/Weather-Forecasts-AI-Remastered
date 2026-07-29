@@ -35,7 +35,7 @@
 **Postconditions:**
 - User's rating is stored and associated with the specific (city, service, timestamp) combination
 - Service's average rating is updated across all rated forecasts
-- Updated ratings are available for aggregated forecast calculations (UC10, UC14)
+- Updated ratings are available for aggregated forecast calculations (UC10, UC12)
 
 **Exceptions:**
 - **E1:** Database update fails - system displays error and allows retry

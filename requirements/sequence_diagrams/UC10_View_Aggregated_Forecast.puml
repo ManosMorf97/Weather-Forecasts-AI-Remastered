@@ -1,0 +1,45 @@
+@startuml UC10_View_Aggregated_Forecast_Sequence_Diagram
+
+title UC10: View Aggregated Forecast - Sequence Diagram
+
+actor "End User" as User
+participant "Frontend" as Frontend
+participant "User Actions Server" as UserServer
+participant "Authentication Service\n(Firebase Auth)" as Auth
+database "Database" as DB
+
+note over User, DB
+  Preconditions: user is logged in; services have
+  data for the requested city; rating data exists
+end note
+
+User -> Frontend: Select "View Aggregate Forecast"
+Frontend -> UserServer: Request aggregated forecast\n(Bearer ID token)
+UserServer -> Auth: Verify ID token (Admin SDK)
+Auth --> UserServer: Valid, user_id
+note right of Auth
+  Every Frontend -> UserServer call is
+  independently token-verified this way;
+  omitted from later steps for brevity
+end note
+
+group Calculate Aggregates (UC12)
+  UserServer -> DB: Read forecasts + ratings per\ncity (user's selected services)
+  DB --> UserServer: Forecasts + ratings
+  UserServer -> UserServer: Select best-rated service per\ncity (tie/no-rating rules -\nsee UC12 sequence diagram)
+end
+
+alt E1 (UC12): Insufficient data for a city
+  UserServer --> Frontend: Error - minimum\nrequirements not met
+  Frontend -> User: Display error
+else Data sufficient
+  UserServer --> Frontend: Aggregated forecast data\n(service name + rating score\nper city)
+
+  alt A1: Single service only
+    Frontend -> User: Display that service's forecast;\nindicate aggregation not applicable
+  else Multiple services have data
+    Frontend -> User: Display forecast per city with\nrating score + service name
+  end
+end
+
+@enduml

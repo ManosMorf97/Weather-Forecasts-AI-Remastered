@@ -1,0 +1,86 @@
+@startuml UC4_Select_Cities_Sequence_Diagram
+
+title UC4: Select Cities - Sequence Diagram
+
+actor "End User" as User
+participant "Frontend" as Frontend
+participant "External City API" as CityAPI
+participant "User Actions Server" as UserServer
+participant "Authentication Service\n(Firebase Auth)" as Auth
+database "Database" as DB
+
+note over User, DB
+  Preconditions: reached from Create Profile
+  (UC2) or Edit Selections (UC3)
+end note
+
+User -> Frontend: Open city selection
+Frontend -> UserServer: Request current city\nselections (Bearer ID token)
+UserServer -> Auth: Verify ID token (Admin SDK)
+Auth --> UserServer: Valid, user_id
+note right of Auth
+  Every Frontend -> UserServer call is
+  independently token-verified this way;
+  omitted from later steps for brevity
+end note
+UserServer -> DB: Read current cities\nfor user_id
+DB --> UserServer: Current cities
+UserServer --> Frontend: Current cities
+Frontend -> User: Display current\ncity selections
+
+loop User searches for cities
+  User -> Frontend: Search by name/location
+
+  note over Frontend, CityAPI
+    Frontend calls the City API directly -
+    no backend involvement, no auth needed
+    for this stateless lookup
+  end note
+
+  Frontend -> CityAPI: Search matching cities
+
+  alt E1: API timeout
+    CityAPI --> Frontend: Timeout
+    Frontend -> CityAPI: Retry once
+
+    alt Retry succeeds
+      CityAPI --> Frontend: Matching cities
+    else A4: API still unavailable
+      Frontend -> UserServer: Request cached city\ndata (Bearer ID token)
+      UserServer -> DB: Read cached city data
+      DB --> UserServer: Cached cities
+      UserServer --> Frontend: Cities (limited,\nfrom cache) + warning
+      Frontend -> User: Display limited results\nwith warning
+    end
+  else API responds
+    CityAPI --> Frontend: Matching cities
+  end
+
+  alt A1: City not found
+    Frontend -> User: Display "No results";\nuser refines search
+  else Cities found
+    Frontend -> User: Display matching cities
+  end
+
+  User -> Frontend: Select cities to add
+
+  opt A2: Delete city
+    User -> Frontend: Select city to remove
+    Frontend -> Frontend: Remove city from\nlocal selection
+  end
+end
+
+User -> Frontend: Confirm selection
+
+alt A3: All cities deleted
+  Frontend -> User: Display error - at\nleast one city required
+  note right: User returns to search/select (step 2)
+else At least one city selected
+  Frontend -> UserServer: Save updated city\nselections (Bearer ID token)
+  UserServer -> DB: Write updated city\npreferences for user_id
+  DB --> UserServer: Saved
+  UserServer --> Frontend: Success
+  Frontend -> User: Display confirmation
+end
+
+@enduml

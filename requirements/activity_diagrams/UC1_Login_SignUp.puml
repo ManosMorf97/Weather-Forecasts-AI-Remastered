@@ -3,9 +3,18 @@
 title UC1: Login / Sign Up - Activity Diagram
 
 start
-:User opens the application;
+:User opens the application\nor navigates to any page;
 :Frontend's Firebase SDK restores any
 existing session from local persistence;
+
+note right
+  Route guard - this check runs on
+  every page, not just app launch.
+  Any page other than the login form
+  requires a valid session; a session
+  that expires mid-use re-triggers
+  this same check (Alternative Flow A4).
+end note
 
 if (Session restored?) then (yes)
 else (no)

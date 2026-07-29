@@ -5,6 +5,8 @@
 **Actor:** End User  
 **Description:** User authenticates via the Authentication Service (Firebase Authentication) using the Frontend's own sign-in form, which calls the Firebase Client SDK directly. This use case is entirely a Frontend-to-Authentication-Service interaction - the User Actions Server (backend) plays no part in it. It ends once the Frontend holds a valid Firebase ID token; the Frontend's first authenticated call to the backend then triggers Create Profile (UC2), which JIT-provisions the user's profile and reports back whether the user has a city/service selection, leaving the Frontend to decide where to redirect based on that response.
 
+The Frontend also enforces this as a route guard on every page, not just at app launch: any page other than the login form itself requires a valid session, checked the same way (restored/refreshed Firebase session). If that check ever fails - on initial load, on direct/deep-link navigation, or because the session expired while the user was on another page - the Frontend redirects to this login form (see A4).
+
 **Preconditions:**
 - None (applies to both first-time and returning users)
 
@@ -27,6 +29,9 @@
 - **A3: Forgot Password**
   - At step 4/5, user selects "Forgot Password" on the Frontend's form
   - Frontend calls the Firebase Client SDK's password-reset flow; Authentication Service handles recovery (e.g. emailing a reset link) directly
+- **A4: Route Guard - Unauthenticated Page Access**
+  - At any point, on any page other than the login form itself, if the user has no valid session - a deep link, a manually typed URL, or a session that expired while the user was on another page - the Frontend's route guard redirects to the login form (step 4), same as a fresh app open with no session to restore
+  - This is the same check as steps 2-3, just re-run on every page rather than only at initial launch
 
 **Postconditions:**
 - User holds a valid Firebase ID token and an active session

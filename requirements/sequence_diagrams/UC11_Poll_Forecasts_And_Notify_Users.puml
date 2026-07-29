@@ -1,0 +1,130 @@
+@startuml UC11_Poll_Forecasts_And_Notify_Users_Sequence_Diagram
+
+title UC11: Poll Forecasts and Notify Users - Sequence Diagram
+
+actor "Scheduler\n(Cron Trigger)" as CronTrigger
+participant "Scheduler Server" as Scheduler
+participant "Partner Forecasting\nServices" as PartnerAPIs
+database "Database" as DB
+participant "Authentication Service\n(Firebase Auth)" as Auth
+participant "Notification Providers\n(Email / SMS / Push)" as NotifyProviders
+
+note over CronTrigger, NotifyProviders
+  Preconditions: partner services are configured;
+  polling schedule is defined
+end note
+
+CronTrigger -> Scheduler: Trigger polling job (schedule)
+Scheduler -> DB: Read unique (city, service)\ncombinations from all user profiles
+DB --> Scheduler: (city, service) combinations
+
+alt A3: No user preferences
+  Scheduler -> Scheduler: Skip polling
+  note right: Use case ends for this cycle
+else Preferences exist
+  loop For each service
+    Scheduler -> Scheduler: Identify cities users have\nselected for this service
+    Scheduler -> PartnerAPIs: GET forecast data\nfor these cities
+
+    alt A1: Service unavailable
+      PartnerAPIs --> Scheduler: No response / error
+      Scheduler -> Scheduler: Log error
+
+      opt A2: Rate limit reached
+        Scheduler -> Scheduler: Delay next poll\nfor this service
+      end
+    else Service responds
+      PartnerAPIs --> Scheduler: Forecast data
+      Scheduler -> Scheduler: Validate received data
+
+      alt Data invalid
+        Scheduler -> Scheduler: Log validation error
+      else Data valid
+        alt A4: Exact duplicate exists
+          Scheduler -> Scheduler: Skip storage for\nthis record
+        else A5: Same city/service/timestamp,\ndifferent data values
+          Scheduler -> DB: Update existing\nforecast record
+
+          alt E2: Storage transaction fails
+            DB --> Scheduler: Error
+            Scheduler -> Scheduler: Roll back, log error
+          else Update succeeds
+            DB --> Scheduler: Updated
+          end
+        else New forecast record
+          Scheduler -> DB: Insert new\nforecast record
+
+          alt E2: Storage transaction fails
+            DB --> Scheduler: Error
+            Scheduler -> Scheduler: Roll back, log error
+          else Insert succeeds
+            DB --> Scheduler: Stored
+          end
+        end
+      end
+    end
+  end
+
+  Scheduler -> Scheduler: Log polling results
+
+  alt E1: All services failed
+    Scheduler -> Scheduler: Send alert to administrators
+  end
+
+  group Notify Users of Danger Forecasts
+    Scheduler -> DB: Find stored forecasts with a\ndanger flag, per (city, service)
+    DB --> Scheduler: Danger forecast records
+    Scheduler -> DB: Identify users with that\ncity + service in preferences
+    DB --> Scheduler: Candidate users per record
+    note right: A6 - records with no matching users are logged, no notification sent
+
+    Scheduler -> DB: Exclude users already\nnotified for each record
+    DB --> Scheduler: Remaining unnotified\n(user, record) pairs
+    note right
+      A7 - New Subscriber to an Existing Danger:
+      a user not yet notified for a record is
+      always included, even if not polled this cycle
+    end note
+
+    Scheduler -> Scheduler: Group remaining danger\nrecords by user into one\nconsolidated warning list
+
+    alt No users have unnotified warnings
+      Scheduler -> Scheduler: Log event
+    else At least one user has unnotified warnings
+      Scheduler -> Auth: Batch-fetch emails for\nthese users' ids\n(up to 100 ids/call)
+
+      alt A8: Batch lookup fails after retry
+        Auth --> Scheduler: Failure
+        Scheduler -> Scheduler: Log failure; exclude\naffected users this cycle
+        note right: These users remain unnotified, retried next cycle
+      else Batch lookup succeeds
+        Auth --> Scheduler: Emails
+
+        loop For each user with unnotified warnings
+          Scheduler -> DB: Read user notification\npreferences
+          DB --> Scheduler: Preferences (channel)
+          Scheduler -> NotifyProviders: Send consolidated\nnotification (all warnings)
+
+          alt E3: Notification delivery fails
+            NotifyProviders --> Scheduler: Delivery failed
+            Scheduler -> NotifyProviders: Retry via\nalternative channel
+
+            alt Alternative channel succeeds
+              NotifyProviders --> Scheduler: Delivered
+              Scheduler -> DB: Log notification delivery\nfor these forecast records
+            else Alternative channel also fails
+              Scheduler -> Scheduler: Log delivery failure -\nall channels failed
+            end
+          else Delivery succeeds
+            NotifyProviders --> Scheduler: Delivered
+            Scheduler -> DB: Log notification delivery\nfor these forecast records
+          end
+        end
+      end
+    end
+  end
+end
+
+Scheduler -> Scheduler: Schedule next polling cycle
+
+@enduml

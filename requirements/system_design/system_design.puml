@@ -23,7 +23,11 @@ database "Database Service" as DB
 
 node "Scheduler Server\n----\nPolling & Notification Dispatch" as Scheduler
 
+cloud "External City API" as CityAPI
+
 cloud "Partner Forecasting\nServices" as PartnerAPIs
+
+cloud "Notification Providers\n(Email - Download Links)" as NotifyProvidersDL
 
 cloud "Notification Providers\n(Email / SMS / Push)" as NotifyProviders
 
@@ -32,9 +36,11 @@ User -down-> Frontend : HTTPS
 
 Frontend -up-> Auth : Firebase Client SDK\n(UC1, UC13, UC14)
 Frontend -right-> UserServer : REST/HTTPS\n(Bearer ID token)
+Frontend -down-> CityAPI : search cities\n(UC4, no auth, stateless)
 
 UserServer -up-> Auth : verify ID token (Admin SDK);\nfetch single user's email (UC9)
 UserServer -down-> DB : upsert user_id (JIT);\nread/write app data
+UserServer -right-> NotifyProvidersDL : send large-file download\nlink via email (UC9 A1)
 
 Scheduler -up-> Auth : batch-fetch emails\n(getUsers(), up to 100/call)
 Scheduler -down-> DB : read subscriptions,\nwrite forecasts
@@ -63,6 +69,21 @@ note left of Frontend
   (Option A - clears local tokens on
   this device only, no server-side
   revocation).
+
+  Route guard (UC1 A4): every page
+  except the login form requires a
+  valid session, re-checked on every
+  navigation - not just at app launch.
+  No session -> redirect to login.
+end note
+
+note bottom of CityAPI
+  UC4 city search: called directly by
+  the Frontend, no auth needed (stateless
+  lookup). On timeout/unavailability,
+  Frontend falls back to cached city
+  data via the User Actions Server
+  (see UC4 E1/A4).
 end note
 
 note right of UserServer

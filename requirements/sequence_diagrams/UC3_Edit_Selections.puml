@@ -1,0 +1,61 @@
+@startuml UC3_Edit_Selections_Sequence_Diagram
+
+title UC3: Edit Selections - Sequence Diagram
+
+actor "End User" as User
+participant "Frontend" as Frontend
+participant "User Actions Server" as UserServer
+participant "Authentication Service\n(Firebase Auth)" as Auth
+database "Database" as DB
+
+note over User, DB
+  Preconditions: user is logged in (UC1) and
+  has an existing profile (UC2)
+end note
+
+User -> Frontend: Select "Edit Selections"
+Frontend -> UserServer: Request current selections\n(Bearer ID token)
+UserServer -> Auth: Verify ID token (Admin SDK)
+Auth --> UserServer: Valid, user_id
+UserServer -> DB: Read current city/service\nselections for user_id
+DB --> UserServer: Current selections
+UserServer --> Frontend: Current selections
+Frontend -> User: Display current\ncity/service selections
+
+opt User wants to modify cities
+  group Select Cities (UC4)
+    User -> Frontend: Search/add/remove cities
+  end
+end
+
+opt User wants to modify services
+  group Select Forecasting Services (UC5)
+    User -> Frontend: Modify selected services
+  end
+end
+
+User -> Frontend: Confirm changes
+
+alt A1: No changes detected
+  Frontend -> User: Display "no changes\nmade" message
+  note right: Preferences remain unchanged
+else Changes detected
+  Frontend -> UserServer: Save updated selections\n(Bearer ID token)
+  UserServer -> Auth: Verify ID token (Admin SDK)
+  Auth --> UserServer: Valid, user_id
+  UserServer -> DB: Write updated city/service\nselections for user_id
+
+  alt E1: Concurrent update conflict
+    DB --> UserServer: Conflict error
+    UserServer --> Frontend: Conflict error
+    Frontend -> User: Display concurrent-update\nerror
+    Frontend -> UserServer: Reload current selections
+    note right: User may retry from the top
+  else Write succeeded
+    DB --> UserServer: Selections saved
+    UserServer --> Frontend: Success
+    Frontend -> User: Display confirmation message
+  end
+end
+
+@enduml

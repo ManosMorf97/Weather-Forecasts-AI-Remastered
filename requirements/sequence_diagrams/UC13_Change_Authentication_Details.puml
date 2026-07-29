@@ -1,0 +1,42 @@
+@startuml UC13_Change_Authentication_Details_Sequence_Diagram
+
+title UC13: Change Authentication Details - Sequence Diagram
+
+actor "End User" as User
+participant "Frontend" as Frontend
+participant "Authentication Service\n(Firebase Auth)" as Auth
+
+note over User, Auth
+  Precondition: user is logged in. Entirely a
+  Frontend-to-Authentication-Service interaction -
+  the User Actions Server plays no part in it, and
+  nothing is stored locally (same as UC1/UC14).
+end note
+
+User -> Frontend: Select "Account Settings"
+
+alt E1: Authentication Service unavailable
+  Frontend -> User: Display error,\nallow retry later
+  note right: Flow ends (E1)
+else Authentication Service available
+  Frontend -> User: Display editable username/email/\npassword fields, pre-filled from\ncurrent Firebase user object
+  User -> Frontend: Update one or more fields,\nconfirm
+
+  Frontend -> Auth: Call SDK method (updateProfile /\nupdateEmail / updatePassword)
+
+  alt A1: Re-authentication required
+    Auth --> Frontend: Rejected - session not\nrecent enough
+    Frontend -> User: Prompt to re-enter password
+    User -> Frontend: Enter password
+    Frontend -> Auth: Re-authenticate\n(SDK re-auth method)
+    Auth --> Frontend: Re-authenticated
+    Frontend -> Auth: Retry the change\n(same SDK method)
+    Auth --> Frontend: Change validated and applied
+  else Session recent enough
+    Auth --> Frontend: Change validated and applied
+  end
+
+  Frontend -> User: Display confirmation message
+end
+
+@enduml

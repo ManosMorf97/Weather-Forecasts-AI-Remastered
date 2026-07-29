@@ -6,8 +6,17 @@ actor "End User" as User
 participant "Frontend" as Frontend
 participant "Authentication Service\n(Firebase Auth)" as Auth
 
-User -> Frontend: Open application
+User -> Frontend: Open application, navigate to\nany page, or resume after a while
 Frontend -> Frontend: Check local persistence\nfor cached refresh token
+
+note right of Frontend
+  Route guard (A4): this same check runs
+  on every page, not just app launch. Any
+  page other than the login form requires
+  a valid session - a deep link, a direct
+  URL, or a session expiring mid-use all
+  land back on this check.
+end note
 
 alt Session restored (refresh token cached)
   alt Cached ID token still valid (< ~1hr old)

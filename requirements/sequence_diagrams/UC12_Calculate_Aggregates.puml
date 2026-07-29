@@ -1,0 +1,49 @@
+@startuml UC12_Calculate_Aggregates_Sequence_Diagram
+
+title UC12: Calculate Aggregates - Sequence Diagram
+
+participant "Calling Use Case\n(UC8 or UC10)" as Caller
+participant "User Actions Server" as UserServer
+database "Database" as DB
+
+note over Caller, DB
+  Not directly triggered by the End User -
+  invoked internally by Request Analytics
+  (UC8) or View Aggregated Forecast (UC10)
+end note
+
+Caller -> UserServer: Request aggregates (cities,\ntimeframe, metrics,\nselected services)
+
+loop For each requested city
+  UserServer -> DB: Read forecasts from all\nselected services for this city
+  DB --> UserServer: Forecasts (or none)
+
+  alt E1: No selected service has forecast data for this city
+    UserServer --> Caller: Error - minimum\nrequirements not met
+    note right: Insufficient Data - request ends
+  else At least one service has forecast data
+    UserServer -> DB: Read rating count + average\nrating per service for this city
+    DB --> UserServer: Rating counts + averages
+
+    alt A1: Fewer than 2 ratings for every service
+      UserServer -> UserServer: Select service name\nclosest to A alphabetically
+      UserServer -> UserServer: Flag result as\n"unrated selection"
+    else At least one service has >= 2 ratings
+      UserServer -> UserServer: Identify max average rating\namong qualifying services\n(>= 2 ratings)
+
+      alt A2: Tie in ratings
+        UserServer -> UserServer: Select service name\nclosest to A alphabetically
+        UserServer -> UserServer: Indicate tie in metadata
+      else No tie
+        UserServer -> UserServer: Select highest-rated service
+      end
+    end
+
+    UserServer -> UserServer: Select forecast from chosen\nservice; add to result with\nmetadata (service name, rating score)
+  end
+end
+
+UserServer -> UserServer: Package aggregated data\nwith metadata
+UserServer --> Caller: Return aggregated forecast
+
+@enduml

@@ -1,0 +1,81 @@
+@startuml UC6_Search_Forecast_Sequence_Diagram
+
+title UC6: Search Forecast by City - Sequence Diagram
+
+actor "End User" as User
+participant "Frontend" as Frontend
+participant "User Actions Server" as UserServer
+participant "Authentication Service\n(Firebase Auth)" as Auth
+database "Database" as DB
+
+note over User, DB
+  Precondition: user is logged in. The route
+  guard (UC1 A4) enforces this on every page;
+  shown here as E3 for completeness.
+end note
+
+alt E3: User not logged in
+  Frontend -> User: Redirect to login page (UC1)
+  note right: Use case ends - dashboard/search denied
+else User logged in
+  User -> Frontend: Navigate to forecast dashboard
+  Frontend -> UserServer: Request dashboard forecasts\n(Bearer ID token)
+  UserServer -> Auth: Verify ID token (Admin SDK)
+  Auth --> UserServer: Valid, user_id
+  note right of Auth
+    Every Frontend -> UserServer call is
+    independently token-verified this way;
+    omitted from later steps for brevity
+  end note
+
+  UserServer -> DB: Read profile preferences\n(saved cities + selected services)
+  DB --> UserServer: Cities + services
+
+  UserServer -> DB: Read forecast data for saved\ncities from selected services
+
+  alt E1: Forecast retrieval timeout
+    DB --> UserServer: Timeout
+    UserServer -> DB: Use cached forecast data\nif available
+    DB --> UserServer: Cached forecasts (if any)
+  else Retrieval succeeds
+    DB --> UserServer: Forecast data
+  end
+
+  UserServer -> UserServer: Sort forecasts by\nSiteName, CityName, Time
+
+  alt A2: No forecasts available for saved cities
+    UserServer --> Frontend: No forecasts
+    Frontend -> User: Display informative message
+    note right: User can search for other cities or update profile
+  else Forecasts available
+    UserServer --> Frontend: Sorted forecast dashboard data
+    Frontend -> User: Display forecast dashboard
+  end
+
+  opt A1: Manual Search
+    User -> Frontend: Enter city name,\nsubmit search
+    Frontend -> UserServer: Search forecast for city\n(Bearer ID token)
+    UserServer -> DB: Read forecast data for city
+
+    alt E2: Search service timeout
+      DB --> UserServer: Timeout
+      UserServer --> Frontend: Error
+      Frontend -> User: Display error,\nsuggest retry
+    else Search responds
+      DB --> UserServer: Forecast data (or none)
+
+      alt Forecasts available
+        UserServer --> Frontend: Search results
+        Frontend -> User: Display search results
+      else No forecasts for this city
+        UserServer --> Frontend: No forecasts
+        Frontend -> User: Display informative message
+        note right: Use case ends
+      end
+    end
+  end
+
+  User -> Frontend: View forecasts
+end
+
+@enduml
