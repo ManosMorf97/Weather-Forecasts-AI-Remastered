@@ -46,3 +46,4 @@ requirements/**/*.py
 
 #Other
 Notes.txt
+.claude/rules/
