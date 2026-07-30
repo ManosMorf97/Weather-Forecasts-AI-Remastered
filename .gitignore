@@ -1,12 +1,12 @@
 # Backend
-backend/bin/
-backend/obj/
-backend/.vs/
+backend/WeatherUserActions/WeatherUserActions/bin/
+backend/WeatherUserActions/WeatherUserActions/obj/
+backend/WeatherUserActions/.vs/
 backend/.vscode/
-backend/*.user
-backend/*.db
-backend/*.sqlite
-backend/Migrations/
+backend/**/*.user
+backend/**/*.db
+backend/**/*.sqlite
+backend/**/Migrations/
 
 # Frontend
 frontend/node_modules/
@@ -42,6 +42,7 @@ Thumbs.db
 
 #Python Code Diagram Generation
 requirements/*.py
+requirements/**/*.py
 
 #Other
 Notes.txt
