@@ -40,6 +40,32 @@ namespace WeatherUserActions.Data
             modelBuilder.Entity<Rating>()
                 .HasIndex(r => new { r.UserId, r.ForecastId })
                 .IsUnique();
+
+            modelBuilder.Entity<Forecast>(entity =>
+            {
+                entity.Property(f => f.Temperature).HasPrecision(3, 1);
+                entity.Property(f => f.Humidity).HasPrecision(5, 2);
+                entity.Property(f => f.WindSpeed).HasPrecision(5, 2);
+
+                entity.ToTable(t =>
+                {
+                    t.HasCheckConstraint("CK_Forecasts_Temperature", "[Temperature] >= -90 AND [Temperature] <= 60");
+                    t.HasCheckConstraint("CK_Forecasts_Humidity", "[Humidity] >= 0 AND [Humidity] <= 100");
+                    t.HasCheckConstraint("CK_Forecasts_WindSpeed", "[WindSpeed] >= 0 AND [WindSpeed] <= 253");
+                });
+            });
+
+            modelBuilder.Entity<City>(entity =>
+            {
+                entity.Property(c => c.Latitude).HasPrecision(11, 8);
+                entity.Property(c => c.Longitude).HasPrecision(11, 8);
+
+                entity.ToTable(t =>
+                {
+                    t.HasCheckConstraint("CK_Cities_Latitude", "[Latitude] >= -90 AND [Latitude] <= 90");
+                    t.HasCheckConstraint("CK_Cities_Longitude", "[Longitude] >= -180 AND [Longitude] <= 180");
+                });
+            });
         }
     }
 }

@@ -17,10 +17,13 @@ namespace WeatherUserActions.Models
 
         public required string Type { get; set; }
 
+        [Range(-90, 60)]
         public decimal Temperature { get; set; }
 
+        [Range(0, 100)]
         public decimal Humidity { get; set; }
 
+        [Range(0, 253)]
         public decimal WindSpeed { get; set; }
 
         public bool DangerFlag { get; set; }

@@ -1,3 +1,4 @@
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using WeatherUserActions.Data;
 
@@ -6,9 +7,20 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
-builder.Services.AddDbContext<WeatherUserActionsDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+var databaseSection = builder.Configuration.GetSection("Database");
+var connectionString = new SqlConnectionStringBuilder
+{
+    DataSource = Environment.GetEnvironmentVariable("YOUR_SERVER") ?? databaseSection["Server"],
+    InitialCatalog = databaseSection["Name"],
+    UserID = Environment.GetEnvironmentVariable("YOUR_USER") ?? databaseSection["User"],
+    Password = Environment.GetEnvironmentVariable("YOUR_PASSWORD") ?? databaseSection["Password"],
+    TrustServerCertificate = true,
+    MultipleActiveResultSets = true,
+}.ConnectionString;
 
+builder.Services.AddDbContext<WeatherUserActionsDbContext>(options =>
+    options.UseSqlServer(connectionString));
+Console.WriteLine("PPPPPPPP " + connectionString);
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
