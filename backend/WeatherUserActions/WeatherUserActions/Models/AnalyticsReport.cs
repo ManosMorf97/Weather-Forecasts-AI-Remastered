@@ -9,7 +9,8 @@ namespace WeatherUserActions.Models
         public int ReportId { get; set; }
 
         [ForeignKey(nameof(User))]
-        public int UserId { get; set; }
+        [MaxLength(128)]
+        public required string UserId { get; set; }
         public User User { get; set; } = null!;
 
         public required string Cities { get; set; }

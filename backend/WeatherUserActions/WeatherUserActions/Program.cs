@@ -1,11 +1,14 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using WeatherUserActions.Data;
+using WeatherUserActions.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+//explain. what is singleton
+builder.Services.AddSingleton<IFirebaseAuthService, FirebaseAuthService>();
 
 var databaseSection = builder.Configuration.GetSection("Database");
 var connectionString = new SqlConnectionStringBuilder
@@ -20,7 +23,6 @@ var connectionString = new SqlConnectionStringBuilder
 
 builder.Services.AddDbContext<WeatherUserActionsDbContext>(options =>
     options.UseSqlServer(connectionString));
-Console.WriteLine("PPPPPPPP " + connectionString);
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

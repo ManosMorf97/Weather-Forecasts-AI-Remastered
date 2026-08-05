@@ -10,7 +10,8 @@ namespace WeatherUserActions.Models
         public int RatingId { get; set; }
 
         [ForeignKey(nameof(User))]
-        public int UserId { get; set; }
+        [MaxLength(128)]
+        public required string UserId { get; set; }
         public User User { get; set; } = null!;
 
         [ForeignKey(nameof(Forecast))]

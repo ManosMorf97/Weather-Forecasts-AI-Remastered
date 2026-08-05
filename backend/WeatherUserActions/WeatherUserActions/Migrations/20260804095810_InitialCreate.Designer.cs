@@ -12,8 +12,8 @@ using WeatherUserActions.Data;
 namespace WeatherUserActions.Migrations
 {
     [DbContext(typeof(WeatherUserActionsDbContext))]
-    [Migration("20260803100534_Migration1")]
-    partial class Migration1
+    [Migration("20260804095810_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -62,8 +62,10 @@ namespace WeatherUserActions.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
 
                     b.HasKey("ReportId");
 
@@ -224,8 +226,10 @@ namespace WeatherUserActions.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
 
                     b.HasKey("NotificationId");
 
@@ -253,8 +257,10 @@ namespace WeatherUserActions.Migrations
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
 
                     b.Property<int>("Value")
                         .HasColumnType("int");
@@ -271,11 +277,9 @@ namespace WeatherUserActions.Migrations
 
             modelBuilder.Entity("WeatherUserActions.Models.User", b =>
                 {
-                    b.Property<int>("UserId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UserId"));
+                    b.Property<string>("UserId")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -287,8 +291,9 @@ namespace WeatherUserActions.Migrations
 
             modelBuilder.Entity("WeatherUserActions.Models.UserCitySite", b =>
                 {
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
+                    b.Property<string>("UserId")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
 
                     b.Property<int>("CitySiteId")
                         .HasColumnType("int");
@@ -305,8 +310,9 @@ namespace WeatherUserActions.Migrations
 
             modelBuilder.Entity("WeatherUserActions.Models.UserService", b =>
                 {
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
+                    b.Property<string>("UserId")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
 
                     b.Property<int>("ServiceId")
                         .HasColumnType("int");

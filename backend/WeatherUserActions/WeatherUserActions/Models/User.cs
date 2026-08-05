@@ -8,8 +8,10 @@ namespace WeatherUserActions.Models
     // Row is created lazily (JIT) on first login.
     public class User
     {
+        // Firebase Authentication uid (not an internal surrogate id).
         [Key]
-        public int UserId { get; set; }
+        [MaxLength(128)]
+        public required string UserId { get; set; }
 
         public DateTime CreatedAt { get; set; }
 

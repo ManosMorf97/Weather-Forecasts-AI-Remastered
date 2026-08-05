@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace WeatherUserActions.Migrations
 {
     /// <inheritdoc />
-    public partial class Migration1 : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -47,8 +47,7 @@ namespace WeatherUserActions.Migrations
                 name: "Users",
                 columns: table => new
                 {
-                    UserId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    UserId = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
@@ -88,7 +87,7 @@ namespace WeatherUserActions.Migrations
                 {
                     ReportId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    UserId = table.Column<int>(type: "int", nullable: false),
+                    UserId = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
                     Cities = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Services = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     DateRangeStart = table.Column<DateOnly>(type: "date", nullable: false),
@@ -113,7 +112,7 @@ namespace WeatherUserActions.Migrations
                 name: "UserServices",
                 columns: table => new
                 {
-                    UserId = table.Column<int>(type: "int", nullable: false),
+                    UserId = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
                     ServiceId = table.Column<int>(type: "int", nullable: false),
                     AddedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
@@ -167,7 +166,7 @@ namespace WeatherUserActions.Migrations
                 name: "UserCitySites",
                 columns: table => new
                 {
-                    UserId = table.Column<int>(type: "int", nullable: false),
+                    UserId = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
                     CitySiteId = table.Column<int>(type: "int", nullable: false),
                     AddedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
@@ -194,7 +193,7 @@ namespace WeatherUserActions.Migrations
                 {
                     NotificationId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    UserId = table.Column<int>(type: "int", nullable: false),
+                    UserId = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
                     ForecastId = table.Column<int>(type: "int", nullable: false),
                     Channel = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
@@ -223,7 +222,7 @@ namespace WeatherUserActions.Migrations
                 {
                     RatingId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    UserId = table.Column<int>(type: "int", nullable: false),
+                    UserId = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
                     ForecastId = table.Column<int>(type: "int", nullable: false),
                     Value = table.Column<int>(type: "int", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),

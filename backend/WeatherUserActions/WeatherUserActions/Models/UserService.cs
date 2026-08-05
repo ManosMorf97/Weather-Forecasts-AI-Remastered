@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace WeatherUserActions.Models
@@ -7,7 +8,8 @@ namespace WeatherUserActions.Models
     // Cleared once the user's first city materializes these into UserCitySite rows.
     public class UserService
     {
-        public int UserId { get; set; }
+        [MaxLength(128)]
+        public required string UserId { get; set; }
         public User User { get; set; } = null!;
 
         [ForeignKey(nameof(Service))]
