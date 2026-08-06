@@ -9,6 +9,7 @@
       "WeatherUserActions.Tests/1.0.0": {
         "dependencies": {
           "Microsoft.NET.Test.Sdk": "17.14.1",
+          "Respawn": "7.0.0",
           "Testcontainers.MsSql": "4.13.0",
           "WeatherUserActions": "1.0.0",
           "xunit": "2.9.3"
@@ -714,6 +715,14 @@
           }
         }
       },
+      "Respawn/7.0.0": {
+        "runtime": {
+          "lib/netstandard2.1/Respawn.dll": {
+            "assemblyVersion": "7.0.0.0",
+            "fileVersion": "7.0.0.0"
+          }
+        }
+      },
       "SharpZipLib/1.4.2": {
         "runtime": {
           "lib/net6.0/ICSharpCode.SharpZipLib.dll": {
@@ -1170,6 +1179,13 @@
       "sha512": "sha512-pdgNNMai3zv51W5aq268sujXUyx7SNdE2bj1wZcWjAQrKMFZV260lbqYop1d2GM67JI1huLRwxo9ZqnfF/lC6A==",
       "path": "newtonsoft.json/13.0.4",
       "hashPath": "newtonsoft.json.13.0.4.nupkg.sha512"
+    },
+    "Respawn/7.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-AyWlducZGOnmlEVz4PaL3Qv8wcY3ClPZS9CrlDnSVahGd/E9tTEgSFiC8yoV/F6o6P6IYm8xnHFa/vmWT8tfcw==",
+      "path": "respawn/7.0.0",
+      "hashPath": "respawn.7.0.0.nupkg.sha512"
     },
     "SharpZipLib/1.4.2": {
       "type": "package",

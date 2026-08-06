@@ -1,4 +1,4 @@
-namespace WeatherUserActions.Services
+namespace WeatherUserActions.FirebaseServices
 {
     // Thrown by IFirebaseAuthService when a Firebase ID token fails verification.
     // Kept independent of the FirebaseAdmin SDK's own exception types so callers

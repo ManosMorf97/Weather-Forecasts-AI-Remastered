@@ -5,7 +5,9 @@ using Microsoft.Extensions.Logging.Abstractions;
 using WeatherUserActions.Controllers;
 using WeatherUserActions.Data;
 using WeatherUserActions.Dtos;
+using WeatherUserActions.FirebaseServices;
 using WeatherUserActions.Models;
+using WeatherUserActions.Repositories;
 using WeatherUserActions.Services;
 using WeatherUserActions.Tests.Fakes;
 using WeatherUserActions.Tests.Fixtures;
@@ -14,7 +16,7 @@ using Xunit;
 namespace WeatherUserActions.Tests
 {
     [Collection(TestCollections.SqlServer)]
-    public class ProfileControllerTests
+    public class ProfileControllerTests : IAsyncLifetime
     {
         private readonly SqlServerFixture _fixture;
 
@@ -22,6 +24,10 @@ namespace WeatherUserActions.Tests
         {
             _fixture = fixture;
         }
+
+        public Task InitializeAsync() => _fixture.ResetDatabaseAsync();
+
+        public Task DisposeAsync() => Task.CompletedTask;
 
         [Fact]
         public async Task CreateProfile_MissingAuthorizationHeader_ReturnsUnauthorized()
@@ -43,6 +49,9 @@ namespace WeatherUserActions.Tests
             var result = await controller.CreateProfile(CancellationToken.None);
 
             Assert.IsType<UnauthorizedResult>(result.Result);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            Assert.Equal(0, await verifyDb.Users.CountAsync());
         }
 
         [Fact]
@@ -60,13 +69,13 @@ namespace WeatherUserActions.Tests
 
             await using var verifyDb = _fixture.CreateDbContext();
             Assert.NotNull(await verifyDb.Users.FindAsync(uid));
+            Assert.Equal(1, await verifyDb.Users.CountAsync());
         }
 
         [Fact]
         public async Task CreateProfile_ExistingUserWithCitySiteSelection_ReportsSelectionTrue()
         {
             var uid = UniqueUid();
-
             await using (var seedDb = _fixture.CreateDbContext())
             {
                 var city = new City { Name = "Athens", Country = "Greece", Latitude = 37.98m, Longitude = 23.72m };
@@ -86,7 +95,7 @@ namespace WeatherUserActions.Tests
                 });
                 await seedDb.SaveChangesAsync();
             }
-
+            //I think we could use the seedDb from above instead making again dbcontext
             await using var db = _fixture.CreateDbContext();
             var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
 
@@ -95,8 +104,12 @@ namespace WeatherUserActions.Tests
             var ok = Assert.IsType<OkObjectResult>(result.Result);
             var body = Assert.IsType<CreateProfileResponse>(ok.Value);
             Assert.True(body.HasCitySiteSelection);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            Assert.Equal(1, await verifyDb.Users.CountAsync());
         }
 
+        //Could the calls be done from same controller?
         [Fact]
         public async Task CreateProfile_CalledTwiceForSameUser_IsIdempotent()
         {
@@ -125,7 +138,9 @@ namespace WeatherUserActions.Tests
         private static ProfileController CreateController(
             WeatherUserActionsDbContext db, IFirebaseAuthService authService, string? bearerToken)
         {
-            var controller = new ProfileController(db, authService, NullLogger<ProfileController>.Instance)
+            var repository = new ProfileRepository(db, NullLogger<ProfileRepository>.Instance);
+            var service = new ProfileService(authService, repository, NullLogger<ProfileService>.Instance);
+            var controller = new ProfileController(service)
             {
                 ControllerContext = new ControllerContext
                 {

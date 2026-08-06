@@ -1085,6 +1085,15 @@
           }
         }
       },
+      "Respawn/7.0.0": {
+        "type": "package",
+        "compile": {
+          "lib/netstandard2.1/Respawn.dll": {}
+        },
+        "runtime": {
+          "lib/netstandard2.1/Respawn.dll": {}
+        }
+      },
       "SharpZipLib/1.4.2": {
         "type": "package",
         "compile": {
@@ -2912,6 +2921,19 @@
         "packageIcon.png"
       ]
     },
+    "Respawn/7.0.0": {
+      "sha512": "AyWlducZGOnmlEVz4PaL3Qv8wcY3ClPZS9CrlDnSVahGd/E9tTEgSFiC8yoV/F6o6P6IYm8xnHFa/vmWT8tfcw==",
+      "type": "package",
+      "path": "respawn/7.0.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "lib/netstandard2.1/Respawn.dll",
+        "logo.png",
+        "respawn.7.0.0.nupkg.sha512",
+        "respawn.nuspec"
+      ]
+    },
     "SharpZipLib/1.4.2": {
       "sha512": "yjj+3zgz8zgXpiiC3ZdF/iyTBbz2fFvMxZFEBPUcwZjIvXOf37Ylm+K58hqMfIBt5JgU/Z2uoUS67JmTLe973A==",
       "type": "package",
@@ -3409,6 +3431,7 @@
   "projectFileDependencyGroups": {
     "net10.0": [
       "Microsoft.NET.Test.Sdk >= 17.14.1",
+      "Respawn >= 7.0.0",
       "Testcontainers.MsSql >= 4.13.0",
       "WeatherUserActions >= 1.0.0",
       "coverlet.collector >= 6.0.4",
@@ -3476,6 +3499,10 @@
           "Microsoft.NET.Test.Sdk": {
             "target": "Package",
             "version": "[17.14.1, )"
+          },
+          "Respawn": {
+            "target": "Package",
+            "version": "[7.0.0, )"
           },
           "Testcontainers.MsSql": {
             "target": "Package",

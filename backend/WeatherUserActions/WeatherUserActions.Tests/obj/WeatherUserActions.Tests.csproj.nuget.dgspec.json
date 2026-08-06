@@ -61,6 +61,10 @@
               "target": "Package",
               "version": "[17.14.1, )"
             },
+            "Respawn": {
+              "target": "Package",
+              "version": "[7.0.0, )"
+            },
             "Testcontainers.MsSql": {
               "target": "Package",
               "version": "[4.13.0, )"

@@ -1,4 +1,4 @@
-namespace WeatherUserActions.Services
+namespace WeatherUserActions.FirebaseServices
 {
     public interface IFirebaseAuthService
     {

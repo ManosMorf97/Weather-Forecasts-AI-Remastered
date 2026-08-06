@@ -1,4 +1,4 @@
-using WeatherUserActions.Services;
+using WeatherUserActions.FirebaseServices;
 
 namespace WeatherUserActions.Tests.Fakes
 {

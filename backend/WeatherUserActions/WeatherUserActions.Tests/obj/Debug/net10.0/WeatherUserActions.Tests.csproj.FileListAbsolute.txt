@@ -169,3 +169,4 @@ C:\Weather-Forecasts-AI-Remastered\backend\WeatherUserActions\WeatherUserActions
 C:\Weather-Forecasts-AI-Remastered\backend\WeatherUserActions\WeatherUserActions.Tests\obj\Debug\net10.0\WeatherUserActions.Tests.pdb
 C:\Weather-Forecasts-AI-Remastered\backend\WeatherUserActions\WeatherUserActions.Tests\obj\Debug\net10.0\WeatherUserActions.Tests.genruntimeconfig.cache
 C:\Weather-Forecasts-AI-Remastered\backend\WeatherUserActions\WeatherUserActions.Tests\obj\Debug\net10.0\ref\WeatherUserActions.Tests.dll
+C:\Weather-Forecasts-AI-Remastered\backend\WeatherUserActions\WeatherUserActions.Tests\bin\Debug\net10.0\Respawn.dll

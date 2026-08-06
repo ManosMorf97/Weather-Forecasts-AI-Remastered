@@ -1,9 +1,6 @@
 using System.Net.Http.Headers;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using WeatherUserActions.Data;
 using WeatherUserActions.Dtos;
-using WeatherUserActions.Models;
 using WeatherUserActions.Services;
 
 namespace WeatherUserActions.Controllers
@@ -14,18 +11,11 @@ namespace WeatherUserActions.Controllers
     [Route("api/[controller]")]
     public class ProfileController : ControllerBase
     {
-        private readonly WeatherUserActionsDbContext _db;
-        private readonly IFirebaseAuthService _firebaseAuthService;
-        private readonly ILogger<ProfileController> _logger;
+        private readonly IProfileService _profileService;
 
-        public ProfileController(
-            WeatherUserActionsDbContext db,
-            IFirebaseAuthService firebaseAuthService,
-            ILogger<ProfileController> logger)
+        public ProfileController(IProfileService profileService)
         {
-            _db = db;
-            _firebaseAuthService = firebaseAuthService;
-            _logger = logger;
+            _profileService = profileService;
         }
 
         [HttpPost]
@@ -36,29 +26,21 @@ namespace WeatherUserActions.Controllers
                 return Unauthorized();
             }
 
-            string userId;
-            try
-            {
-                userId = await _firebaseAuthService.VerifyIdTokenAsync(idToken, cancellationToken);
-            }
-            catch (FirebaseTokenVerificationException ex)
-            {
-                _logger.LogWarning(ex, "Firebase ID token verification failed");
-                return Unauthorized();
-            }
+            var result = await _profileService.CreateProfileAsync(idToken, cancellationToken);
 
-            if (!await EnsureUserProvisionedAsync(userId, cancellationToken))
+            return result.Status switch
             {
-                return Problem(
+                ProfileCreationStatus.Unauthorized => Unauthorized(),
+                ProfileCreationStatus.ProvisioningFailed => Problem(
                     statusCode: StatusCodes.Status500InternalServerError,
                     title: "Failed to create profile",
-                    detail: "Could not persist the user profile. Please retry.");
-            }
-
-            var hasCitySiteSelection = await _db.UserCitySites
-                .AnyAsync(userCitySite => userCitySite.UserId == userId, cancellationToken);
-
-            return Ok(new CreateProfileResponse(hasCitySiteSelection));
+                    detail: "Could not persist the user profile. Please retry."),
+                ProfileCreationStatus.SelectionCheckFailed => Problem(
+                    statusCode: StatusCodes.Status500InternalServerError,
+                    title: "Failed to load profile",
+                    detail: "Profile was created but city site selection could not be checked. Please retry."),
+                _ => Ok(new CreateProfileResponse(result.HasCitySiteSelection)),
+            };
         }
 
         private bool TryGetBearerToken(out string idToken)
@@ -75,35 +57,6 @@ namespace WeatherUserActions.Controllers
 
             idToken = headerValue.Parameter;
             return true;
-        }
-
-        // Idempotent upsert: insert if absent, no-op if already present.
-        private async Task<bool> EnsureUserProvisionedAsync(string userId, CancellationToken cancellationToken)
-        {
-            if (await _db.Users.FindAsync([userId], cancellationToken) is not null)
-            {
-                return true;
-            }
-
-            _db.Users.Add(new User { UserId = userId, CreatedAt = DateTime.UtcNow });
-
-            try
-            {
-                await _db.SaveChangesAsync(cancellationToken);
-                return true;
-            }
-            catch (DbUpdateException ex)
-            {
-                // A concurrent request may have already inserted the same user; that's success too.
-                _db.ChangeTracker.Clear();
-                if (await _db.Users.FindAsync([userId], cancellationToken) is not null)
-                {
-                    return true;
-                }
-
-                _logger.LogError(ex, "Failed to upsert user profile for {UserId}", userId);
-                return false;
-            }
         }
     }
 }

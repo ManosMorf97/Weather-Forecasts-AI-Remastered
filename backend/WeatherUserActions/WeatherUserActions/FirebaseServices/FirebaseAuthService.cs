@@ -2,7 +2,7 @@ using FirebaseAdmin;
 using FirebaseAdmin.Auth;
 using Google.Apis.Auth.OAuth2;
 
-namespace WeatherUserActions.Services
+namespace WeatherUserActions.FirebaseServices
 {
     public class FirebaseAuthService : IFirebaseAuthService
     {
