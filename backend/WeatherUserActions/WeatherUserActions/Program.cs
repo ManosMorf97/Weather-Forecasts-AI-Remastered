@@ -13,6 +13,8 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddSingleton<IFirebaseAuthService, FirebaseAuthService>();
 builder.Services.AddScoped<IProfileRepository, ProfileRepository>();
 builder.Services.AddScoped<IProfileService, ProfileService>();
+builder.Services.AddScoped<ISelectionsRepository, SelectionsRepository>();
+builder.Services.AddScoped<ISelectionsService, SelectionsService>();
 
 var databaseSection = builder.Configuration.GetSection("Database");
 var connectionString = new SqlConnectionStringBuilder

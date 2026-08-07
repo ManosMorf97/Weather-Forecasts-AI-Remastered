@@ -1,0 +1,20 @@
+using WeatherUserActions.Dtos;
+
+namespace WeatherUserActions.Repositories
+{
+    public interface ISelectionsRepository
+    {
+        // Returns (true, allExist) on success, or (false, false) if the check could not be performed.
+        Task<(bool Succeeded, bool AllExist)> TryValidateServiceIdsAsync(
+            IReadOnlyCollection<int> serviceIds, CancellationToken cancellationToken = default);
+
+        // Upserts the given cities (matched by exact Name+Country+Latitude+Longitude), links each city
+        // to each service (cross product) via CitySite, and replaces the user's UserCitySite rows with
+        // exactly that set. Returns false if persistence failed - nothing is partially applied.
+        Task<bool> ReplaceUserSelectionAsync(
+            string userId,
+            IReadOnlyCollection<CityDto> cities,
+            IReadOnlyCollection<int> serviceIds,
+            CancellationToken cancellationToken = default);
+    }
+}

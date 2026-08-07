@@ -1,4 +1,3 @@
-using System.Net.Http.Headers;
 using Microsoft.AspNetCore.Mvc;
 using WeatherUserActions.Dtos;
 using WeatherUserActions.Services;
@@ -21,7 +20,7 @@ namespace WeatherUserActions.Controllers
         [HttpPost]
         public async Task<ActionResult<CreateProfileResponse>> CreateProfile(CancellationToken cancellationToken)
         {
-            if (!TryGetBearerToken(out var idToken))
+            if (!this.TryGetBearerToken(out var idToken))
             {
                 return Unauthorized();
             }
@@ -41,22 +40,6 @@ namespace WeatherUserActions.Controllers
                     detail: "Profile was created but city site selection could not be checked. Please retry."),
                 _ => Ok(new CreateProfileResponse(result.HasCitySiteSelection)),
             };
-        }
-
-        private bool TryGetBearerToken(out string idToken)
-        {
-            idToken = string.Empty;
-
-            if (!Request.Headers.TryGetValue("Authorization", out var authorizationHeader) ||
-                !AuthenticationHeaderValue.TryParse(authorizationHeader, out var headerValue) ||
-                !string.Equals(headerValue.Scheme, "Bearer", StringComparison.OrdinalIgnoreCase) ||
-                string.IsNullOrWhiteSpace(headerValue.Parameter))
-            {
-                return false;
-            }
-
-            idToken = headerValue.Parameter;
-            return true;
         }
     }
 }
