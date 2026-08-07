@@ -10,11 +10,11 @@ namespace WeatherUserActions.Tests
     // Exercises the DbException/DbUpdateException handling in ProfileRepository against
     // the real Testcontainers SQL Server - no mocking of EF Core or ADO.NET exception types.
     [Collection(TestCollections.SqlServer)]
-    public class ProfileRepositoryTests : IAsyncLifetime
+    public class ProfileDbConnectionTests : IAsyncLifetime
     {
         private readonly SqlServerFixture _fixture;
 
-        public ProfileRepositoryTests(SqlServerFixture fixture)
+        public ProfileDbConnectionTests(SqlServerFixture fixture)
         {
             _fixture = fixture;
         }

@@ -61,6 +61,7 @@ namespace WeatherUserActions.Tests
 
             var ok = Assert.IsType<OkObjectResult>(result.Result);
             var body = Assert.IsType<CreateProfileResponse>(ok.Value);
+            //Checks if the value hascitySiteSelection is Parsed on repo
             Assert.True(body.HasCitySiteSelection);
         }
 
