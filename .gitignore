@@ -1,6 +1,8 @@
 # Backend
 backend/WeatherUserActions/WeatherUserActions/bin/
 backend/WeatherUserActions/WeatherUserActions/obj/
+backend/WeatherUserActions/WeatherUserActions.Tests/bin/
+backend/WeatherUserActions/WeatherUserActions.Tests/obj/
 backend/WeatherUserActions/.vs/
 backend/.vscode/
 backend/**/*.user
