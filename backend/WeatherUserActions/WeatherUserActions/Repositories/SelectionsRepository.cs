@@ -67,45 +67,46 @@ namespace WeatherUserActions.Repositories
 
         // Fetches cities already in the DB (A), creates whichever of the requested cities are
         // missing, and returns the CityId for every requested city.
-        private async Task<List<int>> UpsertCitiesAsync(IReadOnlyCollection<CityDto> cities, CancellationToken cancellationToken)
+        private async Task<List<int>> UpsertCitiesAsync(IReadOnlyCollection<CityDto> requestedCityDtos, CancellationToken cancellationToken)
         {
-            var names = cities.Select(city => city.Name).Distinct().ToList();
-            var countries = cities.Select(city => city.Country).Distinct().ToList();
+            //instead of checking all db (memory overload) we check a partion (City COuntry) of DTOs
 
-            var existingByKey = await _db.Cities
-                .Where(city => names.Contains(city.Name) && countries.Contains(city.Country))
-                .ToDictionaryAsync(CityKey, city => city.CityId, cancellationToken);
+            var distinctCityDtos = requestedCityDtos.DistinctBy(CitySignature).ToList();
+            var requestedSignatures = distinctCityDtos.Select(CitySignature).ToHashSet();
 
-            var newCitiesByKey = new Dictionary<(string, string, decimal, decimal), City>();
-            foreach (var cityDto in cities)
-            {
-                var key = CityKey(cityDto);
-                if (existingByKey.ContainsKey(key) || newCitiesByKey.ContainsKey(key))
-                {
-                    continue;
-                }
+            var requestedCityCountryfromDTO = distinctCityDtos.Select(cityDto => cityDto.Name + "|" + cityDto.Country).Distinct().ToList();
 
-                var newCity = new City
+            // The DB fetch above only narrows by Name+Country, so it can return extra rows that
+            // share a name/country with a requested city but not its exact Lat/Long. Re-filter down
+            // to exact signature matches here, so everything after this point only deals with cities
+            // that were actually requested.
+            var existingDbCitiesByKey = (await _db.Cities
+                .Where(dbCity => requestedCityCountryfromDTO.Contains(dbCity.Name + "|" + dbCity.Country))
+                .ToDictionaryAsync(CitySignature, dbCity => dbCity.CityId, cancellationToken))
+                .Where(entry => requestedSignatures.Contains(entry.Key))
+                .ToDictionary(entry => entry.Key, entry => entry.Value);
+
+            var newDbCities = distinctCityDtos
+                .Where(cityDto => !existingDbCitiesByKey.ContainsKey(CitySignature(cityDto)))
+                .Select(cityDto => new City
                 {
                     Name = cityDto.Name,
                     Country = cityDto.Country,
                     Latitude = cityDto.Latitude,
                     Longitude = cityDto.Longitude,
-                };
-                newCitiesByKey[key] = newCity;
-                _db.Cities.Add(newCity);
-            }
+                })
+                .ToList();
 
-            if (newCitiesByKey.Count > 0)
+            _db.Cities.AddRange(newDbCities);
+            if (newDbCities.Count > 0)
             {
                 await _db.SaveChangesAsync(cancellationToken);
             }
 
-            return cities
-                .Select(cityDto => existingByKey.TryGetValue(CityKey(cityDto), out var cityId)
-                    ? cityId
-                    : newCitiesByKey[CityKey(cityDto)].CityId)
-                .Distinct()
+            var newDbCitiesByKey = newDbCities.ToDictionary(CitySignature, dbCity => dbCity.CityId);
+
+            return existingDbCitiesByKey.Concat(newDbCitiesByKey)
+                .Select(entry => entry.Value)
                 .ToList();
         }
 
@@ -129,14 +130,13 @@ namespace WeatherUserActions.Repositories
                         continue;
                     }
 
-                    var newCitySite = new CitySite { CityId = cityId, ServiceId = serviceId };
-                    newCitySitesByKey[key] = newCitySite;
-                    _db.CitySites.Add(newCitySite);
+                    newCitySitesByKey[key] = new CitySite { CityId = cityId, ServiceId = serviceId };
                 }
             }
 
             if (newCitySitesByKey.Count > 0)
             {
+                _db.CitySites.AddRange(newCitySitesByKey.Values);
                 await _db.SaveChangesAsync(cancellationToken);
             }
 
@@ -154,26 +154,27 @@ namespace WeatherUserActions.Repositories
         private async Task ReplaceUserCitySitesAsync(
             string userId, HashSet<int> targetCitySiteIds, CancellationToken cancellationToken)
         {
-            var existingSelections = await _db.UserCitySites
+            var existingUserSelections = await _db.UserCitySites
                 .Where(userCitySite => userCitySite.UserId == userId)
                 .ToListAsync(cancellationToken);
 
-            var existingCitySiteIds = existingSelections.Select(ucs => ucs.CitySiteId).ToHashSet();
+            var staleUserSelections = existingUserSelections.Where(ucs => !targetCitySiteIds.Contains(ucs.CitySiteId));
+            _db.UserCitySites.RemoveRange(staleUserSelections);
 
-            _db.UserCitySites.RemoveRange(
-                existingSelections.Where(ucs => !targetCitySiteIds.Contains(ucs.CitySiteId)));
-
+            var existingCitySiteIds = existingUserSelections.Select(ucs => ucs.CitySiteId).ToHashSet();
             var now = DateTime.UtcNow;
-            foreach (var citySiteId in targetCitySiteIds.Where(id => !existingCitySiteIds.Contains(id)))
-            {
-                _db.UserCitySites.Add(new UserCitySite { UserId = userId, CitySiteId = citySiteId, AddedAt = now });
-            }
+            var newUserCitySites = targetCitySiteIds
+                .Where(citySiteId => !existingCitySiteIds.Contains(citySiteId))
+                .Select(citySiteId => new UserCitySite { UserId = userId, CitySiteId = citySiteId, AddedAt = now })
+                .ToList();
+
+            _db.UserCitySites.AddRange(newUserCitySites);
         }
 
-        private static (string Name, string Country, decimal Latitude, decimal Longitude) CityKey(City city) =>
+        private static (string Name, string Country, decimal Latitude, decimal Longitude) CitySignature(City city) =>
             (city.Name, city.Country, city.Latitude, city.Longitude);
 
-        private static (string Name, string Country, decimal Latitude, decimal Longitude) CityKey(CityDto city) =>
+        private static (string Name, string Country, decimal Latitude, decimal Longitude) CitySignature(CityDto city) =>
             (city.Name, city.Country, city.Latitude, city.Longitude);
     }
 }
