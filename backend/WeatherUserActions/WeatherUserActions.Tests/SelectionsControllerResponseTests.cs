@@ -14,7 +14,7 @@ namespace WeatherUserActions.Tests
     // Mocks only at the repository boundary (ISelectionsRepository) - SelectionsService and
     // SelectionsController run for real, so these exercise the actual orchestration and
     // NoContent/Problem mapping logic without needing Docker/a real database.
-    public class SelectionsControllerFailureTests
+    public class SelectionsControllerResponseTests
     {
         private static readonly SaveSelectionsRequest ValidRequest = new(
             Cities: [new CityDto("Athens", "Greece", 37.98m, 23.72m)],

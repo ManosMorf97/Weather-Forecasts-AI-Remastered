@@ -60,6 +60,9 @@ namespace WeatherUserActions.Data
                 entity.Property(c => c.Latitude).HasPrecision(11, 8);
                 entity.Property(c => c.Longitude).HasPrecision(11, 8);
 
+                entity.HasIndex(c => new { c.Name, c.Country, c.Latitude, c.Longitude })
+                    .IsUnique();
+
                 entity.ToTable(t =>
                 {
                     t.HasCheckConstraint("CK_Cities_Latitude", "[Latitude] >= -90 AND [Latitude] <= 90");

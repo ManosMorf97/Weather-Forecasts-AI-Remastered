@@ -14,7 +14,7 @@ namespace WeatherUserActions.Tests
     // Mocks only at the repository boundary (IProfileRepository) - ProfileService and
     // ProfileController run for real, so these exercise the actual orchestration and
     // Ok/Problem mapping logic without needing Docker/a real database.
-    public class ProfileControllerFailureTests
+    public class ProfileControllerResponseTests
     {
         [Fact]
         public async Task CreateProfile_InvalidToken_ReturnsUnauthorized()

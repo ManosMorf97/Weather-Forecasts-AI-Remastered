@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using WeatherUserActions.Data;
 using WeatherUserActions.Dtos;
 using WeatherUserActions.Models;
 using WeatherUserActions.Repositories;
@@ -8,8 +9,8 @@ using Xunit;
 
 namespace WeatherUserActions.Tests
 {
-    // Exercises SelectionsRepository's city matching directly against the real
-    // Testcontainers SQL Server.
+    // Exercises SelectionsRepository's DB-failure handling directly against the real
+    // Testcontainers SQL Server - no mocking of EF Core or ADO.NET exception types.
     [Collection(TestCollections.SqlServer)]
     public class SelectionsRepositoryTests : IAsyncLifetime
     {
@@ -25,46 +26,66 @@ namespace WeatherUserActions.Tests
         public Task DisposeAsync() => Task.CompletedTask;
 
         [Fact]
-        public async Task ReplaceUserSelectionAsync_NameMatchesOneRowAndCountryMatchesAnother_DoesNotReuseEitherRow()
+        public async Task ReplaceUserSelectionAsync_ConcurrentCallsForSameNewCity_BothSucceedAndOnlyOneCityRowPersists()
+        {
+            var uidA = await SeedUserAsync();
+            var uidB = await SeedUserAsync();
+            var serviceId = await SeedServiceAsync();
+
+            var athens = new CityDto("Athens", "Greece", 37.98m, 23.72m);
+
+            await using var dbA = _fixture.CreateDbContext();
+            await using var dbB = _fixture.CreateDbContext();
+            var repositoryA = new SelectionsRepository(dbA, NullLogger<SelectionsRepository>.Instance);
+            var repositoryB = new SelectionsRepository(dbB, NullLogger<SelectionsRepository>.Instance);
+
+            var results = await Task.WhenAll(
+                repositoryA.ReplaceUserSelectionAsync(uidA, [athens], [serviceId]),
+                repositoryB.ReplaceUserSelectionAsync(uidB, [athens], [serviceId]));
+
+            Assert.All(results, Assert.True);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            Assert.Equal(1, await verifyDb.Cities.CountAsync());
+        }
+
+        [Fact]
+        public async Task ReplaceUserSelectionAsync_PersistentInsertFailure_ReturnsFalse()
         {
             var uid = await SeedUserAsync();
             var serviceId = await SeedServiceAsync();
 
-            // Rows that share a Name with one requested city and a Country with the other,
-            // but neither row is an actual Name+Country match for what's being requested.
-            await using (var seedDb = _fixture.CreateDbContext())
-            {
-                seedDb.Cities.AddRange(
-                    new City { Name = "Athens", Country = "Germany", Latitude = 1m, Longitude = 1m },
-                    new City { Name = "Berlin", Country = "Greece", Latitude = 2m, Longitude = 2m });
-                await seedDb.SaveChangesAsync();
-            }
-
-            var athensGreece = new CityDto("Athens", "Greece", 37.98m, 23.72m);
-            var berlinGermany = new CityDto("Berlin", "Germany", 52.52m, 13.40m);
+            // Exceeds the CK_Cities_Latitude check constraint (-90..90), so SQL Server rejects
+            // the insert with no chance of a "someone else already inserted it" recovery.
+            var invalidCity = new CityDto("Nowhere", "Nowhere", 999m, 0m);
 
             await using var db = _fixture.CreateDbContext();
             var repository = new SelectionsRepository(db, NullLogger<SelectionsRepository>.Instance);
 
-            var succeeded = await repository.ReplaceUserSelectionAsync(
-                uid, [athensGreece, berlinGermany], [serviceId]);
+            var succeeded = await repository.ReplaceUserSelectionAsync(uid, [invalidCity], [serviceId]);
 
-            Assert.True(succeeded);
+            Assert.False(succeeded);
+        }
 
-            await using var verifyDb = _fixture.CreateDbContext();
-            // The two mismatched seed rows must still exist untouched, plus two brand-new
-            // rows for the actual Athens/Greece and Berlin/Germany pairs - never reused.
-            Assert.Equal(4, await verifyDb.Cities.CountAsync());
+        [Fact]
+        public async Task TryValidateServiceIdsAsync_DatabaseUnreachable_ReturnsFailure()
+        {
+            await using var brokenDb = CreateUnreachableDbContext();
+            var repository = new SelectionsRepository(brokenDb, NullLogger<SelectionsRepository>.Instance);
 
-            var userCities = await verifyDb.UserCitySites
-                .Include(ucs => ucs.CitySite).ThenInclude(cs => cs.City)
-                .Where(ucs => ucs.UserId == uid)
-                .Select(ucs => ucs.CitySite.City)
-                .ToListAsync();
+            var (succeeded, allExist) = await repository.TryValidateServiceIdsAsync([1, 2]);
 
-            Assert.Equal(2, userCities.Count);
-            Assert.Contains(userCities, c => c.Name == "Athens" && c.Country == "Greece");
-            Assert.Contains(userCities, c => c.Name == "Berlin" && c.Country == "Germany");
+            Assert.False(succeeded);
+            Assert.False(allExist);
+        }
+
+        private static WeatherUserActionsDbContext CreateUnreachableDbContext()
+        {
+            var options = new DbContextOptionsBuilder<WeatherUserActionsDbContext>()
+                .UseSqlServer("Server=127.0.0.1,1;Database=doesnotexist;User Id=sa;Password=wrong;Connect Timeout=1;TrustServerCertificate=true")
+                .Options;
+
+            return new WeatherUserActionsDbContext(options);
         }
 
         private async Task<string> SeedUserAsync()

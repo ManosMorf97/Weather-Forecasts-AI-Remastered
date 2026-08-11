@@ -7,8 +7,10 @@ namespace WeatherUserActions.Models
         [Key]
         public int CityId { get; set; }
 
+        [MaxLength(200)]
         public required string Name { get; set; }
 
+        [MaxLength(200)]
         public required string Country { get; set; }
 
         [Range(-90, 90)]

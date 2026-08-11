@@ -16,11 +16,11 @@ using Xunit;
 namespace WeatherUserActions.Tests
 {
     [Collection(TestCollections.SqlServer)]
-    public class ProfileControllerTests : IAsyncLifetime
+    public class ProfileControllerLogicTests : IAsyncLifetime
     {
         private readonly SqlServerFixture _fixture;
 
-        public ProfileControllerTests(SqlServerFixture fixture)
+        public ProfileControllerLogicTests(SqlServerFixture fixture)
         {
             _fixture = fixture;
         }

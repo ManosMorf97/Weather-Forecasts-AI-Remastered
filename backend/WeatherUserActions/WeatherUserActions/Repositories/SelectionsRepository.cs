@@ -100,7 +100,33 @@ namespace WeatherUserActions.Repositories
             _db.Cities.AddRange(newDbCities);
             if (newDbCities.Count > 0)
             {
-                await _db.SaveChangesAsync(cancellationToken);
+                try
+                {
+                    await _db.SaveChangesAsync(cancellationToken);
+                }
+                catch (DbUpdateException)
+                {
+                    // A concurrent request may have already inserted one or more of these
+                    // cities (unique index on Name+Country+Latitude+Longitude); re-check
+                    // what exists now and only insert whichever cities are still missing.
+                    _db.ChangeTracker.Clear();
+
+                    existingDbCitiesByKey = (await _db.Cities
+                        .Where(dbCity => requestedCityCountryfromDTO.Contains(dbCity.Name + "|" + dbCity.Country))
+                        .ToDictionaryAsync(CitySignature, dbCity => dbCity.CityId, cancellationToken))
+                        .Where(entry => requestedSignatures.Contains(entry.Key))
+                        .ToDictionary(entry => entry.Key, entry => entry.Value);
+
+                    newDbCities = newDbCities
+                        .Where(city => !existingDbCitiesByKey.ContainsKey(CitySignature(city)))
+                        .ToList();
+
+                    if (newDbCities.Count > 0)
+                    {
+                        _db.Cities.AddRange(newDbCities);
+                        await _db.SaveChangesAsync(cancellationToken);
+                    }
+                }
             }
 
             var newDbCitiesByKey = newDbCities.ToDictionary(CitySignature, dbCity => dbCity.CityId);
