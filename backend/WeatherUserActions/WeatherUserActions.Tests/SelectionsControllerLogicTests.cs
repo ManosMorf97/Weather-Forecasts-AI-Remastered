@@ -271,7 +271,7 @@ namespace WeatherUserActions.Tests
             Assert.Equal("Germany", berlinSelection.CitySite.City.Country);
             Assert.Equal(berlinGermany.Latitude, berlinSelection.CitySite.City.Latitude);
             Assert.Equal(berlinGermany.Longitude, berlinSelection.CitySite.City.Longitude);
-            Assert.Equal("OpenWewather", berlinSelection.CitySite.Service.Name);
+            Assert.Equal("OpenWeather", berlinSelection.CitySite.Service.Name);
         }
 
         [Fact]
