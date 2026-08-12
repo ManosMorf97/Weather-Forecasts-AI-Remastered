@@ -48,6 +48,7 @@ namespace WeatherUserActions.Repositories
                 var cityIds = await UpsertCitiesAsync(cities, cancellationToken);
                 var citySiteIds = await UpsertCitySitesAsync(cityIds, serviceIds.Distinct().ToList(), cancellationToken);
                 await ReplaceUserCitySitesAsync(userId, citySiteIds, cancellationToken);
+                await ClearPendingUserServicesAsync(userId, cancellationToken);
 
                 await _db.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
@@ -195,6 +196,17 @@ namespace WeatherUserActions.Repositories
                 .ToList();
 
             _db.UserCitySites.AddRange(newUserCitySites);
+        }
+
+        // The user's service-only picks are now materialized into UserCitySite rows via a real
+        // city selection, so the pending UserService "backup" rows for this user are stale.
+        private async Task ClearPendingUserServicesAsync(string userId, CancellationToken cancellationToken)
+        {
+            var pendingUserServices = await _db.UserServices
+                .Where(userService => userService.UserId == userId)
+                .ToListAsync(cancellationToken);
+
+            _db.UserServices.RemoveRange(pendingUserServices);
         }
 
         private static (string Name, string Country, decimal Latitude, decimal Longitude) CitySignature(City city) =>

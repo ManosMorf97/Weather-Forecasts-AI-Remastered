@@ -261,26 +261,65 @@ namespace WeatherUserActions.Tests
             Assert.Equal(uid, athensSelection.UserId);
             Assert.Equal("Athens", athensSelection.CitySite.City.Name);
             Assert.Equal("Greece", athensSelection.CitySite.City.Country);
-            Assert.Equal(athensGreece.Latitude, athensSelection.CitySite.City.Latitude);
-            Assert.Equal(athensGreece.Longitude, athensSelection.CitySite.City.Longitude);
             Assert.Equal("OpenWeather", athensSelection.CitySite.Service.Name);
 
             var berlinSelection = joinedUserCitySites[1];
             Assert.Equal(uid, berlinSelection.UserId);
             Assert.Equal("Berlin", berlinSelection.CitySite.City.Name);
             Assert.Equal("Germany", berlinSelection.CitySite.City.Country);
-            Assert.Equal(berlinGermany.Latitude, berlinSelection.CitySite.City.Latitude);
-            Assert.Equal(berlinGermany.Longitude, berlinSelection.CitySite.City.Longitude);
             Assert.Equal("OpenWeather", berlinSelection.CitySite.Service.Name);
         }
+        [Fact]
+        public async Task SaveSelections_SameNameAndCountryButDifferentLatLon_DoesNotReuseRow()
+        {
+            var uid = UniqueUid();
+            await SeedUserAsync(uid);
+            var serviceId = await SeedServiceAsync();
 
+            // Same Name+Country as Athens, but a different Lat/Long - matching is on the full
+            // (Name, Country, Latitude, Longitude) signature, so this row must not be reused.
+            await using (var seedDb = _fixture.CreateDbContext())
+            {
+                seedDb.Cities.Add(new City { Name = Athens.Name, Country = Athens.Country, Latitude = 1m, Longitude = 1m });
+                await seedDb.SaveChangesAsync();
+            }
+
+            await using var db = _fixture.CreateDbContext();
+            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+
+            var result = await controller.SaveSelections(
+                new SaveSelectionsRequest([Athens], [serviceId]), CancellationToken.None);
+
+            Assert.IsType<NoContentResult>(result);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            Assert.Equal(2, await verifyDb.Cities.CountAsync());
+
+            // The original seed row (different Lat/Long) must still exist untouched, alongside
+            // the brand-new row for the actual Athens/Greece pair - never merged or overwritten.
+            Assert.True(await verifyDb.Cities.AnyAsync(c =>
+                c.Name == Athens.Name && c.Country == Athens.Country && c.Latitude == 1m && c.Longitude == 1m));
+
+            var joinedUserCitySites = await verifyDb.UserCitySites
+                .Include(ucs => ucs.CitySite).ThenInclude(cs => cs.City)
+                .Include(ucs => ucs.CitySite).ThenInclude(cs => cs.Service)
+                .ToListAsync();
+
+            var joinedUserCitySite = Assert.Single(joinedUserCitySites);
+            Assert.Equal(uid, joinedUserCitySite.UserId);
+            Assert.Equal(Athens.Name, joinedUserCitySite.CitySite.City.Name);
+            Assert.Equal(Athens.Country, joinedUserCitySite.CitySite.City.Country);
+            Assert.Equal(Athens.Latitude, joinedUserCitySite.CitySite.City.Latitude);
+            Assert.Equal(Athens.Longitude, joinedUserCitySite.CitySite.City.Longitude);
+            Assert.Equal("OpenWeather", joinedUserCitySite.CitySite.Service.Name);
+        }
         [Fact]
         public async Task SaveSelections_TwoCitySitesAlreadyExist_ReusesBothRows()
         {
             var uid = UniqueUid();
             await SeedUserAsync(uid);
             var serviceA = await SeedServiceAsync();
-            var serviceB = await SeedServiceAsync();
+            var serviceB = await SeedServiceAsync(name: "WeatherAPI", apiEndpoint: "https://example2.test");
 
             int citySiteAId, citySiteBId;
             await using (var seedDb = _fixture.CreateDbContext())
@@ -309,10 +348,21 @@ namespace WeatherUserActions.Tests
             Assert.Equal(1, await verifyDb.Cities.CountAsync());
             Assert.Equal(2, await verifyDb.CitySites.CountAsync());
 
-            var userCitySites = await GetUserCitySitesAsync(uid);
-            Assert.Equal(2, userCitySites.Count);
-            Assert.Contains(userCitySites, ucs => ucs.CitySiteId == citySiteAId);
-            Assert.Contains(userCitySites, ucs => ucs.CitySiteId == citySiteBId);
+            var joinedUserCitySites = await verifyDb.UserCitySites
+                .Include(ucs => ucs.CitySite).ThenInclude(cs => cs.City)
+                .Include(ucs => ucs.CitySite).ThenInclude(cs => cs.Service)
+                .ToListAsync();
+            Assert.Equal(2, joinedUserCitySites.Count);
+
+            var siteA = Assert.Single(joinedUserCitySites, ucs => ucs.CitySiteId == citySiteAId);
+            Assert.Equal(uid, siteA.UserId);
+            Assert.Equal(Athens.Name, siteA.CitySite.City.Name);
+            Assert.Equal("OpenWeather", siteA.CitySite.Service.Name);
+
+            var siteB = Assert.Single(joinedUserCitySites, ucs => ucs.CitySiteId == citySiteBId);
+            Assert.Equal(uid, siteB.UserId);
+            Assert.Equal(Athens.Name, siteB.CitySite.City.Name);
+            Assert.Equal("WeatherAPI", siteB.CitySite.Service.Name);
         }
 
         [Fact]
@@ -323,7 +373,7 @@ namespace WeatherUserActions.Tests
             await SeedUserAsync(uidA);
             await SeedUserAsync(uidB);
             var serviceA = await SeedServiceAsync();
-            var serviceB = await SeedServiceAsync();
+            var serviceB = await SeedServiceAsync(name: "WeatherAPI", apiEndpoint: "https://example2.test");
 
             await SaveAsync(uidA, [Athens], [serviceA]);
             await SaveAsync(uidB, [Paris], [serviceB]);
@@ -332,13 +382,19 @@ namespace WeatherUserActions.Tests
             Assert.Equal(2, await verifyDb.Cities.CountAsync());
             Assert.Equal(2, await verifyDb.CitySites.CountAsync());
 
-            var userACitySites = await GetUserCitySitesAsync(uidA);
-            var siteA = Assert.Single(userACitySites);
-            Assert.Equal(Athens.Name, siteA.CitySite.City.Name);
+            var joinedUserCitySites = await verifyDb.UserCitySites
+                .Include(ucs => ucs.CitySite).ThenInclude(cs => cs.City)
+                .Include(ucs => ucs.CitySite).ThenInclude(cs => cs.Service)
+                .ToListAsync();
+            Assert.Equal(2, joinedUserCitySites.Count);
 
-            var userBCitySites = await GetUserCitySitesAsync(uidB);
-            var siteB = Assert.Single(userBCitySites);
+            var siteA = Assert.Single(joinedUserCitySites, ucs => ucs.UserId == uidA);
+            Assert.Equal(Athens.Name, siteA.CitySite.City.Name);
+            Assert.Equal("OpenWeather", siteA.CitySite.Service.Name);
+
+            var siteB = Assert.Single(joinedUserCitySites, ucs => ucs.UserId == uidB);
             Assert.Equal(Paris.Name, siteB.CitySite.City.Name);
+            Assert.Equal("WeatherAPI", siteB.CitySite.Service.Name);
 
             Assert.NotEqual(siteA.CitySiteId, siteB.CitySiteId);
         }
@@ -351,7 +407,7 @@ namespace WeatherUserActions.Tests
             await SeedUserAsync(uidA);
             await SeedUserAsync(uidB);
             var serviceA = await SeedServiceAsync();
-            var serviceB = await SeedServiceAsync();
+            var serviceB = await SeedServiceAsync(name: "WeatherAPI", apiEndpoint: "https://example2.test");
 
             await SaveAsync(uidA, [Athens], [serviceA]);
             await SaveAsync(uidB, [Athens], [serviceB]);
@@ -362,16 +418,24 @@ namespace WeatherUserActions.Tests
             Assert.Equal(1, await verifyDb.Cities.CountAsync());
             Assert.Equal(2, await verifyDb.CitySites.CountAsync());
 
-            var userACitySites = await GetUserCitySitesAsync(uidA);
-            var siteA = Assert.Single(userACitySites);
+            var joinedUserCitySites = await verifyDb.UserCitySites
+                .Include(ucs => ucs.CitySite).ThenInclude(cs => cs.City)
+                .Include(ucs => ucs.CitySite).ThenInclude(cs => cs.Service)
+                .ToListAsync();
+            Assert.Equal(2, joinedUserCitySites.Count);
 
-            var userBCitySites = await GetUserCitySitesAsync(uidB);
-            var siteB = Assert.Single(userBCitySites);
+            var siteA = Assert.Single(joinedUserCitySites, ucs => ucs.UserId == uidA);
+            Assert.Equal(Athens.Name, siteA.CitySite.City.Name);
+            Assert.Equal("OpenWeather", siteA.CitySite.Service.Name);
+
+            var siteB = Assert.Single(joinedUserCitySites, ucs => ucs.UserId == uidB);
+            Assert.Equal(Athens.Name, siteB.CitySite.City.Name);
+            Assert.Equal("WeatherAPI", siteB.CitySite.Service.Name);
 
             Assert.Equal(siteA.CitySite.CityId, siteB.CitySite.CityId);
             Assert.NotEqual(siteA.CitySiteId, siteB.CitySiteId);
         }
-
+        
         [Fact]
         public async Task SaveSelections_TwoUsersWithSomeCommonCities_ReusesSharedCityRowOnly()
         {
@@ -380,7 +444,7 @@ namespace WeatherUserActions.Tests
             await SeedUserAsync(uidA);
             await SeedUserAsync(uidB);
             var serviceA = await SeedServiceAsync();
-            var serviceB = await SeedServiceAsync();
+            var serviceB = await SeedServiceAsync(name: "WeatherAPI", apiEndpoint: "https://example2.test");
 
             await SaveAsync(uidA, [Athens, Paris], [serviceA]);
             await SaveAsync(uidB, [Athens, Berlin], [serviceB]);
@@ -390,16 +454,30 @@ namespace WeatherUserActions.Tests
             Assert.Equal(3, await verifyDb.Cities.CountAsync());
             Assert.Equal(4, await verifyDb.CitySites.CountAsync());
 
-            var userACitySites = await GetUserCitySitesAsync(uidA);
+            var joinedUserCitySites = await verifyDb.UserCitySites
+                .Include(ucs => ucs.CitySite).ThenInclude(cs => cs.City)
+                .Include(ucs => ucs.CitySite).ThenInclude(cs => cs.Service)
+                .OrderBy(ucs => ucs.UserId)
+                .ThenBy(ucs => ucs.CitySite.City.Name)
+                .ToListAsync();
+            Assert.Equal(4, joinedUserCitySites.Count);
+
+            var userACitySites = joinedUserCitySites.Where(ucs => ucs.UserId == uidA).ToList();
             Assert.Equal(2, userACitySites.Count);
+            Assert.Equal(Athens.Name, userACitySites[0].CitySite.City.Name);
+            Assert.Equal("OpenWeather", userACitySites[0].CitySite.Service.Name);
+            Assert.Equal(Paris.Name, userACitySites[1].CitySite.City.Name);
+            Assert.Equal("OpenWeather", userACitySites[1].CitySite.Service.Name);
 
-            var userBCitySites = await GetUserCitySitesAsync(uidB);
+            var userBCitySites = joinedUserCitySites.Where(ucs => ucs.UserId == uidB).ToList();
             Assert.Equal(2, userBCitySites.Count);
+            Assert.Equal(Athens.Name, userBCitySites[0].CitySite.City.Name);
+            Assert.Equal("WeatherAPI", userBCitySites[0].CitySite.Service.Name);
+            Assert.Equal(Berlin.Name, userBCitySites[1].CitySite.City.Name);
+            Assert.Equal("WeatherAPI", userBCitySites[1].CitySite.Service.Name);
 
-            var athensForA = Assert.Single(userACitySites, ucs => ucs.CitySite.City.Name == Athens.Name);
-            var athensForB = Assert.Single(userBCitySites, ucs => ucs.CitySite.City.Name == Athens.Name);
-            Assert.Equal(athensForA.CitySite.CityId, athensForB.CitySite.CityId);
-            Assert.NotEqual(athensForA.CitySiteId, athensForB.CitySiteId);
+            Assert.Equal(userACitySites[0].CitySite.CityId, userBCitySites[0].CitySite.CityId);
+            Assert.NotEqual(userACitySites[0].CitySiteId, userBCitySites[0].CitySiteId);
         }
 
         [Fact]
@@ -410,7 +488,7 @@ namespace WeatherUserActions.Tests
             await SeedUserAsync(uidA);
             await SeedUserAsync(uidB);
             var serviceA = await SeedServiceAsync();
-            var serviceB = await SeedServiceAsync();
+            var serviceB = await SeedServiceAsync(name: "WeatherAPI", apiEndpoint: "https://example2.test");
 
             await SaveAsync(uidA, [Athens], [serviceA]);
             await SaveAsync(uidB, [Paris], [serviceB]);
@@ -419,10 +497,23 @@ namespace WeatherUserActions.Tests
             Assert.Equal(2, await verifyDb.Cities.CountAsync());
             Assert.Equal(2, await verifyDb.CitySites.CountAsync());
 
-            var userACitySites = await GetUserCitySitesAsync(uidA);
-            var userBCitySites = await GetUserCitySitesAsync(uidB);
-            Assert.Equal(serviceA, Assert.Single(userACitySites).CitySite.ServiceId);
-            Assert.Equal(serviceB, Assert.Single(userBCitySites).CitySite.ServiceId);
+            var joinedUserCitySites = await verifyDb.UserCitySites
+                .Include(ucs => ucs.CitySite).ThenInclude(cs => cs.City)
+                .Include(ucs => ucs.CitySite).ThenInclude(cs => cs.Service)
+                .ToListAsync();
+            Assert.Equal(2, joinedUserCitySites.Count);
+
+            var userACitySites = joinedUserCitySites.Where(ucs => ucs.UserId == uidA).ToList();
+            var userAoptions = Assert.Single(userACitySites);
+            Assert.Equal(Athens.Name, userAoptions.CitySite.City.Name);
+            Assert.Equal("OpenWeather", userAoptions.CitySite.Service.Name);
+            Assert.Equal(serviceA, userAoptions.CitySite.ServiceId);
+
+            var userBCitySites = joinedUserCitySites.Where(ucs => ucs.UserId == uidB).ToList();
+            var userBoptions = Assert.Single(userBCitySites);
+            Assert.Equal(Paris.Name, userBoptions.CitySite.City.Name);
+            Assert.Equal("WeatherAPI", userBoptions.CitySite.Service.Name);
+            Assert.Equal(serviceB, userBoptions.CitySite.ServiceId);
         }
 
         [Fact]
@@ -442,15 +533,25 @@ namespace WeatherUserActions.Tests
             // cause CitySite reuse across cities; each (City, Service) pair is still its own row.
             Assert.Equal(2, await verifyDb.Cities.CountAsync());
             Assert.Equal(2, await verifyDb.CitySites.CountAsync());
+            Assert.Equal(1, await verifyDb.ForecastingServices.CountAsync());
 
-            var userACitySites = await GetUserCitySitesAsync(uidA);
-            var userBCitySites = await GetUserCitySitesAsync(uidB);
-            var siteA = Assert.Single(userACitySites);
-            var siteB = Assert.Single(userBCitySites);
+            var joinedUserCitySites = await verifyDb.UserCitySites
+                .Include(ucs => ucs.CitySite).ThenInclude(cs => cs.City)
+                .Include(ucs => ucs.CitySite).ThenInclude(cs => cs.Service)
+                .ToListAsync();
+            Assert.Equal(2, joinedUserCitySites.Count);
+             
+            var userAoptions = Assert.Single(joinedUserCitySites, ucs => ucs.UserId == uidA);
+            Assert.Equal(Athens.Name, userAoptions.CitySite.City.Name);
+            Assert.Equal("OpenWeather", userAoptions.CitySite.Service.Name);
 
-            Assert.NotEqual(siteA.CitySiteId, siteB.CitySiteId);
-            Assert.Equal(sharedService, siteA.CitySite.ServiceId);
-            Assert.Equal(sharedService, siteB.CitySite.ServiceId);
+            var userBoptions = Assert.Single(joinedUserCitySites, ucs => ucs.UserId == uidB);
+            Assert.Equal(Paris.Name, userBoptions.CitySite.City.Name);
+            Assert.Equal("OpenWeather", userBoptions.CitySite.Service.Name);
+
+            Assert.NotEqual(userAoptions.CitySiteId, userBoptions.CitySiteId);
+            Assert.Equal(sharedService, userAoptions.CitySite.ServiceId);
+            Assert.Equal(sharedService, userBoptions.CitySite.ServiceId);
         }
 
         [Fact]
@@ -461,8 +562,8 @@ namespace WeatherUserActions.Tests
             await SeedUserAsync(uidA);
             await SeedUserAsync(uidB);
             var sharedService = await SeedServiceAsync();
-            var serviceOnlyA = await SeedServiceAsync();
-            var serviceOnlyB = await SeedServiceAsync();
+            var serviceOnlyA = await SeedServiceAsync(name: "WeatherAPI", apiEndpoint: "https://example2.test");
+            var serviceOnlyB = await SeedServiceAsync(name: "AccuWeather", apiEndpoint: "https://example3.test");
 
             await SaveAsync(uidA, [Athens], [sharedService, serviceOnlyA]);
             await SaveAsync(uidB, [Paris], [sharedService, serviceOnlyB]);
@@ -471,13 +572,37 @@ namespace WeatherUserActions.Tests
             Assert.Equal(2, await verifyDb.Cities.CountAsync());
             Assert.Equal(4, await verifyDb.CitySites.CountAsync());
 
-            var userACitySites = await GetUserCitySitesAsync(uidA);
-            var userBCitySites = await GetUserCitySitesAsync(uidB);
+            var joinedUserCitySites = await verifyDb.UserCitySites
+                .Include(ucs => ucs.CitySite).ThenInclude(cs => cs.City)
+                .Include(ucs => ucs.CitySite).ThenInclude(cs => cs.Service)
+                .ToListAsync();
+            Assert.Equal(4, joinedUserCitySites.Count);
+
+            var userACitySites = joinedUserCitySites
+                .Where(ucs => ucs.UserId == uidA)
+                .OrderBy(ucs => ucs.CitySite.Service.Name)
+                .ToList();
+            var userBCitySites = joinedUserCitySites
+                .Where(ucs => ucs.UserId == uidB)
+                .OrderBy(ucs => ucs.CitySite.Service.Name)
+                .ToList();
             Assert.Equal(2, userACitySites.Count);
             Assert.Equal(2, userBCitySites.Count);
 
-            var sharedForA = Assert.Single(userACitySites, ucs => ucs.CitySite.ServiceId == sharedService);
-            var sharedForB = Assert.Single(userBCitySites, ucs => ucs.CitySite.ServiceId == sharedService);
+            // Ordered by service name: OpenWeather (shared) < WeatherAPI (A-only).
+            Assert.Equal(Athens.Name, userACitySites[0].CitySite.City.Name);
+            Assert.Equal("OpenWeather", userACitySites[0].CitySite.Service.Name);
+            Assert.Equal(Athens.Name, userACitySites[1].CitySite.City.Name);
+            Assert.Equal("WeatherAPI", userACitySites[1].CitySite.Service.Name);
+
+            // Ordered by service name: AccuWeather (B-only) < OpenWeather (shared).
+            Assert.Equal(Paris.Name, userBCitySites[0].CitySite.City.Name);
+            Assert.Equal("AccuWeather", userBCitySites[0].CitySite.Service.Name);
+            Assert.Equal(Paris.Name, userBCitySites[1].CitySite.City.Name);
+            Assert.Equal("OpenWeather", userBCitySites[1].CitySite.Service.Name);
+
+            var sharedForA = userACitySites[0];
+            var sharedForB = userBCitySites[1];
             Assert.NotEqual(sharedForA.CitySiteId, sharedForB.CitySiteId);
         }
 
@@ -497,13 +622,34 @@ namespace WeatherUserActions.Tests
             // Athens+sharedService is the one CitySite both users pick - it must be the same row.
             Assert.Equal(3, await verifyDb.Cities.CountAsync());
             Assert.Equal(3, await verifyDb.CitySites.CountAsync());
+            Assert.Single(verifyDb.ForecastingServices);
+            var joinedUserCitySites = await verifyDb.UserCitySites
+                .Include(ucs => ucs.CitySite).ThenInclude(cs => cs.City)
+                .Include(ucs => ucs.CitySite).ThenInclude(cs => cs.Service)
+                .OrderBy(ucs => ucs.UserId)
+                .ThenBy(ucs => ucs.CitySite.City.Name)
+                .ToListAsync();
+            Assert.Equal(4, joinedUserCitySites.Count);
 
-            var userACitySites = await GetUserCitySitesAsync(uidA);
-            var userBCitySites = await GetUserCitySitesAsync(uidB);
+            var userACitySites = joinedUserCitySites.Where(ucs => ucs.UserId == uidA).ToList();
+            Assert.Equal(2, userACitySites.Count);
+            Assert.Equal(uidA, userACitySites[0].UserId);
+            Assert.Equal(Athens.Name, userACitySites[0].CitySite.City.Name);
+            Assert.Equal("OpenWeather", userACitySites[0].CitySite.Service.Name);
+            Assert.Equal(uidA, userACitySites[1].UserId);
+            Assert.Equal(Paris.Name, userACitySites[1].CitySite.City.Name);
+            Assert.Equal("OpenWeather", userACitySites[1].CitySite.Service.Name);
 
-            var athensForA = Assert.Single(userACitySites, ucs => ucs.CitySite.City.Name == Athens.Name);
-            var athensForB = Assert.Single(userBCitySites, ucs => ucs.CitySite.City.Name == Athens.Name);
-            Assert.Equal(athensForA.CitySiteId, athensForB.CitySiteId);
+            var userBCitySites = joinedUserCitySites.Where(ucs => ucs.UserId == uidB).ToList();
+            Assert.Equal(2, userBCitySites.Count);
+            Assert.Equal(uidB, userBCitySites[0].UserId);
+            Assert.Equal(Athens.Name, userBCitySites[0].CitySite.City.Name);
+            Assert.Equal("OpenWeather", userBCitySites[0].CitySite.Service.Name);
+            Assert.Equal(uidB, userBCitySites[1].UserId);
+            Assert.Equal(Berlin.Name, userBCitySites[1].CitySite.City.Name);
+            Assert.Equal("OpenWeather", userBCitySites[1].CitySite.Service.Name);
+
+            Assert.Equal(userACitySites[0].CitySiteId, userBCitySites[0].CitySiteId);
         }
 
         [Fact]
@@ -525,22 +671,75 @@ namespace WeatherUserActions.Tests
             Assert.Equal(2, await verifyDb.CitySites.CountAsync());
             Assert.Equal(4, await verifyDb.UserCitySites.CountAsync());
 
-            var userACitySites = await GetUserCitySitesAsync(uidA);
-            var userBCitySites = await GetUserCitySitesAsync(uidB);
+            var joinedUserCitySites = await verifyDb.UserCitySites
+                .Include(ucs => ucs.CitySite).ThenInclude(cs => cs.City)
+                .Include(ucs => ucs.CitySite).ThenInclude(cs => cs.Service)
+                .OrderBy(ucs => ucs.UserId)
+                .ThenBy(ucs => ucs.CitySite.City.Name)
+                .ToListAsync();
+            Assert.Equal(4, joinedUserCitySites.Count);
+
+            var userACitySites = joinedUserCitySites.Where(ucs => ucs.UserId == uidA).ToList();
             Assert.Equal(2, userACitySites.Count);
+            Assert.Equal(uidA, userACitySites[0].UserId);
+            Assert.Equal(Athens.Name, userACitySites[0].CitySite.City.Name);
+            Assert.Equal("OpenWeather", userACitySites[0].CitySite.Service.Name);
+            Assert.Equal(uidA, userACitySites[1].UserId);
+            Assert.Equal(Paris.Name, userACitySites[1].CitySite.City.Name);
+            Assert.Equal("OpenWeather", userACitySites[1].CitySite.Service.Name);
+
+            var userBCitySites = joinedUserCitySites.Where(ucs => ucs.UserId == uidB).ToList();
             Assert.Equal(2, userBCitySites.Count);
+            Assert.Equal(uidB, userBCitySites[0].UserId);
+            Assert.Equal(Athens.Name, userBCitySites[0].CitySite.City.Name);
+            Assert.Equal("OpenWeather", userBCitySites[0].CitySite.Service.Name);
+            Assert.Equal(uidB, userBCitySites[1].UserId);
+            Assert.Equal(Paris.Name, userBCitySites[1].CitySite.City.Name);
+            Assert.Equal("OpenWeather", userBCitySites[1].CitySite.Service.Name);
 
             var aCitySiteIds = userACitySites.Select(ucs => ucs.CitySiteId).ToHashSet();
             var bCitySiteIds = userBCitySites.Select(ucs => ucs.CitySiteId).ToHashSet();
             Assert.Equal(aCitySiteIds, bCitySiteIds);
         }
 
+        [Fact]
+        public async Task SaveSelections_UserHasPendingUserServices_ClearsThemForThatUserOnly()
+        {
+            var uid = UniqueUid();
+            var otherUid = UniqueUid();
+            await SeedUserAsync(uid);
+            await SeedUserAsync(otherUid);
+            var serviceId = await SeedServiceAsync();
+
+            // Pending service-only picks (no city yet) for both users - only the requesting
+            // user's rows should be cleared once their city selection materializes.
+            await using (var seedDb = _fixture.CreateDbContext())
+            {
+                seedDb.UserServices.Add(new UserService { UserId = uid, ServiceId = serviceId, AddedAt = DateTime.UtcNow });
+                seedDb.UserServices.Add(new UserService { UserId = otherUid, ServiceId = serviceId, AddedAt = DateTime.UtcNow });
+                await seedDb.SaveChangesAsync();
+            }
+
+            await using var db = _fixture.CreateDbContext();
+            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+
+            var result = await controller.SaveSelections(
+                new SaveSelectionsRequest([Athens], [serviceId]), CancellationToken.None);
+
+            Assert.IsType<NoContentResult>(result);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var remainingUserServices = await verifyDb.UserServices.ToListAsync();
+            var remainingUserService = Assert.Single(remainingUserServices);
+            Assert.Equal(otherUid, remainingUserService.UserId);
+        }
+
         private static string UniqueUid() => $"uid-{Guid.NewGuid():N}";
 
-        private async Task<int> SeedServiceAsync()
+        private async Task<int> SeedServiceAsync(string name="OpenWeather", string apiEndpoint="https://example.test")
         {
             await using var db = _fixture.CreateDbContext();
-            var service = new ForecastingService { Name = "OpenWeather", ApiEndpoint = "https://example.test" };
+            var service = new ForecastingService { Name = name, ApiEndpoint = apiEndpoint };
             db.ForecastingServices.Add(service);
             await db.SaveChangesAsync();
             return service.ServiceId;
@@ -560,15 +759,6 @@ namespace WeatherUserActions.Tests
             var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
             var result = await controller.SaveSelections(new SaveSelectionsRequest(cities, serviceIds), CancellationToken.None);
             Assert.IsType<NoContentResult>(result);
-        }
-
-        private async Task<List<UserCitySite>> GetUserCitySitesAsync(string uid)
-        {
-            await using var db = _fixture.CreateDbContext();
-            return await db.UserCitySites
-                .Include(ucs => ucs.CitySite).ThenInclude(cs => cs.City)
-                .Where(ucs => ucs.UserId == uid)
-                .ToListAsync();
         }
 
         private static SelectionsController CreateController(
