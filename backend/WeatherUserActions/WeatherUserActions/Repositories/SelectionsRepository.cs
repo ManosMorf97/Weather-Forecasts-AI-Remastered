@@ -111,7 +111,7 @@ namespace WeatherUserActions.Repositories
                     // cities (unique index on Name+Country+Latitude+Longitude); re-check
                     // what exists now and only insert whichever cities are still missing.
                     _db.ChangeTracker.Clear();
-
+                    //CLAUDE. I think we could execute insert with select, instead of select and then insert the selected result.
                     existingDbCitiesByKey = (await _db.Cities
                         .Where(dbCity => requestedCityCountryfromDTO.Contains(dbCity.Name + "|" + dbCity.Country))
                         .ToDictionaryAsync(CitySignature, dbCity => dbCity.CityId, cancellationToken))
@@ -202,11 +202,9 @@ namespace WeatherUserActions.Repositories
         // city selection, so the pending UserService "backup" rows for this user are stale.
         private async Task ClearPendingUserServicesAsync(string userId, CancellationToken cancellationToken)
         {
-            var pendingUserServices = await _db.UserServices
+            await _db.UserServices
                 .Where(userService => userService.UserId == userId)
-                .ToListAsync(cancellationToken);
-
-            _db.UserServices.RemoveRange(pendingUserServices);
+                .ExecuteDeleteAsync(cancellationToken);
         }
 
         private static (string Name, string Country, decimal Latitude, decimal Longitude) CitySignature(City city) =>
