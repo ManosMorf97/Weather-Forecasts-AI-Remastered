@@ -207,6 +207,49 @@ namespace WeatherUserActions.Repositories
                 .ExecuteDeleteAsync(cancellationToken);
         }
 
+        public async Task<(bool Succeeded, List<ServiceSelectionDto> Services, List<CityDto> Cities)> TryGetUserSelectionsAsync(
+            string userId, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var userCitySites = await _db.UserCitySites
+                    .Where(userCitySite => userCitySite.UserId == userId)
+                    .Include(userCitySite => userCitySite.CitySite).ThenInclude(citySite => citySite.City)
+                    .ToListAsync(cancellationToken);
+
+                var pendingServiceIds = await _db.UserServices
+                    .Where(userService => userService.UserId == userId)
+                    .Select(userService => userService.ServiceId)
+                    .ToListAsync(cancellationToken);
+
+                var selectedServiceIds = userCitySites
+                    .Select(userCitySite => userCitySite.CitySite.ServiceId)
+                    .Concat(pendingServiceIds)
+                    .ToHashSet();
+
+                var allServices = await _db.ForecastingServices
+                    .OrderBy(service => service.Name)
+                    .ToListAsync(cancellationToken);
+
+                var services = allServices
+                    .Select(service => new ServiceSelectionDto(service.ServiceId, service.Name, selectedServiceIds.Contains(service.ServiceId)))
+                    .ToList();
+
+                var cities = userCitySites
+                    .Select(userCitySite => userCitySite.CitySite.City)
+                    .DistinctBy(city => city.CityId)
+                    .Select(city => new CityDto(city.Name, city.Country, city.Latitude, city.Longitude))
+                    .ToList();
+
+                return (true, services, cities);
+            }
+            catch (DbException ex)
+            {
+                _logger.LogError(ex, "Failed to load selections for {UserId}", userId);
+                return (false, [], []);
+            }
+        }
+
         private static (string Name, string Country, decimal Latitude, decimal Longitude) CitySignature(City city) =>
             (city.Name, city.Country, city.Latitude, city.Longitude);
 

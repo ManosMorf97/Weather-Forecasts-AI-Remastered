@@ -78,6 +78,47 @@ namespace WeatherUserActions.Tests
             Assert.IsType<NoContentResult>(result);
         }
 
+        // --- GetSelections (UC3) ---
+
+        [Fact]
+        public async Task GetSelections_InvalidToken_ReturnsUnauthorized()
+        {
+            var controller = CreateController(
+                FakeFirebaseAuthService.RejectingToken(), FakeSelectionsRepository.Succeeding());
+
+            var result = await controller.GetSelections(CancellationToken.None);
+
+            Assert.IsType<UnauthorizedResult>(result.Result);
+        }
+
+        [Fact]
+        public async Task GetSelections_LoadFails_ReturnsProblem()
+        {
+            var controller = CreateController(
+                FakeFirebaseAuthService.ReturningUid("uid-1"), FakeSelectionsRepository.FailingToLoadSelections());
+
+            var result = await controller.GetSelections(CancellationToken.None);
+
+            var problem = Assert.IsType<ObjectResult>(result.Result);
+            Assert.Equal(StatusCodes.Status500InternalServerError, problem.StatusCode);
+        }
+
+        [Fact]
+        public async Task GetSelections_Succeeds_ReturnsOkWithServicesAndCities()
+        {
+            var services = new List<ServiceSelectionDto> { new(1, "OpenWeather", true) };
+            var cities = new List<CityDto> { new("Athens", "Greece", 37.98m, 23.72m) };
+            var controller = CreateController(
+                FakeFirebaseAuthService.ReturningUid("uid-1"), FakeSelectionsRepository.ReturningSelections(services, cities));
+
+            var result = await controller.GetSelections(CancellationToken.None);
+
+            var ok = Assert.IsType<OkObjectResult>(result.Result);
+            var body = Assert.IsType<GetSelectionsResponse>(ok.Value);
+            Assert.Equal(services, body.Services);
+            Assert.Equal(cities, body.Cities);
+        }
+
         private static SelectionsController CreateController(
             IFirebaseAuthService authService, ISelectionsRepository repository)
         {

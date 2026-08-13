@@ -49,5 +49,22 @@ namespace WeatherUserActions.Services
             var succeeded = await _selectionsRepository.ReplaceUserSelectionAsync(userId, cities, serviceIds, cancellationToken);
             return succeeded ? SaveSelectionsResult.Success() : SaveSelectionsResult.Failed();
         }
+
+        public async Task<GetSelectionsResult> GetSelectionsAsync(string idToken, CancellationToken cancellationToken = default)
+        {
+            string userId;
+            try
+            {
+                userId = await _firebaseAuthService.VerifyIdTokenAsync(idToken, cancellationToken);
+            }
+            catch (FirebaseTokenVerificationException ex)
+            {
+                _logger.LogWarning(ex, "Firebase ID token verification failed");
+                return GetSelectionsResult.Unauthorized();
+            }
+
+            var (succeeded, services, cities) = await _selectionsRepository.TryGetUserSelectionsAsync(userId, cancellationToken);
+            return succeeded ? GetSelectionsResult.Success(services, cities) : GetSelectionsResult.Failed();
+        }
     }
 }

@@ -734,6 +734,116 @@ namespace WeatherUserActions.Tests
             Assert.Equal(otherUid, remainingUserService.UserId);
         }
 
+        // --- GetSelections (UC3) ---
+
+        [Fact]
+        public async Task GetSelections_MissingAuthorizationHeader_ReturnsUnauthorized()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid("irrelevant"), bearerToken: null);
+
+            var result = await controller.GetSelections(CancellationToken.None);
+
+            Assert.IsType<UnauthorizedResult>(result.Result);
+        }
+
+        [Fact]
+        public async Task GetSelections_NoSelections_ReturnsAllServicesUnselectedAndNoCities()
+        {
+            var uid = UniqueUid();
+            await SeedUserAsync(uid);
+            await SeedServiceAsync();
+            await using var db = _fixture.CreateDbContext();
+            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+
+            var result = await controller.GetSelections(CancellationToken.None);
+
+            var ok = Assert.IsType<OkObjectResult>(result.Result);
+            var body = Assert.IsType<GetSelectionsResponse>(ok.Value);
+            var service = Assert.Single(body.Services);
+            Assert.Equal("OpenWeather", service.Name);
+            Assert.False(service.Selected);
+            Assert.Empty(body.Cities);
+        }
+
+        [Fact]
+        public async Task GetSelections_UserHasCitySelection_ReturnsSelectedServiceAndCity()
+        {
+            var uid = UniqueUid();
+            await SeedUserAsync(uid);
+            var serviceId = await SeedServiceAsync();
+            await SaveAsync(uid, [Athens], [serviceId]);
+
+            await using var db = _fixture.CreateDbContext();
+            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+
+            var result = await controller.GetSelections(CancellationToken.None);
+
+            var ok = Assert.IsType<OkObjectResult>(result.Result);
+            var body = Assert.IsType<GetSelectionsResponse>(ok.Value);
+            var service = Assert.Single(body.Services);
+            Assert.Equal("OpenWeather", service.Name);
+            Assert.True(service.Selected);
+            var city = Assert.Single(body.Cities);
+            Assert.Equal(Athens.Name, city.Name);
+            Assert.Equal(Athens.Country, city.Country);
+        }
+
+        [Fact]
+        public async Task GetSelections_UserHasPendingServiceOnly_ReturnsServiceSelectedButNoCities()
+        {
+            var uid = UniqueUid();
+            await SeedUserAsync(uid);
+            var serviceId = await SeedServiceAsync();
+
+            await using (var seedDb = _fixture.CreateDbContext())
+            {
+                seedDb.UserServices.Add(new UserService { UserId = uid, ServiceId = serviceId, AddedAt = DateTime.UtcNow });
+                await seedDb.SaveChangesAsync();
+            }
+
+            await using var db = _fixture.CreateDbContext();
+            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+
+            var result = await controller.GetSelections(CancellationToken.None);
+
+            var ok = Assert.IsType<OkObjectResult>(result.Result);
+            var body = Assert.IsType<GetSelectionsResponse>(ok.Value);
+            var service = Assert.Single(body.Services);
+            Assert.True(service.Selected);
+            Assert.Empty(body.Cities);
+        }
+
+        [Fact]
+        public async Task GetSelections_TwoUsers_OnlyReturnsRequestingUsersData()
+        {
+            var uidA = UniqueUid();
+            var uidB = UniqueUid();
+            await SeedUserAsync(uidA);
+            await SeedUserAsync(uidB);
+            var serviceA = await SeedServiceAsync();
+            var serviceB = await SeedServiceAsync(name: "WeatherAPI", apiEndpoint: "https://example2.test");
+
+            await SaveAsync(uidA, [Athens], [serviceA]);
+            await SaveAsync(uidB, [Paris], [serviceB]);
+
+            await using var db = _fixture.CreateDbContext();
+            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uidA), bearerToken: "token");
+
+            var result = await controller.GetSelections(CancellationToken.None);
+
+            var ok = Assert.IsType<OkObjectResult>(result.Result);
+            var body = Assert.IsType<GetSelectionsResponse>(ok.Value);
+
+            var openWeather = Assert.Single(body.Services, s => s.Name == "OpenWeather");
+            Assert.True(openWeather.Selected);
+            var weatherApi = Assert.Single(body.Services, s => s.Name == "WeatherAPI");
+            Assert.False(weatherApi.Selected);
+
+            var city = Assert.Single(body.Cities);
+            Assert.Equal(Athens.Name, city.Name);
+        }
+
         private static string UniqueUid() => $"uid-{Guid.NewGuid():N}";
 
         private async Task<int> SeedServiceAsync(string name="OpenWeather", string apiEndpoint="https://example.test")

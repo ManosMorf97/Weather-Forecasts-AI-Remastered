@@ -41,5 +41,27 @@ namespace WeatherUserActions.Controllers
                 _ => NoContent(),
             };
         }
+
+        // UC3: returns the authenticated user's current city/service selections.
+        [HttpGet]
+        public async Task<ActionResult<GetSelectionsResponse>> GetSelections(CancellationToken cancellationToken)
+        {
+            if (!this.TryGetBearerToken(out var idToken))
+            {
+                return Unauthorized();
+            }
+
+            var result = await _selectionsService.GetSelectionsAsync(idToken, cancellationToken);
+
+            return result.Status switch
+            {
+                GetSelectionsStatus.Unauthorized => Unauthorized(),
+                GetSelectionsStatus.Failed => Problem(
+                    statusCode: StatusCodes.Status500InternalServerError,
+                    title: "Failed to load selections",
+                    detail: "Could not load the city/service selection. Please retry."),
+                _ => Ok(new GetSelectionsResponse(result.Services!, result.Cities!)),
+            };
+        }
     }
 }
