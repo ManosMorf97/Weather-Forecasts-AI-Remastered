@@ -21,20 +21,18 @@ namespace WeatherUserActions.Repositories
         {
             try
             {
-                var citySiteIds = await _db.UserCitySites
-                    .Where(userCitySite => userCitySite.UserId == userId)
-                    .Select(userCitySite => userCitySite.CitySiteId)
-                    .ToListAsync(cancellationToken);
-
                 var now = DateTime.UtcNow;
-                var forecasts = await _db.Forecasts
-                    .Where(forecast => citySiteIds.Contains(forecast.CitySiteId) && forecast.Timestamp >= now)
-                    .Include(forecast => forecast.CitySite).ThenInclude(citySite => citySite.City)
-                    .Include(forecast => forecast.CitySite).ThenInclude(citySite => citySite.Service)
-                    .OrderBy(forecast => forecast.CitySite.Service.Name)
-                    .ThenBy(forecast => forecast.CitySite.City.Name)
-                    .ThenBy(forecast => forecast.Timestamp)
-                    .Select(forecast => new ForecastItemDto(
+                var forecasts = await (
+                    from userCitySite in _db.UserCitySites
+                    where userCitySite.UserId == userId
+                    join forecast in _db.Forecasts on userCitySite.CitySiteId equals forecast.CitySiteId
+                    where forecast.Timestamp >= now
+                    join rating in _db.Ratings.Where(r => r.UserId == userId)
+                        on forecast.ForecastId equals rating.ForecastId into ratingGroup
+                    from rating in ratingGroup.DefaultIfEmpty()
+                    orderby forecast.CitySite.Service.Name, forecast.CitySite.City.Name, forecast.Timestamp
+                    select new ForecastItemDto(
+                        forecast.ForecastId,
                         forecast.CitySite.City.Name,
                         forecast.CitySite.City.Country,
                         forecast.CitySite.Service.Name,
@@ -43,7 +41,8 @@ namespace WeatherUserActions.Repositories
                         forecast.Temperature,
                         forecast.Humidity,
                         forecast.WindSpeed,
-                        forecast.DangerFlag))
+                        forecast.DangerFlag,
+                        rating != null ? (int?)rating.Value : null))
                     .ToListAsync(cancellationToken);
 
                 return (true, forecasts);

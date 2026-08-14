@@ -1,4 +1,5 @@
 using WeatherUserActions.Dtos;
+using WeatherUserActions.Services.Results;
 
 namespace WeatherUserActions.Services
 {

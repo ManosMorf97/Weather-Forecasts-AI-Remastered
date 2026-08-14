@@ -1,3 +1,5 @@
+using WeatherUserActions.Services.Results;
+
 namespace WeatherUserActions.Services
 {
     public interface IProfileService

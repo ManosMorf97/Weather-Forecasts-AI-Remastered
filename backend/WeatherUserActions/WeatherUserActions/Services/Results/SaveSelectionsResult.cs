@@ -1,4 +1,4 @@
-namespace WeatherUserActions.Services
+namespace WeatherUserActions.Services.Results
 {
     public enum SaveSelectionsStatus
     {

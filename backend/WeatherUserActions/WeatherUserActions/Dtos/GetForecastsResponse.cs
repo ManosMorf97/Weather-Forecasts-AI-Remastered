@@ -1,6 +1,7 @@
 namespace WeatherUserActions.Dtos
 {
     public record ForecastItemDto(
+        int ForecastId,
         string City,
         string Country,
         string Service,
@@ -9,7 +10,8 @@ namespace WeatherUserActions.Dtos
         decimal Temperature,
         decimal Humidity,
         decimal WindSpeed,
-        bool DangerFlag);
+        bool DangerFlag,
+        int? UserRating);
 
     // UC6 (main flow): every current/upcoming forecast (Timestamp >= now) for the user's saved
     // cities and selected services, ordered by Service name, City name, then Timestamp.

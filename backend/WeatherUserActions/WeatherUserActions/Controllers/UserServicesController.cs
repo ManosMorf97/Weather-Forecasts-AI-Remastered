@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using WeatherUserActions.Dtos;
 using WeatherUserActions.Services;
+using WeatherUserActions.Services.Results;
 
 namespace WeatherUserActions.Controllers
 {

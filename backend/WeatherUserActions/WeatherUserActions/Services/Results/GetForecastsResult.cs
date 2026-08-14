@@ -1,6 +1,6 @@
 using WeatherUserActions.Dtos;
 
-namespace WeatherUserActions.Services
+namespace WeatherUserActions.Services.Results
 {
     public enum GetForecastsStatus
     {
