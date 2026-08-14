@@ -17,6 +17,8 @@ builder.Services.AddScoped<ISelectionsRepository, SelectionsRepository>();
 builder.Services.AddScoped<ISelectionsService, SelectionsService>();
 builder.Services.AddScoped<IUserServicesRepository, UserServicesRepository>();
 builder.Services.AddScoped<IUserServicesService, UserServicesService>();
+builder.Services.AddScoped<IForecastsRepository, ForecastsRepository>();
+builder.Services.AddScoped<IForecastsService, ForecastsService>();
 
 var databaseSection = builder.Configuration.GetSection("Database");
 var connectionString = new SqlConnectionStringBuilder

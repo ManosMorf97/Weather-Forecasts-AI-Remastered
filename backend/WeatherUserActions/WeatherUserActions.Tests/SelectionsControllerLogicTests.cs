@@ -76,7 +76,7 @@ namespace WeatherUserActions.Tests
             var result = await controller.SaveSelections(
                 new SaveSelectionsRequest([Athens], [serviceId]), CancellationToken.None);
 
-            Assert.IsType<NoContentResult>(result);
+            Assert.IsType<OkResult>(result);
 
             await using var verifyDb = _fixture.CreateDbContext();
             var joinedUserCitySites = await verifyDb.UserCitySites
@@ -115,7 +115,7 @@ namespace WeatherUserActions.Tests
             var result = await controller.SaveSelections(
                 new SaveSelectionsRequest([Athens], [serviceId]), CancellationToken.None);
 
-            Assert.IsType<NoContentResult>(result);
+            Assert.IsType<OkResult>(result);
 
             await using var verifyDb = _fixture.CreateDbContext();
             Assert.Equal(1, await verifyDb.Cities.CountAsync());
@@ -149,7 +149,7 @@ namespace WeatherUserActions.Tests
             {
                 var controller = CreateController(secondCallDb, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
                 var result = await controller.SaveSelections(new SaveSelectionsRequest([Paris], [serviceId]), CancellationToken.None);
-                Assert.IsType<NoContentResult>(result);
+                Assert.IsType<OkResult>(result);
             }
 
             await using var verifyDb = _fixture.CreateDbContext();
@@ -242,7 +242,7 @@ namespace WeatherUserActions.Tests
             var result = await controller.SaveSelections(
                 new SaveSelectionsRequest([athensGreece, berlinGermany], [serviceId]), CancellationToken.None);
 
-            Assert.IsType<NoContentResult>(result);
+            Assert.IsType<OkResult>(result);
 
             await using var verifyDb = _fixture.CreateDbContext();
             // The two mismatched seed rows must still exist untouched, plus two brand-new
@@ -290,7 +290,7 @@ namespace WeatherUserActions.Tests
             var result = await controller.SaveSelections(
                 new SaveSelectionsRequest([Athens], [serviceId]), CancellationToken.None);
 
-            Assert.IsType<NoContentResult>(result);
+            Assert.IsType<OkResult>(result);
 
             await using var verifyDb = _fixture.CreateDbContext();
             Assert.Equal(2, await verifyDb.Cities.CountAsync());
@@ -342,7 +342,7 @@ namespace WeatherUserActions.Tests
             var result = await controller.SaveSelections(
                 new SaveSelectionsRequest([Athens], [serviceA, serviceB]), CancellationToken.None);
 
-            Assert.IsType<NoContentResult>(result);
+            Assert.IsType<OkResult>(result);
 
             await using var verifyDb = _fixture.CreateDbContext();
             Assert.Equal(1, await verifyDb.Cities.CountAsync());
@@ -726,7 +726,7 @@ namespace WeatherUserActions.Tests
             var result = await controller.SaveSelections(
                 new SaveSelectionsRequest([Athens], [serviceId]), CancellationToken.None);
 
-            Assert.IsType<NoContentResult>(result);
+            Assert.IsType<OkResult>(result);
 
             await using var verifyDb = _fixture.CreateDbContext();
             var remainingUserServices = await verifyDb.UserServices.ToListAsync();
@@ -813,7 +813,6 @@ namespace WeatherUserActions.Tests
             Assert.True(service.Selected);
             Assert.Empty(body.Cities);
         }
-
         [Fact]
         public async Task GetSelections_TwoUsers_OnlyReturnsRequestingUsersData()
         {
@@ -827,21 +826,41 @@ namespace WeatherUserActions.Tests
             await SaveAsync(uidA, [Athens], [serviceA]);
             await SaveAsync(uidB, [Paris], [serviceB]);
 
-            await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uidA), bearerToken: "token");
+            await using (var dbA = _fixture.CreateDbContext())
+            {
+                var controllerA = CreateController(dbA, FakeFirebaseAuthService.ReturningUid(uidA), bearerToken: "token");
 
-            var result = await controller.GetSelections(CancellationToken.None);
+                var resultA = await controllerA.GetSelections(CancellationToken.None);
 
-            var ok = Assert.IsType<OkObjectResult>(result.Result);
-            var body = Assert.IsType<GetSelectionsResponse>(ok.Value);
+                var okA = Assert.IsType<OkObjectResult>(resultA.Result);
+                var bodyA = Assert.IsType<GetSelectionsResponse>(okA.Value);
 
-            var openWeather = Assert.Single(body.Services, s => s.Name == "OpenWeather");
-            Assert.True(openWeather.Selected);
-            var weatherApi = Assert.Single(body.Services, s => s.Name == "WeatherAPI");
-            Assert.False(weatherApi.Selected);
+                var openWeatherForA = Assert.Single(bodyA.Services, s => s.Name == "OpenWeather");
+                Assert.True(openWeatherForA.Selected);
+                var weatherApiForA = Assert.Single(bodyA.Services, s => s.Name == "WeatherAPI");
+                Assert.False(weatherApiForA.Selected);
 
-            var city = Assert.Single(body.Cities);
-            Assert.Equal(Athens.Name, city.Name);
+                var cityForA = Assert.Single(bodyA.Cities);
+                Assert.Equal(Athens.Name, cityForA.Name);
+            }
+
+            await using (var dbB = _fixture.CreateDbContext())
+            {
+                var controllerB = CreateController(dbB, FakeFirebaseAuthService.ReturningUid(uidB), bearerToken: "token");
+
+                var resultB = await controllerB.GetSelections(CancellationToken.None);
+
+                var okB = Assert.IsType<OkObjectResult>(resultB.Result);
+                var bodyB = Assert.IsType<GetSelectionsResponse>(okB.Value);
+
+                var openWeatherForB = Assert.Single(bodyB.Services, s => s.Name == "OpenWeather");
+                Assert.False(openWeatherForB.Selected);
+                var weatherApiForB = Assert.Single(bodyB.Services, s => s.Name == "WeatherAPI");
+                Assert.True(weatherApiForB.Selected);
+
+                var cityForB = Assert.Single(bodyB.Cities);
+                Assert.Equal(Paris.Name, cityForB.Name);
+            }
         }
 
         private static string UniqueUid() => $"uid-{Guid.NewGuid():N}";
@@ -868,7 +887,7 @@ namespace WeatherUserActions.Tests
             await using var db = _fixture.CreateDbContext();
             var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
             var result = await controller.SaveSelections(new SaveSelectionsRequest(cities, serviceIds), CancellationToken.None);
-            Assert.IsType<NoContentResult>(result);
+            Assert.IsType<OkResult>(result);
         }
 
         private static SelectionsController CreateController(

@@ -13,7 +13,7 @@ namespace WeatherUserActions.Tests
 {
     // Mocks only at the repository boundary (IUserServicesRepository) - UserServicesService and
     // UserServicesController run for real, so these exercise the actual orchestration and
-    // NoContent/Problem mapping logic without needing Docker/a real database.
+    // Ok/Problem mapping logic without needing Docker/a real database.
     public class UserServicesControllerResponseTests
     {
         private static readonly SaveServicesRequest ValidRequest = new(ServiceIds: [1]);
@@ -66,14 +66,14 @@ namespace WeatherUserActions.Tests
         }
 
         [Fact]
-        public async Task SaveServices_Succeeds_ReturnsNoContent()
+        public async Task SaveServices_Succeeds_ReturnsOk()
         {
             var controller = CreateController(
                 FakeFirebaseAuthService.ReturningUid("uid-1"), FakeUserServicesRepository.Succeeding());
 
             var result = await controller.SaveServices(ValidRequest, CancellationToken.None);
 
-            Assert.IsType<NoContentResult>(result);
+            Assert.IsType<OkResult>(result);
         }
 
         private static UserServicesController CreateController(

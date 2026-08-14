@@ -38,7 +38,7 @@ namespace WeatherUserActions.Controllers
                     statusCode: StatusCodes.Status500InternalServerError,
                     title: "Failed to save selections",
                     detail: "Could not persist the city/service selection. Please retry."),
-                _ => NoContent(),
+                _ => Ok(),
             };
         }
 

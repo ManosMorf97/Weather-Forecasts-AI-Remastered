@@ -38,7 +38,7 @@ namespace WeatherUserActions.Controllers
                     statusCode: StatusCodes.Status500InternalServerError,
                     title: "Failed to save service selection",
                     detail: "Could not persist the pending service selection. Please retry."),
-                _ => NoContent(),
+                _ => Ok(),
             };
         }
     }

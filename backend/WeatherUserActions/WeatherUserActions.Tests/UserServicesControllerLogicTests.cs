@@ -70,7 +70,7 @@ namespace WeatherUserActions.Tests
 
             var result = await controller.SaveServices(new SaveServicesRequest([serviceId]), CancellationToken.None);
 
-            Assert.IsType<NoContentResult>(result);
+            Assert.IsType<OkResult>(result);
 
             await using var verifyDb = _fixture.CreateDbContext();
             var joinedUserServices = await verifyDb.UserServices
@@ -101,7 +101,7 @@ namespace WeatherUserActions.Tests
             {
                 var controller = CreateController(secondCallDb, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
                 var result = await controller.SaveServices(new SaveServicesRequest([serviceB]), CancellationToken.None);
-                Assert.IsType<NoContentResult>(result);
+                Assert.IsType<OkResult>(result);
             }
 
             await using var verifyDb = _fixture.CreateDbContext();
@@ -208,7 +208,7 @@ namespace WeatherUserActions.Tests
             await using var db = _fixture.CreateDbContext();
             var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
             var result = await controller.SaveServices(new SaveServicesRequest(serviceIds), CancellationToken.None);
-            Assert.IsType<NoContentResult>(result);
+            Assert.IsType<OkResult>(result);
         }
 
         private static UserServicesController CreateController(
