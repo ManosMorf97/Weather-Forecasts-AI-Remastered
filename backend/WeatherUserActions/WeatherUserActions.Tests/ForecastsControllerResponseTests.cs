@@ -58,6 +58,59 @@ namespace WeatherUserActions.Tests
             Assert.Equal(forecasts, body.Forecasts);
         }
 
+        // --- GetAggregatedForecasts (UC10 main flow) ---
+
+        [Fact]
+        public async Task GetAggregatedForecasts_InvalidToken_ReturnsUnauthorized()
+        {
+            var controller = CreateController(
+                FakeFirebaseAuthService.RejectingToken(), FakeForecastsRepository.ReturningForecasts([]), FakeRatingsRepository.Succeeding());
+
+            var result = await controller.GetAggregatedForecasts(CancellationToken.None);
+
+            Assert.IsType<UnauthorizedResult>(result.Result);
+        }
+
+        [Fact]
+        public async Task GetAggregatedForecasts_LoadFails_ReturnsProblem()
+        {
+            var controller = CreateController(
+                FakeFirebaseAuthService.ReturningUid("uid-1"),
+                FakeForecastsRepository.ReturningForecasts([]),
+                FakeRatingsRepository.Succeeding(),
+                FakeAggregatedForecastsRepository.FailingToLoadForecasts());
+
+            var result = await controller.GetAggregatedForecasts(CancellationToken.None);
+
+            var problem = Assert.IsType<ObjectResult>(result.Result);
+            Assert.Equal(StatusCodes.Status500InternalServerError, problem.StatusCode);
+        }
+
+        [Fact]
+        public async Task GetAggregatedForecasts_Succeeds_ReturnsOkWithForecastsAndMetadata()
+        {
+            var forecasts = new List<AggregatedForecastItemDto>
+            {
+                new(1, "Athens", "Greece", "OpenWeather", "CURRENT", DateTime.UtcNow.AddHours(1), 28.5m, 40m, 12m, false),
+            };
+            var serviceMetadata = new List<ServiceAggregationMetadataDto>
+            {
+                new("Athens", "OpenWeather", AverageRating: 4.5m, RatingCount: 3, AggregationApplicable: true, IsTie: false, IsUnratedSelection: false),
+            };
+            var controller = CreateController(
+                FakeFirebaseAuthService.ReturningUid("uid-1"),
+                FakeForecastsRepository.ReturningForecasts([]),
+                FakeRatingsRepository.Succeeding(),
+                FakeAggregatedForecastsRepository.ReturningForecasts(forecasts, serviceMetadata));
+
+            var result = await controller.GetAggregatedForecasts(CancellationToken.None);
+
+            var ok = Assert.IsType<OkObjectResult>(result.Result);
+            var body = Assert.IsType<GetAggregatedForecastsResponse>(ok.Value);
+            Assert.Equal(forecasts, body.Forecasts);
+            Assert.Equal(serviceMetadata, body.ServiceMetadata);
+        }
+
         // --- RateForecast (UC7 main flow / A1) ---
 
         [Fact]
@@ -143,11 +196,18 @@ namespace WeatherUserActions.Tests
         }
 
         private static ForecastsController CreateController(
-            IFirebaseAuthService authService, IForecastsRepository forecastsRepository, IRatingsRepository ratingsRepository)
+            IFirebaseAuthService authService,
+            IForecastsRepository forecastsRepository,
+            IRatingsRepository ratingsRepository,
+            IAggregatedForecastsRepository? aggregatedForecastsRepository = null)
         {
             var forecastsService = new ForecastsService(authService, forecastsRepository, NullLogger<ForecastsService>.Instance);
             var ratingsService = new RatingsService(authService, ratingsRepository, NullLogger<RatingsService>.Instance);
-            var controller = new ForecastsController(forecastsService, ratingsService)
+            var aggregatedForecastsService = new AggregatedForecastsService(
+                authService,
+                aggregatedForecastsRepository ?? FakeAggregatedForecastsRepository.ReturningForecasts([], []),
+                NullLogger<AggregatedForecastsService>.Instance);
+            var controller = new ForecastsController(forecastsService, ratingsService, aggregatedForecastsService)
             {
                 ControllerContext = new ControllerContext
                 {

@@ -48,8 +48,9 @@ namespace WeatherUserActions.Tests
                 Assert.IsType<OkResult>(result);
             }
 
-            var athensCitySiteId = await GetCitySiteIdAsync(athens.Name, serviceId);
-            var athensForecastId = await SeedForecastAsync(athensCitySiteId, DateTime.UtcNow.AddHours(1));
+            var athensCitySiteId = await GetCitySiteIdAsync(athens.Name, "OpenWeather");
+            var athensTimestamp = DateTime.UtcNow.AddHours(1);
+            var athensForecastId = await SeedForecastAsync(athensCitySiteId, athensTimestamp);
 
             // Step 2: user views forecasts - sees only Athens, unrated.
             await using (var db = _fixture.CreateDbContext())
@@ -60,7 +61,10 @@ namespace WeatherUserActions.Tests
                 var body = Assert.IsType<GetForecastsResponse>(ok.Value);
                 var forecast = Assert.Single(body.Forecasts);
                 Assert.Equal("Athens", forecast.City);
+                Assert.Equal("Greece", forecast.Country);
+                Assert.Equal("OpenWeather", forecast.Service);
                 Assert.Equal(athensForecastId, forecast.ForecastId);
+                Assert.Equal(athensTimestamp, forecast.Timestamp, TimeSpan.FromSeconds(1));
                 Assert.Null(forecast.UserRating);
             }
 
@@ -72,8 +76,9 @@ namespace WeatherUserActions.Tests
                 Assert.IsType<OkResult>(result);
             }
 
-            var parisCitySiteId = await GetCitySiteIdAsync(paris.Name, serviceId);
-            var parisForecastId = await SeedForecastAsync(parisCitySiteId, DateTime.UtcNow.AddHours(1));
+            var parisCitySiteId = await GetCitySiteIdAsync(paris.Name, "OpenWeather");
+            var parisTimestamp = DateTime.UtcNow.AddHours(5);
+            var parisForecastId = await SeedForecastAsync(parisCitySiteId, parisTimestamp);
 
             // Step 4: user views forecasts again - now sees only Paris, Athens no longer appears.
             await using (var db = _fixture.CreateDbContext())
@@ -84,7 +89,10 @@ namespace WeatherUserActions.Tests
                 var body = Assert.IsType<GetForecastsResponse>(ok.Value);
                 var forecast = Assert.Single(body.Forecasts);
                 Assert.Equal("Paris", forecast.City);
+                Assert.Equal("France", forecast.Country);
+                Assert.Equal("OpenWeather", forecast.Service);
                 Assert.Equal(parisForecastId, forecast.ForecastId);
+                Assert.Equal(parisTimestamp, forecast.Timestamp, TimeSpan.FromSeconds(1));
                 Assert.Null(forecast.UserRating);
             }
 
@@ -105,6 +113,10 @@ namespace WeatherUserActions.Tests
                 var body = Assert.IsType<GetForecastsResponse>(ok.Value);
                 var forecast = Assert.Single(body.Forecasts);
                 Assert.Equal("Paris", forecast.City);
+                Assert.Equal("France", forecast.Country);
+                Assert.Equal("OpenWeather", forecast.Service);
+                Assert.Equal(parisForecastId, forecast.ForecastId);
+                Assert.Equal(parisTimestamp, forecast.Timestamp, TimeSpan.FromSeconds(1));
                 Assert.Equal(5, forecast.UserRating);
             }
 
@@ -113,13 +125,21 @@ namespace WeatherUserActions.Tests
             var userCitySites = await verifyDb.UserCitySites
                 .Where(userCitySite => userCitySite.UserId == uid)
                 .Include(userCitySite => userCitySite.CitySite).ThenInclude(citySite => citySite.City)
+                .Include(userCitySite => userCitySite.CitySite).ThenInclude(citySite => citySite.Service)
                 .ToListAsync();
             var userCitySite = Assert.Single(userCitySites);
             Assert.Equal("Paris", userCitySite.CitySite.City.Name);
+            Assert.Equal("OpenWeather", userCitySite.CitySite.Service.Name);
 
-            var ratings = await verifyDb.Ratings.Where(rating => rating.UserId == uid).ToListAsync();
+            var ratings = await verifyDb.Ratings
+                .Where(rating => rating.UserId == uid)
+                .Include(rating => rating.Forecast).ThenInclude(forecast => forecast.CitySite).ThenInclude(citySite => citySite.City)
+                .Include(rating => rating.Forecast).ThenInclude(forecast => forecast.CitySite).ThenInclude(citySite => citySite.Service)
+                .ToListAsync();
             var persistedRating = Assert.Single(ratings);
             Assert.Equal(parisForecastId, persistedRating.ForecastId);
+            Assert.Equal("Paris", persistedRating.Forecast.CitySite.City.Name);
+            Assert.Equal("OpenWeather", persistedRating.Forecast.CitySite.Service.Name);
             Assert.Equal(5, persistedRating.Value);
         }
 
@@ -160,11 +180,11 @@ namespace WeatherUserActions.Tests
             return forecast.ForecastId;
         }
 
-        private async Task<int> GetCitySiteIdAsync(string cityName, int serviceId)
+        private async Task<int> GetCitySiteIdAsync(string cityName, string serviceName)
         {
             await using var db = _fixture.CreateDbContext();
             return await db.CitySites
-                .Where(citySite => citySite.ServiceId == serviceId && citySite.City.Name == cityName)
+                .Where(citySite => citySite.Service.Name == serviceName && citySite.City.Name == cityName)
                 .Select(citySite => citySite.CitySiteId)
                 .SingleAsync();
         }
@@ -197,7 +217,10 @@ namespace WeatherUserActions.Tests
             var forecastsService = new ForecastsService(authService, forecastsRepository, NullLogger<ForecastsService>.Instance);
             var ratingsRepository = new RatingsRepository(db, NullLogger<RatingsRepository>.Instance);
             var ratingsService = new RatingsService(authService, ratingsRepository, NullLogger<RatingsService>.Instance);
-            var controller = new ForecastsController(forecastsService, ratingsService)
+            var aggregatedForecastsRepository = new AggregatedForecastsRepository(db, NullLogger<AggregatedForecastsRepository>.Instance);
+            var aggregatedForecastsService = new AggregatedForecastsService(
+                authService, aggregatedForecastsRepository, NullLogger<AggregatedForecastsService>.Instance);
+            var controller = new ForecastsController(forecastsService, ratingsService, aggregatedForecastsService)
             {
                 ControllerContext = new ControllerContext
                 {

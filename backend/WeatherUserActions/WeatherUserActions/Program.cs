@@ -21,6 +21,8 @@ builder.Services.AddScoped<IForecastsRepository, ForecastsRepository>();
 builder.Services.AddScoped<IForecastsService, ForecastsService>();
 builder.Services.AddScoped<IRatingsRepository, RatingsRepository>();
 builder.Services.AddScoped<IRatingsService, RatingsService>();
+builder.Services.AddScoped<IAggregatedForecastsRepository, AggregatedForecastsRepository>();
+builder.Services.AddScoped<IAggregatedForecastsService, AggregatedForecastsService>();
 
 var databaseSection = builder.Configuration.GetSection("Database");
 var connectionString = new SqlConnectionStringBuilder

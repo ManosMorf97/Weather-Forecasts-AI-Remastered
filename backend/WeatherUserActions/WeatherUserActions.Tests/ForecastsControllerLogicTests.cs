@@ -609,7 +609,10 @@ namespace WeatherUserActions.Tests
             var forecastsService = new ForecastsService(authService, forecastsRepository, NullLogger<ForecastsService>.Instance);
             var ratingsRepository = new RatingsRepository(db, NullLogger<RatingsRepository>.Instance);
             var ratingsService = new RatingsService(authService, ratingsRepository, NullLogger<RatingsService>.Instance);
-            var controller = new ForecastsController(forecastsService, ratingsService)
+            var aggregatedForecastsRepository = new AggregatedForecastsRepository(db, NullLogger<AggregatedForecastsRepository>.Instance);
+            var aggregatedForecastsService = new AggregatedForecastsService(
+                authService, aggregatedForecastsRepository, NullLogger<AggregatedForecastsService>.Instance);
+            var controller = new ForecastsController(forecastsService, ratingsService, aggregatedForecastsService)
             {
                 ControllerContext = new ControllerContext
                 {

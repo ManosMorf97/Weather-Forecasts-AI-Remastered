@@ -13,11 +13,14 @@ namespace WeatherUserActions.Controllers
     {
         private readonly IForecastsService _forecastsService;
         private readonly IRatingsService _ratingsService;
+        private readonly IAggregatedForecastsService _aggregatedForecastsService;
 
-        public ForecastsController(IForecastsService forecastsService, IRatingsService ratingsService)
+        public ForecastsController(
+            IForecastsService forecastsService, IRatingsService ratingsService, IAggregatedForecastsService aggregatedForecastsService)
         {
             _forecastsService = forecastsService;
             _ratingsService = ratingsService;
+            _aggregatedForecastsService = aggregatedForecastsService;
         }
 
         [HttpGet]
@@ -38,6 +41,29 @@ namespace WeatherUserActions.Controllers
                     title: "Failed to load forecasts",
                     detail: "Could not load forecasts for your selections. Please retry."),
                 _ => Ok(new GetForecastsResponse(result.Forecasts!)),
+            };
+        }
+
+        // UC10 (main flow): returns, per selected city with data, the forecasts from the service
+        // with the maximum average rating (UC12).
+        [HttpGet("aggregated")]
+        public async Task<ActionResult<GetAggregatedForecastsResponse>> GetAggregatedForecasts(CancellationToken cancellationToken)
+        {
+            if (!this.TryGetBearerToken(out var idToken))
+            {
+                return Unauthorized();
+            }
+
+            var result = await _aggregatedForecastsService.GetAggregatedForecastsAsync(idToken, cancellationToken);
+
+            return result.Status switch
+            {
+                GetAggregatedForecastsStatus.Unauthorized => Unauthorized(),
+                GetAggregatedForecastsStatus.Failed => Problem(
+                    statusCode: StatusCodes.Status500InternalServerError,
+                    title: "Failed to load aggregated forecasts",
+                    detail: "Could not load aggregated forecasts for your selections. Please retry."),
+                _ => Ok(new GetAggregatedForecastsResponse(result.Forecasts!, result.ServiceMetadata!)),
             };
         }
 
