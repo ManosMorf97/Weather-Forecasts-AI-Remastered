@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -93,7 +94,7 @@ namespace WeatherUserActions.Tests
             Assert.Equal("OpenWeather", metadata.Service);
             Assert.False(metadata.AggregationApplicable);
             Assert.False(metadata.IsTie);
-            Assert.False(metadata.IsUnratedSelection);
+            Assert.Null(metadata.IsUnratedSelection);
         }
 
         // --- Main flow: two services, one has the higher average rating ---
@@ -110,14 +111,14 @@ namespace WeatherUserActions.Tests
             var openWeather = await SeedServiceAsync(name: "OpenWeather");
             var weatherApi = await SeedServiceAsync(name: "WeatherAPI", apiEndpoint: "https://example2.test");
             var cityId = await SeedCityAsync();
-            var openWeatherSite = await SeedCitySiteAsync(cityId, openWeather);
-            var weatherApiSite = await SeedCitySiteAsync(cityId, weatherApi);
-            await SeedUserCitySiteAsync(uid, openWeatherSite);
-            await SeedUserCitySiteAsync(uid, weatherApiSite);
+            var openWeatherCitySite = await SeedCitySiteAsync(cityId, openWeather);
+            var weatherApiCitySite = await SeedCitySiteAsync(cityId, weatherApi);
+            await SeedUserCitySiteAsync(uid, openWeatherCitySite);
+            await SeedUserCitySiteAsync(uid, weatherApiCitySite);
 
             var openWeatherTimestamp = DateTime.UtcNow.AddHours(1);
-            var openWeatherForecastId = await SeedForecastAsync(openWeatherSite, openWeatherTimestamp);
-            var weatherApiForecastId = await SeedForecastAsync(weatherApiSite, DateTime.UtcNow.AddHours(1));
+            var openWeatherForecastId = await SeedForecastAsync(openWeatherCitySite, openWeatherTimestamp);
+            var weatherApiForecastId = await SeedForecastAsync(weatherApiCitySite, DateTime.UtcNow.AddHours(1));
 
             // OpenWeather: avg 5 (>= 2 ratings). WeatherAPI: avg 2 (>= 2 ratings). OpenWeather should win -
             // and the rating is a global signal, not the requesting user's own opinion (uid never rates).
@@ -162,13 +163,13 @@ namespace WeatherUserActions.Tests
             var accuWeather = await SeedServiceAsync(name: "AccuWeather", apiEndpoint: "https://example3.test");
             var weatherApi = await SeedServiceAsync(name: "WeatherAPI", apiEndpoint: "https://example2.test");
             var cityId = await SeedCityAsync();
-            var accuWeatherSite = await SeedCitySiteAsync(cityId, accuWeather);
-            var weatherApiSite = await SeedCitySiteAsync(cityId, weatherApi);
-            await SeedUserCitySiteAsync(uid, accuWeatherSite);
-            await SeedUserCitySiteAsync(uid, weatherApiSite);
+            var accuWeatherCitySite = await SeedCitySiteAsync(cityId, accuWeather);
+            var weatherApiCitySite = await SeedCitySiteAsync(cityId, weatherApi);
+            await SeedUserCitySiteAsync(uid, accuWeatherCitySite);
+            await SeedUserCitySiteAsync(uid, weatherApiCitySite);
 
-            var accuWeatherForecastId = await SeedForecastAsync(accuWeatherSite, DateTime.UtcNow.AddHours(1));
-            var weatherApiForecastId = await SeedForecastAsync(weatherApiSite, DateTime.UtcNow.AddHours(1));
+            var accuWeatherForecastId = await SeedForecastAsync(accuWeatherCitySite, DateTime.UtcNow.AddHours(1));
+            var weatherApiForecastId = await SeedForecastAsync(weatherApiCitySite, DateTime.UtcNow.AddHours(1));
 
             // Both average exactly 4 with 2 ratings each - a genuine tie.
             await SeedRatingAsync(raterA, accuWeatherForecastId, value: 4);
@@ -186,6 +187,7 @@ namespace WeatherUserActions.Tests
             var forecast = Assert.Single(body.Forecasts);
             Assert.Equal("AccuWeather", forecast.Service);
             Assert.Equal(accuWeatherForecastId, forecast.ForecastId);
+            Assert.Equal("Athens", forecast.City);
 
             var metadata = Assert.Single(body.ServiceMetadata);
             Assert.Equal("AccuWeather", metadata.Service);
@@ -228,6 +230,7 @@ namespace WeatherUserActions.Tests
             var forecast = Assert.Single(body.Forecasts);
             Assert.Equal("AccuWeather", forecast.Service);
             Assert.Equal(accuWeatherForecastId, forecast.ForecastId);
+            Assert.Equal("Athens", forecast.City);
 
             var metadata = Assert.Single(body.ServiceMetadata);
             Assert.Equal("AccuWeather", metadata.Service);
@@ -252,16 +255,16 @@ namespace WeatherUserActions.Tests
             var openWeather = await SeedServiceAsync(name: "OpenWeather");
             var weatherApi = await SeedServiceAsync(name: "WeatherAPI", apiEndpoint: "https://example2.test");
             var cityId = await SeedCityAsync();
-            var openWeatherSite = await SeedCitySiteAsync(cityId, openWeather);
-            var weatherApiSite = await SeedCitySiteAsync(cityId, weatherApi);
-            await SeedUserCitySiteAsync(uid, openWeatherSite);
-            await SeedUserCitySiteAsync(uid, weatherApiSite);
+            var openWeatherCitySite = await SeedCitySiteAsync(cityId, openWeather);
+            var weatherApiCitySite = await SeedCitySiteAsync(cityId, weatherApi);
+            await SeedUserCitySiteAsync(uid, openWeatherCitySite);
+            await SeedUserCitySiteAsync(uid, weatherApiCitySite);
 
             // OpenWeather is rated higher (avg 5) but only has a past forecast - nothing to show.
             // WeatherAPI is rated lower (avg 3) but has an upcoming forecast, so it should win.
-            var openWeatherPastForecastId = await SeedForecastAsync(openWeatherSite, DateTime.UtcNow.AddHours(-1));
+            var openWeatherPastForecastId = await SeedForecastAsync(openWeatherCitySite, DateTime.UtcNow.AddHours(-1));
             var weatherApiTimestamp = DateTime.UtcNow.AddHours(1);
-            var weatherApiForecastId = await SeedForecastAsync(weatherApiSite, weatherApiTimestamp);
+            var weatherApiForecastId = await SeedForecastAsync(weatherApiCitySite, weatherApiTimestamp);
 
             await SeedRatingAsync(raterA, openWeatherPastForecastId, value: 5);
             await SeedRatingAsync(raterB, openWeatherPastForecastId, value: 5);
@@ -300,18 +303,18 @@ namespace WeatherUserActions.Tests
             var accuWeather = await SeedServiceAsync(name: "AccuWeather", apiEndpoint: "https://example3.test");
             var openWeather = await SeedServiceAsync(name: "OpenWeather");
             var cityId = await SeedCityAsync();
-            var accuWeatherSite = await SeedCitySiteAsync(cityId, accuWeather);
-            var openWeatherSite = await SeedCitySiteAsync(cityId, openWeather);
-            await SeedUserCitySiteAsync(uid, accuWeatherSite);
-            await SeedUserCitySiteAsync(uid, openWeatherSite);
+            var accuWeatherCitySite = await SeedCitySiteAsync(cityId, accuWeather);
+            var openWeatherCitySite = await SeedCitySiteAsync(cityId, openWeather);
+            await SeedUserCitySiteAsync(uid, accuWeatherCitySite);
+            await SeedUserCitySiteAsync(uid, openWeatherCitySite);
 
             // AccuWeather and OpenWeather are both rated avg 5 (a genuine tie) - but AccuWeather's
             // only forecast is in the past, so it's excluded from the running before ties are even
             // evaluated. IsTie must reflect only currently-displayable candidates, so it should come
             // back false here, even though a tie exists in the underlying all-time rating data.
-            var accuWeatherPastForecastId = await SeedForecastAsync(accuWeatherSite, DateTime.UtcNow.AddHours(-1));
+            var accuWeatherPastForecastId = await SeedForecastAsync(accuWeatherCitySite, DateTime.UtcNow.AddHours(-1));
             var openWeatherTimestamp = DateTime.UtcNow.AddHours(1);
-            var openWeatherForecastId = await SeedForecastAsync(openWeatherSite, openWeatherTimestamp);
+            var openWeatherForecastId = await SeedForecastAsync(openWeatherCitySite, openWeatherTimestamp);
 
             await SeedRatingAsync(raterA, accuWeatherPastForecastId, value: 5);
             await SeedRatingAsync(raterB, accuWeatherPastForecastId, value: 5);
@@ -350,16 +353,16 @@ namespace WeatherUserActions.Tests
             var openWeather = await SeedServiceAsync(name: "OpenWeather");
             var weatherApi = await SeedServiceAsync(name: "WeatherAPI", apiEndpoint: "https://example2.test");
             var cityId = await SeedCityAsync();
-            var openWeatherSite = await SeedCitySiteAsync(cityId, openWeather);
-            var weatherApiSite = await SeedCitySiteAsync(cityId, weatherApi);
-            await SeedUserCitySiteAsync(uid, openWeatherSite);
-            await SeedUserCitySiteAsync(uid, weatherApiSite);
+            var openWeatherCitySite = await SeedCitySiteAsync(cityId, openWeather);
+            var weatherApiCitySite = await SeedCitySiteAsync(cityId, weatherApi);
+            await SeedUserCitySiteAsync(uid, openWeatherCitySite);
+            await SeedUserCitySiteAsync(uid, weatherApiCitySite);
 
             // OpenWeather is the only rated (and reliably so) service, but its only forecast is past.
             // WeatherAPI has no ratings at all but does have an upcoming forecast - it should win.
-            var openWeatherPastForecastId = await SeedForecastAsync(openWeatherSite, DateTime.UtcNow.AddHours(-1));
+            var openWeatherPastForecastId = await SeedForecastAsync(openWeatherCitySite, DateTime.UtcNow.AddHours(-1));
             var weatherApiTimestamp = DateTime.UtcNow.AddHours(1);
-            var weatherApiForecastId = await SeedForecastAsync(weatherApiSite, weatherApiTimestamp);
+            var weatherApiForecastId = await SeedForecastAsync(weatherApiCitySite, weatherApiTimestamp);
 
             await SeedRatingAsync(raterA, openWeatherPastForecastId, value: 5);
             await SeedRatingAsync(raterB, openWeatherPastForecastId, value: 5);
@@ -441,6 +444,7 @@ namespace WeatherUserActions.Tests
             Assert.Equal(parisForecastId, forecast.ForecastId);
             Assert.Single(body.ServiceMetadata);
             Assert.DoesNotContain(body.ServiceMetadata, metadata => metadata.City == "Athens");
+            Assert.DoesNotContain(body.Forecasts, forecast => forecast.City == "Athens");
         }
 
         [Fact]
@@ -508,9 +512,66 @@ namespace WeatherUserActions.Tests
             var ok = Assert.IsType<OkObjectResult>(result.Result);
             var body = Assert.IsType<GetAggregatedForecastsResponse>(ok.Value);
             Assert.Equal(2, body.Forecasts.Count);
+            Assert.Equal("Athens", body.Forecasts[0].City);
+            Assert.Equal("OpenWeather", body.Forecasts[0].Service);
             Assert.Equal(soonerForecastId, body.Forecasts[0].ForecastId);
+            Assert.Equal(now.AddHours(1), body.Forecasts[0].Timestamp, TimeSpan.FromSeconds(1));
+            Assert.Equal("Athens", body.Forecasts[1].City);
+            Assert.Equal("OpenWeather", body.Forecasts[1].Service);
             Assert.Equal(laterForecastId, body.Forecasts[1].ForecastId);
+            Assert.Equal(now.AddHours(3), body.Forecasts[1].Timestamp, TimeSpan.FromSeconds(1));
             Assert.Single(body.ServiceMetadata);
+        }
+
+        [Fact]
+        public async Task GetAggregatedForecasts_HigherRatedServiceHasMultipleUpcomingForecasts_ReturnsAllOrderedByTimestamp()
+        {
+            var uid = UniqueUid();
+            var raterA = UniqueUid();
+            var raterB = UniqueUid();
+            await SeedUserAsync(uid);
+            await SeedUserAsync(raterA);
+            await SeedUserAsync(raterB);
+            var openWeather = await SeedServiceAsync(name: "OpenWeather");
+            var weatherApi = await SeedServiceAsync(name: "WeatherAPI", apiEndpoint: "https://example2.test");
+            var cityId = await SeedCityAsync();
+            var openWeatherCitySite = await SeedCitySiteAsync(cityId, openWeather);
+            var weatherApiCitySite = await SeedCitySiteAsync(cityId, weatherApi);
+            await SeedUserCitySiteAsync(uid, openWeatherCitySite);
+            await SeedUserCitySiteAsync(uid, weatherApiCitySite);
+
+            var now = DateTime.UtcNow;
+            var laterForecastId = await SeedForecastAsync(openWeatherCitySite, now.AddHours(3));
+            var soonerForecastId = await SeedForecastAsync(openWeatherCitySite, now.AddHours(1));
+            var weatherApiForecastId = await SeedForecastAsync(weatherApiCitySite, now.AddHours(1));
+
+            // OpenWeather is rated higher and wins - both of its upcoming forecasts should be
+            // returned, ordered by timestamp, while WeatherAPI's is excluded entirely.
+            await SeedRatingAsync(raterA, soonerForecastId, value: 5);
+            await SeedRatingAsync(raterB, soonerForecastId, value: 5);
+            await SeedRatingAsync(raterA, weatherApiForecastId, value: 2);
+            await SeedRatingAsync(raterB, weatherApiForecastId, value: 2);
+
+            await using var db = _fixture.CreateDbContext();
+            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+
+            var result = await controller.GetAggregatedForecasts(CancellationToken.None);
+
+            var ok = Assert.IsType<OkObjectResult>(result.Result);
+            var body = Assert.IsType<GetAggregatedForecastsResponse>(ok.Value);
+            Assert.Equal(2, body.Forecasts.Count);
+            Assert.Equal("Athens", body.Forecasts[0].City);
+            Assert.Equal("OpenWeather", body.Forecasts[0].Service);
+            Assert.Equal(soonerForecastId, body.Forecasts[0].ForecastId);
+            Assert.Equal(now.AddHours(1), body.Forecasts[0].Timestamp, TimeSpan.FromSeconds(1));
+            Assert.Equal("Athens", body.Forecasts[1].City);
+            Assert.Equal("OpenWeather", body.Forecasts[1].Service);
+            Assert.Equal(laterForecastId, body.Forecasts[1].ForecastId);
+            Assert.Equal(now.AddHours(3), body.Forecasts[1].Timestamp, TimeSpan.FromSeconds(1));
+
+            var metadata = Assert.Single(body.ServiceMetadata);
+            Assert.Equal("OpenWeather", metadata.Service);
+            Assert.True(metadata.AggregationApplicable);
         }
 
         private static string UniqueUid() => $"uid-{Guid.NewGuid():N}";

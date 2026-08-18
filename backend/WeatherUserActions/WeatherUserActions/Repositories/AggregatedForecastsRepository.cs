@@ -52,7 +52,7 @@ namespace WeatherUserActions.Repositories
                 // Pick every city's winner first (pure in-memory work over `candidates`), then fetch
                 // all of their upcoming forecasts in one batched query - a flat cap of two DB round
                 // trips total, instead of one extra round trip per returned city.
-                var winners = new List<(CitySiteCandidate Winner, bool AggregationApplicable, bool IsTie, bool IsUnratedSelection)>();
+                var winners = new List<(CitySiteCandidate Winner, bool AggregationApplicable, bool IsTie, bool? IsUnratedSelection)>();
                 //CLAUDE. WHy do not order by all columns of city
                 var cityGroups = candidates
                     .GroupBy(candidate => candidate.CityId)
@@ -133,8 +133,10 @@ namespace WeatherUserActions.Repositories
         // by contrast, are scoped to only the currently-displayable candidates: a service tied on
         // rating but with no upcoming forecast doesn't count toward IsTie, since it was never in
         // contention for actually being shown. Returns a null winner only if no candidate has
-        // upcoming data at all.
-        private static (CitySiteCandidate? Winner, bool AggregationApplicable, bool IsTie, bool IsUnratedSelection) PickWinner(
+        // upcoming data at all. IsUnratedSelection is null (rather than false) whenever there was no
+        // real comparison to begin with - a single service, or no displayable candidate at all - so
+        // callers can tell "picked confidently" apart from "there was nothing to compare".
+        private static (CitySiteCandidate? Winner, bool AggregationApplicable, bool IsTie, bool? IsUnratedSelection) PickWinner(
             List<CitySiteCandidate> candidates)
         {
             var aggregationApplicable = candidates.Count > 1;
@@ -142,13 +144,13 @@ namespace WeatherUserActions.Repositories
             if (!aggregationApplicable)
             {
                 var only = candidates[0];
-                return (only.HasUpcomingForecastData ? only : null, AggregationApplicable: false, IsTie: false, IsUnratedSelection: false);
+                return (only.HasUpcomingForecastData ? only : null, AggregationApplicable: false, IsTie: false, IsUnratedSelection: null);
             }
 
             var displayableCandidates = candidates.Where(candidate => candidate.HasUpcomingForecastData).ToList();
             if (displayableCandidates.Count == 0)
             {
-                return (null, AggregationApplicable: true, IsTie: false, IsUnratedSelection: false);
+                return (null, AggregationApplicable: true, IsTie: false, IsUnratedSelection: null);
             }
 
             var eligible = displayableCandidates.Where(candidate => candidate.RatingCount >= 2).ToList();

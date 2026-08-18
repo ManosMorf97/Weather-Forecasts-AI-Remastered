@@ -20,7 +20,7 @@ namespace WeatherUserActions.Dtos
         int RatingCount,
         bool AggregationApplicable,
         bool IsTie,
-        bool IsUnratedSelection);
+        bool? IsUnratedSelection);
 
     // UC10 (main flow) / UC12: for every one of the user's selected cities, every current/upcoming
     // forecast (Timestamp >= now) from the highest-ranked selected service that actually has one -
