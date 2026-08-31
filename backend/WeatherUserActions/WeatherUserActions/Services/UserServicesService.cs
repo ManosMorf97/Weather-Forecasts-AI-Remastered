@@ -1,4 +1,4 @@
-using WeatherUserActions.FirebaseServices;
+using WeatherUserActions.AppwriteServices;
 using WeatherUserActions.Repositories;
 using WeatherUserActions.Services.Results;
 
@@ -6,29 +6,29 @@ namespace WeatherUserActions.Services
 {
     public class UserServicesService : IUserServicesService
     {
-        private readonly IFirebaseAuthService _firebaseAuthService;
+        private readonly IAppwriteAuthService _appwriteAuthService;
         private readonly IUserServicesRepository _userServicesRepository;
         private readonly ILogger<UserServicesService> _logger;
 
         public UserServicesService(
-            IFirebaseAuthService firebaseAuthService, IUserServicesRepository userServicesRepository, ILogger<UserServicesService> logger)
+            IAppwriteAuthService appwriteAuthService, IUserServicesRepository userServicesRepository, ILogger<UserServicesService> logger)
         {
-            _firebaseAuthService = firebaseAuthService;
+            _appwriteAuthService = appwriteAuthService;
             _userServicesRepository = userServicesRepository;
             _logger = logger;
         }
 
         public async Task<SaveServicesResult> SaveServicesAsync(
-            string idToken, IReadOnlyCollection<int> serviceIds, CancellationToken cancellationToken = default)
+            string jwt, IReadOnlyCollection<int> serviceIds, CancellationToken cancellationToken = default)
         {
             string userId;
             try
             {
-                userId = await _firebaseAuthService.VerifyIdTokenAsync(idToken, cancellationToken);
+                userId = await _appwriteAuthService.VerifyJwtAsync(jwt, cancellationToken);
             }
-            catch (FirebaseTokenVerificationException ex)
+            catch (AppwriteTokenVerificationException ex)
             {
-                _logger.LogWarning(ex, "Firebase ID token verification failed");
+                _logger.LogWarning(ex, "Appwrite JWT verification failed");
                 return SaveServicesResult.Unauthorized();
             }
 

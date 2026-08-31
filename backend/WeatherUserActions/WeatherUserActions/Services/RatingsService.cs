@@ -1,4 +1,4 @@
-using WeatherUserActions.FirebaseServices;
+using WeatherUserActions.AppwriteServices;
 using WeatherUserActions.Repositories;
 using WeatherUserActions.Services.Results;
 
@@ -6,29 +6,29 @@ namespace WeatherUserActions.Services
 {
     public class RatingsService : IRatingsService
     {
-        private readonly IFirebaseAuthService _firebaseAuthService;
+        private readonly IAppwriteAuthService _appwriteAuthService;
         private readonly IRatingsRepository _ratingsRepository;
         private readonly ILogger<RatingsService> _logger;
 
         public RatingsService(
-            IFirebaseAuthService firebaseAuthService, IRatingsRepository ratingsRepository, ILogger<RatingsService> logger)
+            IAppwriteAuthService appwriteAuthService, IRatingsRepository ratingsRepository, ILogger<RatingsService> logger)
         {
-            _firebaseAuthService = firebaseAuthService;
+            _appwriteAuthService = appwriteAuthService;
             _ratingsRepository = ratingsRepository;
             _logger = logger;
         }
 
         public async Task<RateForecastResult> RateForecastAsync(
-            string idToken, int forecastId, int value, CancellationToken cancellationToken = default)
+            string jwt, int forecastId, int value, CancellationToken cancellationToken = default)
         {
             string userId;
             try
             {
-                userId = await _firebaseAuthService.VerifyIdTokenAsync(idToken, cancellationToken);
+                userId = await _appwriteAuthService.VerifyJwtAsync(jwt, cancellationToken);
             }
-            catch (FirebaseTokenVerificationException ex)
+            catch (AppwriteTokenVerificationException ex)
             {
-                _logger.LogWarning(ex, "Firebase ID token verification failed");
+                _logger.LogWarning(ex, "Appwrite JWT verification failed");
                 return RateForecastResult.Unauthorized();
             }
 
@@ -42,16 +42,16 @@ namespace WeatherUserActions.Services
         }
 
         public async Task<RemoveRatingResult> RemoveRatingAsync(
-            string idToken, int forecastId, CancellationToken cancellationToken = default)
+            string jwt, int forecastId, CancellationToken cancellationToken = default)
         {
             string userId;
             try
             {
-                userId = await _firebaseAuthService.VerifyIdTokenAsync(idToken, cancellationToken);
+                userId = await _appwriteAuthService.VerifyJwtAsync(jwt, cancellationToken);
             }
-            catch (FirebaseTokenVerificationException ex)
+            catch (AppwriteTokenVerificationException ex)
             {
-                _logger.LogWarning(ex, "Firebase ID token verification failed");
+                _logger.LogWarning(ex, "Appwrite JWT verification failed");
                 return RemoveRatingResult.Unauthorized();
             }
 

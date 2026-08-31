@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
 using WeatherUserActions.Controllers;
 using WeatherUserActions.Dtos;
-using WeatherUserActions.FirebaseServices;
+using WeatherUserActions.AppwriteServices;
 using WeatherUserActions.Repositories;
 using WeatherUserActions.Services;
 using WeatherUserActions.Tests.Fakes;
@@ -22,7 +22,7 @@ namespace WeatherUserActions.Tests
         public async Task SaveServices_InvalidToken_ReturnsUnauthorized()
         {
             var controller = CreateController(
-                FakeFirebaseAuthService.RejectingToken(), FakeUserServicesRepository.Succeeding());
+                FakeAppwriteAuthService.RejectingToken(), FakeUserServicesRepository.Succeeding());
 
             var result = await controller.SaveServices(ValidRequest, CancellationToken.None);
 
@@ -33,7 +33,7 @@ namespace WeatherUserActions.Tests
         public async Task SaveServices_ServiceIdValidationFails_ReturnsProblem()
         {
             var controller = CreateController(
-                FakeFirebaseAuthService.ReturningUid("uid-1"), FakeUserServicesRepository.FailingToValidateServiceIds());
+                FakeAppwriteAuthService.ReturningUid("uid-1"), FakeUserServicesRepository.FailingToValidateServiceIds());
 
             var result = await controller.SaveServices(ValidRequest, CancellationToken.None);
 
@@ -45,7 +45,7 @@ namespace WeatherUserActions.Tests
         public async Task SaveServices_InvalidServiceIds_ReturnsBadRequestProblem()
         {
             var controller = CreateController(
-                FakeFirebaseAuthService.ReturningUid("uid-1"), FakeUserServicesRepository.WithInvalidServiceIds());
+                FakeAppwriteAuthService.ReturningUid("uid-1"), FakeUserServicesRepository.WithInvalidServiceIds());
 
             var result = await controller.SaveServices(ValidRequest, CancellationToken.None);
 
@@ -57,7 +57,7 @@ namespace WeatherUserActions.Tests
         public async Task SaveServices_ReplaceFails_ReturnsProblem()
         {
             var controller = CreateController(
-                FakeFirebaseAuthService.ReturningUid("uid-1"), FakeUserServicesRepository.FailingToReplaceServices());
+                FakeAppwriteAuthService.ReturningUid("uid-1"), FakeUserServicesRepository.FailingToReplaceServices());
 
             var result = await controller.SaveServices(ValidRequest, CancellationToken.None);
 
@@ -69,7 +69,7 @@ namespace WeatherUserActions.Tests
         public async Task SaveServices_Succeeds_ReturnsOk()
         {
             var controller = CreateController(
-                FakeFirebaseAuthService.ReturningUid("uid-1"), FakeUserServicesRepository.Succeeding());
+                FakeAppwriteAuthService.ReturningUid("uid-1"), FakeUserServicesRepository.Succeeding());
 
             var result = await controller.SaveServices(ValidRequest, CancellationToken.None);
 
@@ -77,7 +77,7 @@ namespace WeatherUserActions.Tests
         }
 
         private static UserServicesController CreateController(
-            IFirebaseAuthService authService, IUserServicesRepository repository)
+            IAppwriteAuthService authService, IUserServicesRepository repository)
         {
             var service = new UserServicesService(authService, repository, NullLogger<UserServicesService>.Instance);
             var controller = new UserServicesController(service)

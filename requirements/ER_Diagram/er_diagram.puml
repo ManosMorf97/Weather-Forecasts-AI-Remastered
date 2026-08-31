@@ -13,10 +13,10 @@ entity "User" as user {
   No username/email/password
   stored here. All account data
   lives only in the Auth Service
-  (Firebase Authentication),
+  (Appwrite Authentication),
   keyed by the same user_id
-  (Firebase uid). Row is created
-  lazily (JIT) on first login.
+  (Appwrite user id / $id). Row is
+  created lazily (JIT) on first login.
   Whenever a username or email
   is needed (e.g. notifications,
   UC9's email-download link),

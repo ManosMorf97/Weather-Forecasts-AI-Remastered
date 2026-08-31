@@ -26,12 +26,12 @@ namespace WeatherUserActions.Controllers
         [HttpGet]
         public async Task<ActionResult<GetForecastsResponse>> GetForecasts(CancellationToken cancellationToken)
         {
-            if (!this.TryGetBearerToken(out var idToken))
+            if (!this.TryGetBearerToken(out var jwt))
             {
                 return Unauthorized();
             }
 
-            var result = await _forecastsService.GetForecastsAsync(idToken, cancellationToken);
+            var result = await _forecastsService.GetForecastsAsync(jwt, cancellationToken);
 
             return result.Status switch
             {
@@ -49,12 +49,12 @@ namespace WeatherUserActions.Controllers
         [HttpGet("aggregated")]
         public async Task<ActionResult<GetAggregatedForecastsResponse>> GetAggregatedForecasts(CancellationToken cancellationToken)
         {
-            if (!this.TryGetBearerToken(out var idToken))
+            if (!this.TryGetBearerToken(out var jwt))
             {
                 return Unauthorized();
             }
 
-            var result = await _aggregatedForecastsService.GetAggregatedForecastsAsync(idToken, cancellationToken);
+            var result = await _aggregatedForecastsService.GetAggregatedForecastsAsync(jwt, cancellationToken);
 
             return result.Status switch
             {
@@ -71,12 +71,12 @@ namespace WeatherUserActions.Controllers
         [HttpPut("{forecastId}/rating")]
         public async Task<IActionResult> RateForecast(int forecastId, RateForecastRequest request, CancellationToken cancellationToken)
         {
-            if (!this.TryGetBearerToken(out var idToken))
+            if (!this.TryGetBearerToken(out var jwt))
             {
                 return Unauthorized();
             }
 
-            var result = await _ratingsService.RateForecastAsync(idToken, forecastId, request.Value, cancellationToken);
+            var result = await _ratingsService.RateForecastAsync(jwt, forecastId, request.Value, cancellationToken);
 
             return result.Status switch
             {
@@ -97,12 +97,12 @@ namespace WeatherUserActions.Controllers
         [HttpDelete("{forecastId}/rating")]
         public async Task<IActionResult> RemoveRating(int forecastId, CancellationToken cancellationToken)
         {
-            if (!this.TryGetBearerToken(out var idToken))
+            if (!this.TryGetBearerToken(out var jwt))
             {
                 return Unauthorized();
             }
 
-            var result = await _ratingsService.RemoveRatingAsync(idToken, forecastId, cancellationToken);
+            var result = await _ratingsService.RemoveRatingAsync(jwt, forecastId, cancellationToken);
 
             return result.Status switch
             {

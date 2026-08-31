@@ -1,4 +1,4 @@
-using WeatherUserActions.FirebaseServices;
+using WeatherUserActions.AppwriteServices;
 using WeatherUserActions.Repositories;
 using WeatherUserActions.Services.Results;
 
@@ -6,28 +6,28 @@ namespace WeatherUserActions.Services
 {
     public class ForecastsService : IForecastsService
     {
-        private readonly IFirebaseAuthService _firebaseAuthService;
+        private readonly IAppwriteAuthService _appwriteAuthService;
         private readonly IForecastsRepository _forecastsRepository;
         private readonly ILogger<ForecastsService> _logger;
 
         public ForecastsService(
-            IFirebaseAuthService firebaseAuthService, IForecastsRepository forecastsRepository, ILogger<ForecastsService> logger)
+            IAppwriteAuthService appwriteAuthService, IForecastsRepository forecastsRepository, ILogger<ForecastsService> logger)
         {
-            _firebaseAuthService = firebaseAuthService;
+            _appwriteAuthService = appwriteAuthService;
             _forecastsRepository = forecastsRepository;
             _logger = logger;
         }
 
-        public async Task<GetForecastsResult> GetForecastsAsync(string idToken, CancellationToken cancellationToken = default)
+        public async Task<GetForecastsResult> GetForecastsAsync(string jwt, CancellationToken cancellationToken = default)
         {
             string userId;
             try
             {
-                userId = await _firebaseAuthService.VerifyIdTokenAsync(idToken, cancellationToken);
+                userId = await _appwriteAuthService.VerifyJwtAsync(jwt, cancellationToken);
             }
-            catch (FirebaseTokenVerificationException ex)
+            catch (AppwriteTokenVerificationException ex)
             {
-                _logger.LogWarning(ex, "Firebase ID token verification failed");
+                _logger.LogWarning(ex, "Appwrite JWT verification failed");
                 return GetForecastsResult.Unauthorized();
             }
 

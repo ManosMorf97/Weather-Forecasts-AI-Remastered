@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using WeatherUserActions.Controllers;
 using WeatherUserActions.Data;
 using WeatherUserActions.Dtos;
-using WeatherUserActions.FirebaseServices;
+using WeatherUserActions.AppwriteServices;
 using WeatherUserActions.Models;
 using WeatherUserActions.Repositories;
 using WeatherUserActions.Services;
@@ -33,7 +33,7 @@ namespace WeatherUserActions.Tests
         public async Task CreateProfile_MissingAuthorizationHeader_ReturnsUnauthorized()
         {
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid("irrelevant"), bearerToken: null);
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid("irrelevant"), bearerToken: null);
 
             var result = await controller.CreateProfile(CancellationToken.None);
 
@@ -44,7 +44,7 @@ namespace WeatherUserActions.Tests
         public async Task CreateProfile_InvalidToken_ReturnsUnauthorized()
         {
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.RejectingToken(), bearerToken: "bad-token");
+            var controller = CreateController(db, FakeAppwriteAuthService.RejectingToken(), bearerToken: "bad-token");
 
             var result = await controller.CreateProfile(CancellationToken.None);
 
@@ -59,7 +59,7 @@ namespace WeatherUserActions.Tests
         {
             var uid = UniqueUid();
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
 
             var result = await controller.CreateProfile(CancellationToken.None);
 
@@ -97,7 +97,7 @@ namespace WeatherUserActions.Tests
             }
             //I think we could use the seedDb from above instead making again dbcontext
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
 
             var result = await controller.CreateProfile(CancellationToken.None);
 
@@ -117,13 +117,13 @@ namespace WeatherUserActions.Tests
 
             await using (var firstCallDb = _fixture.CreateDbContext())
             {
-                var controller = CreateController(firstCallDb, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+                var controller = CreateController(firstCallDb, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
                 await controller.CreateProfile(CancellationToken.None);
             }
 
             await using (var secondCallDb = _fixture.CreateDbContext())
             {
-                var controller = CreateController(secondCallDb, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+                var controller = CreateController(secondCallDb, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
                 var result = await controller.CreateProfile(CancellationToken.None);
                 Assert.IsType<OkObjectResult>(result.Result);
             }
@@ -136,7 +136,7 @@ namespace WeatherUserActions.Tests
         private static string UniqueUid() => $"uid-{Guid.NewGuid():N}";
 
         private static ProfileController CreateController(
-            WeatherUserActionsDbContext db, IFirebaseAuthService authService, string? bearerToken)
+            WeatherUserActionsDbContext db, IAppwriteAuthService authService, string? bearerToken)
         {
             var repository = new ProfileRepository(db, NullLogger<ProfileRepository>.Instance);
             var service = new ProfileService(authService, repository, NullLogger<ProfileService>.Instance);

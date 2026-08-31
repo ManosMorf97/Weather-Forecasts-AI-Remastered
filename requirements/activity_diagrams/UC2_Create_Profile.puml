@@ -4,12 +4,12 @@ title UC2: Create Profile - Activity Diagram
 
 start
 :Frontend calls User Actions Server
-with Firebase ID token as Bearer token,
+with an Appwrite JWT as Bearer token,
 after Login / Sign Up (UC1);
 
-:User Actions Server verifies ID token
+:User Actions Server verifies the JWT
 against Authentication Service
-(Firebase Admin SDK);
+(Appwrite Server SDK: Client.setJWT -> account.get);
 
 if (Token valid?) then (no)
   :User Actions Server responds
@@ -21,7 +21,7 @@ if (Token valid?) then (no)
 endif
 
 :User Actions Server extracts user_id
-(Firebase uid) from the token;
+(Appwrite user id / $id) from the verified account;
 
 if (User row exists for user_id?) then (yes)
 else (no)

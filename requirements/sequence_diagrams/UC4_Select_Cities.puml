@@ -6,7 +6,7 @@ actor "End User" as User
 participant "Frontend" as Frontend
 participant "External City API" as CityAPI
 participant "User Actions Server" as UserServer
-participant "Authentication Service\n(Firebase Auth)" as Auth
+participant "Authentication Service\n(Appwrite)" as Auth
 database "Database" as DB
 
 note over User, DB

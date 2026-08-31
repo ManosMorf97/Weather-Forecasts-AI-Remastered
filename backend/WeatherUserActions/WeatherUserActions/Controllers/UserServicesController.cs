@@ -21,12 +21,12 @@ namespace WeatherUserActions.Controllers
         [HttpPut]
         public async Task<IActionResult> SaveServices(SaveServicesRequest request, CancellationToken cancellationToken)
         {
-            if (!this.TryGetBearerToken(out var idToken))
+            if (!this.TryGetBearerToken(out var jwt))
             {
                 return Unauthorized();
             }
 
-            var result = await _userServicesService.SaveServicesAsync(idToken, request.ServiceIds, cancellationToken);
+            var result = await _userServicesService.SaveServicesAsync(jwt, request.ServiceIds, cancellationToken);
 
             return result.Status switch
             {

@@ -4,10 +4,10 @@ title UC1: Login / Sign Up - Sequence Diagram
 
 actor "End User" as User
 participant "Frontend" as Frontend
-participant "Authentication Service\n(Firebase Auth)" as Auth
+participant "Authentication Service\n(Appwrite)" as Auth
 
 User -> Frontend: Open application, navigate to\nany page, or resume after a while
-Frontend -> Frontend: Check local persistence\nfor cached refresh token
+Frontend -> Frontend: Check local persistence\nfor an active Appwrite session
 
 note right of Frontend
   Route guard (A4): this same check runs
@@ -18,14 +18,9 @@ note right of Frontend
   land back on this check.
 end note
 
-alt Session restored (refresh token cached)
-  alt Cached ID token still valid (< ~1hr old)
-    Frontend -> Frontend: Reuse cached ID token
-  else Cached ID token expired
-    Frontend -> Auth: Silently refresh using\ncached refresh token\n(no password re-entry)
-    Auth --> Frontend: New Firebase ID token
-  end
-else No session restored (no cached refresh token)
+alt Session restored (active session in local persistence)
+  Frontend -> Frontend: Reuse the stored session\n(no password re-entry). A short-lived\nJWT is minted on demand\n(account.createJWT()) for each\nUser Actions Server call.
+else No session restored
   Frontend -> User: Display login form
 
   opt A1: New Account
@@ -56,23 +51,23 @@ else No session restored (no cached refresh token)
       Frontend -> User: Display error,\nre-prompt for credentials
       note right: Flow ends (A2)
     else Credentials valid
-      Auth --> Frontend: Firebase ID token +\nrefresh token
-      Frontend -> Frontend: Cache refresh token\nin local persistence
+      Auth --> Frontend: Session created
+      Frontend -> Frontend: SDK persists the session\nin local persistence
     end
   end
 end
 
 note over Frontend
-  Frontend now holds a valid Firebase ID
-  token and an active session. Continues
-  into Create Profile (UC2) on its first
-  authenticated call to the User Actions
-  Server (see UC2 sequence diagram) -
-  no backend involvement in UC1 itself.
-  Only the ID token is ever sent to the
-  User Actions Server; the refresh token
-  stays cached client-side and is only
-  ever shown to the Authentication Service.
+  Frontend now holds an active Appwrite
+  session. Continues into Create Profile
+  (UC2) on its first authenticated call to
+  the User Actions Server (see UC2 sequence
+  diagram) - no backend involvement in UC1
+  itself. Only a short-lived JWT is ever
+  sent to the User Actions Server; the
+  session credential stays client-side and
+  is only ever shown to the Authentication
+  Service.
 end note
 
 @enduml

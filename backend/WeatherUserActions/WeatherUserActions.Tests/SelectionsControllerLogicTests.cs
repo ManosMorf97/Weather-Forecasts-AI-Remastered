@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using WeatherUserActions.Controllers;
 using WeatherUserActions.Data;
 using WeatherUserActions.Dtos;
-using WeatherUserActions.FirebaseServices;
+using WeatherUserActions.AppwriteServices;
 using WeatherUserActions.Models;
 using WeatherUserActions.Repositories;
 using WeatherUserActions.Services;
@@ -37,7 +37,7 @@ namespace WeatherUserActions.Tests
         public async Task SaveSelections_MissingAuthorizationHeader_ReturnsUnauthorized()
         {
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid("irrelevant"), bearerToken: null);
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid("irrelevant"), bearerToken: null);
 
             var result = await controller.SaveSelections(new SaveSelectionsRequest([Athens], [1]), CancellationToken.None);
 
@@ -51,7 +51,7 @@ namespace WeatherUserActions.Tests
             await SeedUserAsync(uid);
             var validServiceId = await SeedServiceAsync();
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
 
             var result = await controller.SaveSelections(
                 new SaveSelectionsRequest([Athens], [validServiceId+1, validServiceId]), CancellationToken.None);
@@ -71,7 +71,7 @@ namespace WeatherUserActions.Tests
             await SeedUserAsync(uid);
             var serviceId = await SeedServiceAsync();
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
 
             var result = await controller.SaveSelections(
                 new SaveSelectionsRequest([Athens], [serviceId]), CancellationToken.None);
@@ -110,7 +110,7 @@ namespace WeatherUserActions.Tests
             }
 
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
 
             var result = await controller.SaveSelections(
                 new SaveSelectionsRequest([Athens], [serviceId]), CancellationToken.None);
@@ -141,13 +141,13 @@ namespace WeatherUserActions.Tests
 
             await using (var firstCallDb = _fixture.CreateDbContext())
             {
-                var controller = CreateController(firstCallDb, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+                var controller = CreateController(firstCallDb, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
                 await controller.SaveSelections(new SaveSelectionsRequest([Athens], [serviceId]), CancellationToken.None);
             }
 
             await using (var secondCallDb = _fixture.CreateDbContext())
             {
-                var controller = CreateController(secondCallDb, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+                var controller = CreateController(secondCallDb, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
                 var result = await controller.SaveSelections(new SaveSelectionsRequest([Paris], [serviceId]), CancellationToken.None);
                 Assert.IsType<OkResult>(result);
             }
@@ -178,7 +178,7 @@ namespace WeatherUserActions.Tests
             DateTime originalAddedAt;
             await using (var firstCallDb = _fixture.CreateDbContext())
             {
-                var controller = CreateController(firstCallDb, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+                var controller = CreateController(firstCallDb, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
                 await controller.SaveSelections(new SaveSelectionsRequest([Athens], [serviceId]), CancellationToken.None);
             }
 
@@ -189,7 +189,7 @@ namespace WeatherUserActions.Tests
 
             await using (var secondCallDb = _fixture.CreateDbContext())
             {
-                var controller = CreateController(secondCallDb, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+                var controller = CreateController(secondCallDb, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
                 await controller.SaveSelections(new SaveSelectionsRequest([Athens, Paris], [serviceId]), CancellationToken.None);
             }
 
@@ -237,7 +237,7 @@ namespace WeatherUserActions.Tests
             var berlinGermany = new CityDto("Berlin", "Germany", 52.52m, 13.40m);
 
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
 
             var result = await controller.SaveSelections(
                 new SaveSelectionsRequest([athensGreece, berlinGermany], [serviceId]), CancellationToken.None);
@@ -285,7 +285,7 @@ namespace WeatherUserActions.Tests
             }
 
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
 
             var result = await controller.SaveSelections(
                 new SaveSelectionsRequest([Athens], [serviceId]), CancellationToken.None);
@@ -337,7 +337,7 @@ namespace WeatherUserActions.Tests
             }
 
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
 
             var result = await controller.SaveSelections(
                 new SaveSelectionsRequest([Athens], [serviceA, serviceB]), CancellationToken.None);
@@ -721,7 +721,7 @@ namespace WeatherUserActions.Tests
             }
 
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
 
             var result = await controller.SaveSelections(
                 new SaveSelectionsRequest([Athens], [serviceId]), CancellationToken.None);
@@ -740,7 +740,7 @@ namespace WeatherUserActions.Tests
         public async Task GetSelections_MissingAuthorizationHeader_ReturnsUnauthorized()
         {
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid("irrelevant"), bearerToken: null);
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid("irrelevant"), bearerToken: null);
 
             var result = await controller.GetSelections(CancellationToken.None);
 
@@ -754,7 +754,7 @@ namespace WeatherUserActions.Tests
             await SeedUserAsync(uid);
             await SeedServiceAsync();
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
 
             var result = await controller.GetSelections(CancellationToken.None);
 
@@ -775,7 +775,7 @@ namespace WeatherUserActions.Tests
             await SaveAsync(uid, [Athens], [serviceId]);
 
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
 
             var result = await controller.GetSelections(CancellationToken.None);
 
@@ -803,7 +803,7 @@ namespace WeatherUserActions.Tests
             }
 
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
 
             var result = await controller.GetSelections(CancellationToken.None);
 
@@ -828,7 +828,7 @@ namespace WeatherUserActions.Tests
 
             await using (var dbA = _fixture.CreateDbContext())
             {
-                var controllerA = CreateController(dbA, FakeFirebaseAuthService.ReturningUid(uidA), bearerToken: "token");
+                var controllerA = CreateController(dbA, FakeAppwriteAuthService.ReturningUid(uidA), bearerToken: "token");
 
                 var resultA = await controllerA.GetSelections(CancellationToken.None);
 
@@ -846,7 +846,7 @@ namespace WeatherUserActions.Tests
 
             await using (var dbB = _fixture.CreateDbContext())
             {
-                var controllerB = CreateController(dbB, FakeFirebaseAuthService.ReturningUid(uidB), bearerToken: "token");
+                var controllerB = CreateController(dbB, FakeAppwriteAuthService.ReturningUid(uidB), bearerToken: "token");
 
                 var resultB = await controllerB.GetSelections(CancellationToken.None);
 
@@ -885,13 +885,13 @@ namespace WeatherUserActions.Tests
         private async Task SaveAsync(string uid, List<CityDto> cities, List<int> serviceIds)
         {
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
             var result = await controller.SaveSelections(new SaveSelectionsRequest(cities, serviceIds), CancellationToken.None);
             Assert.IsType<OkResult>(result);
         }
 
         private static SelectionsController CreateController(
-            WeatherUserActionsDbContext db, IFirebaseAuthService authService, string? bearerToken)
+            WeatherUserActionsDbContext db, IAppwriteAuthService authService, string? bearerToken)
         {
             var repository = new SelectionsRepository(db, NullLogger<SelectionsRepository>.Instance);
             var service = new SelectionsService(authService, repository, NullLogger<SelectionsService>.Instance);

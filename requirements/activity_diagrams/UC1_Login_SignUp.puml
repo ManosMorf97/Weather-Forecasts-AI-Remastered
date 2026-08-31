@@ -4,7 +4,7 @@ title UC1: Login / Sign Up - Activity Diagram
 
 start
 :User opens the application\nor navigates to any page;
-:Frontend's Firebase SDK restores any
+:Frontend's Appwrite SDK restores any
 existing session from local persistence;
 
 note right
@@ -21,16 +21,16 @@ else (no)
   :Frontend displays its own login form;
 
   if (User selects "Register"?) then (yes)
-    :Frontend calls Firebase Client SDK
-    to create account (username, email,
+    :Frontend calls Appwrite Web SDK
+    to create account (name, email,
     password) on Authentication Service;
     note right: Alternative Flow A1 - New Account
   else (no)
   endif
 
   if (User selects "Forgot Password"?) then (yes)
-    :Frontend calls Firebase Client SDK's
-    password-reset flow;
+    :Frontend calls Appwrite Web SDK's
+    password-recovery flow (account.createRecovery);
     note right: Alternative Flow A3 - Forgot Password
     stop
   endif
@@ -44,22 +44,23 @@ else (no)
     stop
   endif
 
-  :Frontend calls Firebase Client SDK
-  to sign in;
+  :Frontend calls Appwrite Web SDK
+  to sign in (account.createEmailPasswordSession);
 
   if (Credentials valid?) then (no)
-    :Firebase Client SDK returns error;
+    :Appwrite Web SDK returns error;
     :Frontend displays it and re-prompts;
     note right: Alternative Flow A2 - Invalid Credentials
     stop
   endif
 
-  :Authentication Service issues
-  Firebase ID token to the Frontend;
+  :Authentication Service creates a session;
+  :Appwrite Web SDK persists it
+  in local persistence;
 endif
 
-:Frontend holds a valid Firebase ID
-token and an active session;
+:Frontend holds an active Appwrite
+session;
 
 note right
   Continues into Create Profile (UC2)

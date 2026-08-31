@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using WeatherUserActions.Controllers;
 using WeatherUserActions.Data;
 using WeatherUserActions.Dtos;
-using WeatherUserActions.FirebaseServices;
+using WeatherUserActions.AppwriteServices;
 using WeatherUserActions.Models;
 using WeatherUserActions.Repositories;
 using WeatherUserActions.Services;
@@ -33,7 +33,7 @@ namespace WeatherUserActions.Tests
         public async Task GetForecasts_MissingAuthorizationHeader_ReturnsUnauthorized()
         {
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid("irrelevant"), bearerToken: null);
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid("irrelevant"), bearerToken: null);
 
             var result = await controller.GetForecasts(CancellationToken.None);
 
@@ -46,7 +46,7 @@ namespace WeatherUserActions.Tests
             var uid = UniqueUid();
             await SeedUserAsync(uid);
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
 
             var result = await controller.GetForecasts(CancellationToken.None);
 
@@ -68,7 +68,7 @@ namespace WeatherUserActions.Tests
             await SeedForecastAsync(citySiteId, timestamp, "CURRENT", temperature: 25m, humidity: 50m, windSpeed: 10m, dangerFlag: false);
 
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
 
             var result = await controller.GetForecasts(CancellationToken.None);
 
@@ -100,7 +100,7 @@ namespace WeatherUserActions.Tests
             await SeedRatingAsync(uid, forecastId, value: 4);
 
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
 
             var result = await controller.GetForecasts(CancellationToken.None);
 
@@ -127,7 +127,7 @@ namespace WeatherUserActions.Tests
             await SeedRatingAsync(otherUid, forecastId, value: 5);
 
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
 
             var result = await controller.GetForecasts(CancellationToken.None);
 
@@ -149,7 +149,7 @@ namespace WeatherUserActions.Tests
             await SeedForecastAsync(citySiteId, DateTime.UtcNow.AddHours(-1), "CURRENT");
 
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
 
             var result = await controller.GetForecasts(CancellationToken.None);
 
@@ -170,7 +170,7 @@ namespace WeatherUserActions.Tests
             await SeedForecastAsync(citySiteId, DateTime.UtcNow.AddHours(1), "CURRENT");
 
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
 
             var result = await controller.GetForecasts(CancellationToken.None);
 
@@ -204,7 +204,7 @@ namespace WeatherUserActions.Tests
             await SeedForecastAsync(athensWeatherApi, now.AddHours(1), "CURRENT");
 
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
 
             var result = await controller.GetForecasts(CancellationToken.None);
 
@@ -249,7 +249,7 @@ namespace WeatherUserActions.Tests
 
             await using (var dbA = _fixture.CreateDbContext())
             {
-                var controllerA = CreateController(dbA, FakeFirebaseAuthService.ReturningUid(uidA), bearerToken: "token");
+                var controllerA = CreateController(dbA, FakeAppwriteAuthService.ReturningUid(uidA), bearerToken: "token");
                 var resultA = await controllerA.GetForecasts(CancellationToken.None);
                 var okA = Assert.IsType<OkObjectResult>(resultA.Result);
                 var bodyA = Assert.IsType<GetForecastsResponse>(okA.Value);
@@ -259,7 +259,7 @@ namespace WeatherUserActions.Tests
 
             await using (var dbB = _fixture.CreateDbContext())
             {
-                var controllerB = CreateController(dbB, FakeFirebaseAuthService.ReturningUid(uidB), bearerToken: "token");
+                var controllerB = CreateController(dbB, FakeAppwriteAuthService.ReturningUid(uidB), bearerToken: "token");
                 var resultB = await controllerB.GetForecasts(CancellationToken.None);
                 var okB = Assert.IsType<OkObjectResult>(resultB.Result);
                 var bodyB = Assert.IsType<GetForecastsResponse>(okB.Value);
@@ -306,7 +306,7 @@ namespace WeatherUserActions.Tests
 
             await using (var dbA = _fixture.CreateDbContext())
             {
-                var controllerA = CreateController(dbA, FakeFirebaseAuthService.ReturningUid(uidA), bearerToken: "token");
+                var controllerA = CreateController(dbA, FakeAppwriteAuthService.ReturningUid(uidA), bearerToken: "token");
                 var resultA = await controllerA.GetForecasts(CancellationToken.None);
                 var okA = Assert.IsType<OkObjectResult>(resultA.Result);
                 var bodyA = Assert.IsType<GetForecastsResponse>(okA.Value);
@@ -333,7 +333,7 @@ namespace WeatherUserActions.Tests
 
             await using (var dbB = _fixture.CreateDbContext())
             {
-                var controllerB = CreateController(dbB, FakeFirebaseAuthService.ReturningUid(uidB), bearerToken: "token");
+                var controllerB = CreateController(dbB, FakeAppwriteAuthService.ReturningUid(uidB), bearerToken: "token");
                 var resultB = await controllerB.GetForecasts(CancellationToken.None);
                 var okB = Assert.IsType<OkObjectResult>(resultB.Result);
                 var bodyB = Assert.IsType<GetForecastsResponse>(okB.Value);
@@ -356,7 +356,7 @@ namespace WeatherUserActions.Tests
         public async Task RateForecast_MissingAuthorizationHeader_ReturnsUnauthorized()
         {
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid("irrelevant"), bearerToken: null);
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid("irrelevant"), bearerToken: null);
 
             var result = await controller.RateForecast(1, new RateForecastRequest(4), CancellationToken.None);
 
@@ -369,7 +369,7 @@ namespace WeatherUserActions.Tests
             var uid = UniqueUid();
             await SeedUserAsync(uid);
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
 
             var result = await controller.RateForecast(999, new RateForecastRequest(4), CancellationToken.None);
 
@@ -391,7 +391,7 @@ namespace WeatherUserActions.Tests
             var forecastId = await SeedForecastAsync(citySiteId, DateTime.UtcNow.AddHours(1), "CURRENT");
 
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
 
             var result = await controller.RateForecast(forecastId, new RateForecastRequest(4), CancellationToken.None);
 
@@ -417,7 +417,7 @@ namespace WeatherUserActions.Tests
 
             await using (var firstCallDb = _fixture.CreateDbContext())
             {
-                var controller = CreateController(firstCallDb, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+                var controller = CreateController(firstCallDb, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
                 await controller.RateForecast(forecastId, new RateForecastRequest(3), CancellationToken.None);
             }
 
@@ -429,7 +429,7 @@ namespace WeatherUserActions.Tests
 
             await using (var secondCallDb = _fixture.CreateDbContext())
             {
-                var controller = CreateController(secondCallDb, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+                var controller = CreateController(secondCallDb, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
                 var result = await controller.RateForecast(forecastId, new RateForecastRequest(5), CancellationToken.None);
                 Assert.IsType<OkResult>(result);
             }
@@ -450,7 +450,7 @@ namespace WeatherUserActions.Tests
         public async Task RemoveRating_MissingAuthorizationHeader_ReturnsUnauthorized()
         {
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid("irrelevant"), bearerToken: null);
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid("irrelevant"), bearerToken: null);
 
             var result = await controller.RemoveRating(1, CancellationToken.None);
 
@@ -469,7 +469,7 @@ namespace WeatherUserActions.Tests
             await SeedRatingAsync(uid, forecastId, value: 3);
 
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
 
             var result = await controller.RemoveRating(forecastId, CancellationToken.None);
 
@@ -485,7 +485,7 @@ namespace WeatherUserActions.Tests
             var uid = UniqueUid();
             await SeedUserAsync(uid);
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
 
             var result = await controller.RemoveRating(999, CancellationToken.None);
 
@@ -506,7 +506,7 @@ namespace WeatherUserActions.Tests
             await SeedRatingAsync(otherUid, forecastId, value: 2);
 
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
 
             var result = await controller.RemoveRating(forecastId, CancellationToken.None);
 
@@ -603,7 +603,7 @@ namespace WeatherUserActions.Tests
         }
 
         private static ForecastsController CreateController(
-            WeatherUserActionsDbContext db, IFirebaseAuthService authService, string? bearerToken)
+            WeatherUserActionsDbContext db, IAppwriteAuthService authService, string? bearerToken)
         {
             var forecastsRepository = new ForecastsRepository(db, NullLogger<ForecastsRepository>.Instance);
             var forecastsService = new ForecastsService(authService, forecastsRepository, NullLogger<ForecastsService>.Instance);

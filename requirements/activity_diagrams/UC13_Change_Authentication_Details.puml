@@ -11,20 +11,19 @@ if (Authentication Service available?) then (no)
   stop
 endif
 
-:Frontend displays editable username, email,
+:Frontend displays editable name, email,
 and password fields, pre-filled from the
-current Firebase user object;
+current Appwrite account (account.get());
 :User updates one or more fields and confirms;
-:Frontend calls the corresponding Firebase
-Client SDK method (updateProfile, updateEmail,
+:Frontend calls the corresponding Appwrite
+Web SDK method (account.updateName, updateEmail,
 updatePassword) directly against
 Authentication Service;
 
-if (Session recent enough?) then (no)
-  :Frontend prompts user to re-enter password;
-  :Frontend calls SDK's re-authentication method;
-  note right: Alternative Flow A1 - Re-authentication Required
-  :Frontend retries the change;
+if (Current password required and missing/wrong?) then (yes)
+  :Frontend prompts user to enter current password;
+  note right: Alternative Flow A1 - Current Password Required\n(updateEmail / updatePassword)
+  :Frontend retries the change with the current password;
 endif
 
 :Authentication Service validates

@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
 using WeatherUserActions.Controllers;
 using WeatherUserActions.Dtos;
-using WeatherUserActions.FirebaseServices;
+using WeatherUserActions.AppwriteServices;
 using WeatherUserActions.Repositories;
 using WeatherUserActions.Services;
 using WeatherUserActions.Tests.Fakes;
@@ -24,7 +24,7 @@ namespace WeatherUserActions.Tests
         public async Task SaveSelections_InvalidToken_ReturnsUnauthorized()
         {
             var controller = CreateController(
-                FakeFirebaseAuthService.RejectingToken(), FakeSelectionsRepository.Succeeding());
+                FakeAppwriteAuthService.RejectingToken(), FakeSelectionsRepository.Succeeding());
 
             var result = await controller.SaveSelections(ValidRequest, CancellationToken.None);
 
@@ -35,7 +35,7 @@ namespace WeatherUserActions.Tests
         public async Task SaveSelections_ServiceIdValidationFails_ReturnsProblem()
         {
             var controller = CreateController(
-                FakeFirebaseAuthService.ReturningUid("uid-1"), FakeSelectionsRepository.FailingToValidateServiceIds());
+                FakeAppwriteAuthService.ReturningUid("uid-1"), FakeSelectionsRepository.FailingToValidateServiceIds());
 
             var result = await controller.SaveSelections(ValidRequest, CancellationToken.None);
 
@@ -47,7 +47,7 @@ namespace WeatherUserActions.Tests
         public async Task SaveSelections_InvalidServiceIds_ReturnsBadRequestProblem()
         {
             var controller = CreateController(
-                FakeFirebaseAuthService.ReturningUid("uid-1"), FakeSelectionsRepository.WithInvalidServiceIds());
+                FakeAppwriteAuthService.ReturningUid("uid-1"), FakeSelectionsRepository.WithInvalidServiceIds());
 
             var result = await controller.SaveSelections(ValidRequest, CancellationToken.None);
 
@@ -59,7 +59,7 @@ namespace WeatherUserActions.Tests
         public async Task SaveSelections_ReplaceFails_ReturnsProblem()
         {
             var controller = CreateController(
-                FakeFirebaseAuthService.ReturningUid("uid-1"), FakeSelectionsRepository.FailingToReplaceSelection());
+                FakeAppwriteAuthService.ReturningUid("uid-1"), FakeSelectionsRepository.FailingToReplaceSelection());
 
             var result = await controller.SaveSelections(ValidRequest, CancellationToken.None);
 
@@ -71,7 +71,7 @@ namespace WeatherUserActions.Tests
         public async Task SaveSelections_Succeeds_ReturnsOk()
         {
             var controller = CreateController(
-                FakeFirebaseAuthService.ReturningUid("uid-1"), FakeSelectionsRepository.Succeeding());
+                FakeAppwriteAuthService.ReturningUid("uid-1"), FakeSelectionsRepository.Succeeding());
 
             var result = await controller.SaveSelections(ValidRequest, CancellationToken.None);
 
@@ -84,7 +84,7 @@ namespace WeatherUserActions.Tests
         public async Task GetSelections_InvalidToken_ReturnsUnauthorized()
         {
             var controller = CreateController(
-                FakeFirebaseAuthService.RejectingToken(), FakeSelectionsRepository.Succeeding());
+                FakeAppwriteAuthService.RejectingToken(), FakeSelectionsRepository.Succeeding());
 
             var result = await controller.GetSelections(CancellationToken.None);
 
@@ -95,7 +95,7 @@ namespace WeatherUserActions.Tests
         public async Task GetSelections_LoadFails_ReturnsProblem()
         {
             var controller = CreateController(
-                FakeFirebaseAuthService.ReturningUid("uid-1"), FakeSelectionsRepository.FailingToLoadSelections());
+                FakeAppwriteAuthService.ReturningUid("uid-1"), FakeSelectionsRepository.FailingToLoadSelections());
 
             var result = await controller.GetSelections(CancellationToken.None);
 
@@ -109,7 +109,7 @@ namespace WeatherUserActions.Tests
             var services = new List<ServiceSelectionDto> { new(1, "OpenWeather", true) };
             var cities = new List<CityDto> { new("Athens", "Greece", 37.98m, 23.72m) };
             var controller = CreateController(
-                FakeFirebaseAuthService.ReturningUid("uid-1"), FakeSelectionsRepository.ReturningSelections(services, cities));
+                FakeAppwriteAuthService.ReturningUid("uid-1"), FakeSelectionsRepository.ReturningSelections(services, cities));
 
             var result = await controller.GetSelections(CancellationToken.None);
 
@@ -120,7 +120,7 @@ namespace WeatherUserActions.Tests
         }
 
         private static SelectionsController CreateController(
-            IFirebaseAuthService authService, ISelectionsRepository repository)
+            IAppwriteAuthService authService, ISelectionsRepository repository)
         {
             var service = new SelectionsService(authService, repository, NullLogger<SelectionsService>.Instance);
             var controller = new SelectionsController(service)

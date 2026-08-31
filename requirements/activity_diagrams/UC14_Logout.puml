@@ -4,19 +4,20 @@ title UC14: Logout - Activity Diagram
 
 start
 :User selects "Log out";
-:Frontend calls Firebase Client SDK's
-sign-out method;
-:Firebase Client SDK clears the cached
-ID token and refresh token from local
-persistence on this device;
+:Frontend calls Appwrite Web SDK's
+account.deleteSession('current');
+:Appwrite Web SDK clears the stored
+session from local persistence
+on this device;
 
 note right
-  Option A - local-only logout: no
-  backend call, no server-side token
-  revocation. Other devices/sessions
-  remain logged in. A stolen token
-  from before logout still works
-  elsewhere until it naturally expires.
+  Option A - single-device logout: deletes
+  only this device's session, no User
+  Actions Server call, no revocation of
+  other sessions. Other devices/sessions
+  remain logged in. A JWT minted before
+  logout still works elsewhere until it
+  naturally expires (~15 min).
 end note
 
 :Frontend redirects user to

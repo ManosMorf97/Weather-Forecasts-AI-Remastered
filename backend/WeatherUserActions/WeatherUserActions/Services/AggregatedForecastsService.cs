@@ -1,4 +1,4 @@
-using WeatherUserActions.FirebaseServices;
+using WeatherUserActions.AppwriteServices;
 using WeatherUserActions.Repositories;
 using WeatherUserActions.Services.Results;
 
@@ -6,31 +6,31 @@ namespace WeatherUserActions.Services
 {
     public class AggregatedForecastsService : IAggregatedForecastsService
     {
-        private readonly IFirebaseAuthService _firebaseAuthService;
+        private readonly IAppwriteAuthService _appwriteAuthService;
         private readonly IAggregatedForecastsRepository _aggregatedForecastsRepository;
         private readonly ILogger<AggregatedForecastsService> _logger;
 
         public AggregatedForecastsService(
-            IFirebaseAuthService firebaseAuthService,
+            IAppwriteAuthService appwriteAuthService,
             IAggregatedForecastsRepository aggregatedForecastsRepository,
             ILogger<AggregatedForecastsService> logger)
         {
-            _firebaseAuthService = firebaseAuthService;
+            _appwriteAuthService = appwriteAuthService;
             _aggregatedForecastsRepository = aggregatedForecastsRepository;
             _logger = logger;
         }
 
         public async Task<GetAggregatedForecastsResult> GetAggregatedForecastsAsync(
-            string idToken, CancellationToken cancellationToken = default)
+            string jwt, CancellationToken cancellationToken = default)
         {
             string userId;
             try
             {
-                userId = await _firebaseAuthService.VerifyIdTokenAsync(idToken, cancellationToken);
+                userId = await _appwriteAuthService.VerifyJwtAsync(jwt, cancellationToken);
             }
-            catch (FirebaseTokenVerificationException ex)
+            catch (AppwriteTokenVerificationException ex)
             {
-                _logger.LogWarning(ex, "Firebase ID token verification failed");
+                _logger.LogWarning(ex, "Appwrite JWT verification failed");
                 return GetAggregatedForecastsResult.Unauthorized();
             }
 

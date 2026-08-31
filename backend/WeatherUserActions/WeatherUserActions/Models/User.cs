@@ -4,11 +4,11 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace WeatherUserActions.Models
 {
     // No username/email/password stored here - all account data lives in the
-    // Auth Service (Firebase Authentication), keyed by this same UserId (Firebase uid).
+    // Auth Service (Appwrite Authentication), keyed by this same UserId (Appwrite user id / $id).
     // Row is created lazily (JIT) on first login.
     public class User
     {
-        // Firebase Authentication uid (not an internal surrogate id).
+        // Appwrite Authentication user id / $id (not an internal surrogate id).
         [Key]
         [MaxLength(128)]
         public required string UserId { get; set; }

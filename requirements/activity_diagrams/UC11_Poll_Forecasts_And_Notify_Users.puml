@@ -80,7 +80,8 @@ if (User preferences exist?) then (yes)
     if (Any users have unnotified warnings?) then (yes)
       :System batch-fetches emails for all these
       users' ids from Authentication Service
-      (Firebase Admin SDK, up to 100 ids per call);
+      (Appwrite Server SDK: users.list with
+      Query.equal("$id", ids), ids chunked <= 100 per call);
 
       if (Batch lookup fails after retry?) then (yes)
         :System logs failure and excludes affected

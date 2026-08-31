@@ -5,9 +5,9 @@ namespace WeatherUserActions.Controllers
 {
     internal static class BearerTokenExtensions
     {
-        public static bool TryGetBearerToken(this ControllerBase controller, out string idToken)
+        public static bool TryGetBearerToken(this ControllerBase controller, out string jwt)
         {
-            idToken = string.Empty;
+            jwt = string.Empty;
 
             if (!controller.Request.Headers.TryGetValue("Authorization", out var authorizationHeader) ||
                 !AuthenticationHeaderValue.TryParse(authorizationHeader, out var headerValue) ||
@@ -17,7 +17,7 @@ namespace WeatherUserActions.Controllers
                 return false;
             }
 
-            idToken = headerValue.Parameter;
+            jwt = headerValue.Parameter;
             return true;
         }
     }

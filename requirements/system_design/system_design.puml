@@ -13,7 +13,7 @@ skinparam note {
 
 actor "End User" as User
 
-node "Authentication Service\n<<Firebase Authentication>>" as Auth
+node "Authentication Service\n<<Appwrite Authentication>>" as Auth
 
 node "Frontend Service\n<<Web / Mobile Client>>" as Frontend
 
@@ -34,15 +34,15 @@ cloud "Notification Providers\n(Email / SMS / Push)" as NotifyProviders
 ' --- Relationships ---
 User -down-> Frontend : HTTPS
 
-Frontend -up-> Auth : Firebase Client SDK\n(UC1, UC13, UC14)
-Frontend -right-> UserServer : REST/HTTPS\n(Bearer ID token)
+Frontend -up-> Auth : Appwrite Web SDK\n(UC1, UC13, UC14)
+Frontend -right-> UserServer : REST/HTTPS\n(Bearer Appwrite JWT)
 Frontend -down-> CityAPI : search cities\n(UC4, no auth, stateless)
 
-UserServer -up-> Auth : verify ID token (Admin SDK);\nfetch single user's email (UC9)
+UserServer -up-> Auth : verify JWT (Server SDK);\nfetch single user's email (UC9)
 UserServer -down-> DB : upsert user_id (JIT);\nread/write app data
 UserServer -right-> NotifyProvidersDL : send large-file download\nlink via email (UC9 A1)
 
-Scheduler -up-> Auth : batch-fetch emails\n(getUsers(), up to 100/call)
+Scheduler -up-> Auth : batch-fetch emails\n(users.list, <= 100 ids/call)
 Scheduler -down-> DB : read subscriptions,\nwrite forecasts
 Scheduler -right-> PartnerAPIs : poll forecasts
 Scheduler -right-> NotifyProviders : dispatch warnings
@@ -50,13 +50,13 @@ Scheduler -right-> NotifyProviders : dispatch warnings
 ' --- Notes ---
 note top of Auth
   Sole source of truth for accounts
-  (credentials, sessions, username,
+  (credentials, sessions, name,
   email) - never copied into the app
-  DB. Issues short-lived ID tokens
-  (sent to UserServer on every call)
-  and long-lived refresh tokens (kept
-  client-side only, silently renew ID
-  tokens). Refresh tokens revocable
+  DB. Holds long-lived sessions (kept
+  client-side by the Web SDK); the
+  Frontend mints a short-lived JWT
+  (~15 min) from the session for each
+  UserServer call. Sessions revocable
   server-side. Full token lifecycle:
   see UC1/UC2 sequence diagrams.
 end note
@@ -66,9 +66,9 @@ note left of Frontend
   call at all): UC1 sign-in/sign-up/
   password-reset + session restore,
   UC13 account changes, UC14 logout
-  (Option A - clears local tokens on
-  this device only, no server-side
-  revocation).
+  (Option A - deletes this device's
+  session only, other sessions
+  unaffected).
 
   Route guard (UC1 A4): every page
   except the login form requires a

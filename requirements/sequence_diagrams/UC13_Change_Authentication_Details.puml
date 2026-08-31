@@ -4,7 +4,7 @@ title UC13: Change Authentication Details - Sequence Diagram
 
 actor "End User" as User
 participant "Frontend" as Frontend
-participant "Authentication Service\n(Firebase Auth)" as Auth
+participant "Authentication Service\n(Appwrite)" as Auth
 
 note over User, Auth
   Precondition: user is logged in. Entirely a
@@ -19,20 +19,18 @@ alt E1: Authentication Service unavailable
   Frontend -> User: Display error,\nallow retry later
   note right: Flow ends (E1)
 else Authentication Service available
-  Frontend -> User: Display editable username/email/\npassword fields, pre-filled from\ncurrent Firebase user object
+  Frontend -> User: Display editable name/email/\npassword fields, pre-filled from\nthe current Appwrite account (account.get())
   User -> Frontend: Update one or more fields,\nconfirm
 
-  Frontend -> Auth: Call SDK method (updateProfile /\nupdateEmail / updatePassword)
+  Frontend -> Auth: Call SDK method (account.updateName /\nupdateEmail / updatePassword)
 
-  alt A1: Re-authentication required
-    Auth --> Frontend: Rejected - session not\nrecent enough
-    Frontend -> User: Prompt to re-enter password
+  alt A1: Current password required / incorrect
+    Auth --> Frontend: Rejected - current password\nmissing or wrong\n(updateEmail / updatePassword)
+    Frontend -> User: Prompt to enter current password
     User -> Frontend: Enter password
-    Frontend -> Auth: Re-authenticate\n(SDK re-auth method)
-    Auth --> Frontend: Re-authenticated
-    Frontend -> Auth: Retry the change\n(same SDK method)
+    Frontend -> Auth: Retry the change with the\ncurrent password (same SDK method)
     Auth --> Frontend: Change validated and applied
-  else Session recent enough
+  else Password supplied (or not needed - updateName)
     Auth --> Frontend: Change validated and applied
   end
 

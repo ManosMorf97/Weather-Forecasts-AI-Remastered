@@ -21,12 +21,12 @@ namespace WeatherUserActions.Controllers
         [HttpPost]
         public async Task<ActionResult<CreateProfileResponse>> CreateProfile(CancellationToken cancellationToken)
         {
-            if (!this.TryGetBearerToken(out var idToken))
+            if (!this.TryGetBearerToken(out var jwt))
             {
                 return Unauthorized();
             }
 
-            var result = await _profileService.CreateProfileAsync(idToken, cancellationToken);
+            var result = await _profileService.CreateProfileAsync(jwt, cancellationToken);
 
             return result.Status switch
             {

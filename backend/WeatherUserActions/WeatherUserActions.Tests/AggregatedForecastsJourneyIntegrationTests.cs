@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using WeatherUserActions.Controllers;
 using WeatherUserActions.Data;
 using WeatherUserActions.Dtos;
-using WeatherUserActions.FirebaseServices;
+using WeatherUserActions.AppwriteServices;
 using WeatherUserActions.Models;
 using WeatherUserActions.Repositories;
 using WeatherUserActions.Services;
@@ -49,7 +49,7 @@ namespace WeatherUserActions.Tests
             // Viewer selects both cities, both services - so both cities have a real comparison.
             await using (var db = _fixture.CreateDbContext())
             {
-                var controller = CreateSelectionsController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+                var controller = CreateSelectionsController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
                 var result = await controller.SaveSelections(
                     new SaveSelectionsRequest([athens, paris], [openWeather, weatherApi]), CancellationToken.None);
                 Assert.IsType<OkResult>(result);
@@ -80,7 +80,7 @@ namespace WeatherUserActions.Tests
             // Step 1: viewer sees OpenWeather winning both cities.
             await using (var db = _fixture.CreateDbContext())
             {
-                var controller = CreateForecastsController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+                var controller = CreateForecastsController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
                 var result = await controller.GetAggregatedForecasts(CancellationToken.None);
                 var ok = Assert.IsType<OkObjectResult>(result.Result);
                 var body = Assert.IsType<GetAggregatedForecastsResponse>(ok.Value);
@@ -98,13 +98,13 @@ namespace WeatherUserActions.Tests
             // through the real rating endpoint (an upsert), not a direct DB write.
             await using (var db = _fixture.CreateDbContext())
             {
-                var controller = CreateForecastsController(db, FakeFirebaseAuthService.ReturningUid(raterA), bearerToken: "token");
+                var controller = CreateForecastsController(db, FakeAppwriteAuthService.ReturningUid(raterA), bearerToken: "token");
                 var result = await controller.RateForecast(athensWeatherApiForecastId, new RateForecastRequest(5), CancellationToken.None);
                 Assert.IsType<OkResult>(result);
             }
             await using (var db = _fixture.CreateDbContext())
             {
-                var controller = CreateForecastsController(db, FakeFirebaseAuthService.ReturningUid(raterB), bearerToken: "token");
+                var controller = CreateForecastsController(db, FakeAppwriteAuthService.ReturningUid(raterB), bearerToken: "token");
                 var result = await controller.RateForecast(athensWeatherApiForecastId, new RateForecastRequest(5), CancellationToken.None);
                 Assert.IsType<OkResult>(result);
             }
@@ -112,7 +112,7 @@ namespace WeatherUserActions.Tests
             // Step 3: Athens' winner flips to WeatherAPI, Paris is untouched and still OpenWeather.
             await using (var db = _fixture.CreateDbContext())
             {
-                var controller = CreateForecastsController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+                var controller = CreateForecastsController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
                 var result = await controller.GetAggregatedForecasts(CancellationToken.None);
                 var ok = Assert.IsType<OkObjectResult>(result.Result);
                 var body = Assert.IsType<GetAggregatedForecastsResponse>(ok.Value);
@@ -169,7 +169,7 @@ namespace WeatherUserActions.Tests
             // Step 1: viewer starts out interested in Athens and Paris, both services.
             await using (var db = _fixture.CreateDbContext())
             {
-                var controller = CreateSelectionsController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+                var controller = CreateSelectionsController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
                 var result = await controller.SaveSelections(
                     new SaveSelectionsRequest([athens, paris], [openWeather, weatherApi]), CancellationToken.None);
                 Assert.IsType<OkResult>(result);
@@ -196,7 +196,7 @@ namespace WeatherUserActions.Tests
             // Step 2: viewer sees Athens and Paris, both won by OpenWeather.
             await using (var db = _fixture.CreateDbContext())
             {
-                var controller = CreateForecastsController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+                var controller = CreateForecastsController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
                 var result = await controller.GetAggregatedForecasts(CancellationToken.None);
                 var ok = Assert.IsType<OkObjectResult>(result.Result);
                 var body = Assert.IsType<GetAggregatedForecastsResponse>(ok.Value);
@@ -208,7 +208,7 @@ namespace WeatherUserActions.Tests
             // Step 3: viewer changes interests - drops Athens, keeps Paris, adds Rome.
             await using (var db = _fixture.CreateDbContext())
             {
-                var controller = CreateSelectionsController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+                var controller = CreateSelectionsController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
                 var result = await controller.SaveSelections(
                     new SaveSelectionsRequest([paris, rome], [openWeather, weatherApi]), CancellationToken.None);
                 Assert.IsType<OkResult>(result);
@@ -229,7 +229,7 @@ namespace WeatherUserActions.Tests
             // Athens is gone from the response even though its forecast/rating data still exists.
             await using (var db = _fixture.CreateDbContext())
             {
-                var controller = CreateForecastsController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+                var controller = CreateForecastsController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
                 var result = await controller.GetAggregatedForecasts(CancellationToken.None);
                 var ok = Assert.IsType<OkObjectResult>(result.Result);
                 var body = Assert.IsType<GetAggregatedForecastsResponse>(ok.Value);
@@ -321,7 +321,7 @@ namespace WeatherUserActions.Tests
         }
 
         private static SelectionsController CreateSelectionsController(
-            WeatherUserActionsDbContext db, IFirebaseAuthService authService, string? bearerToken)
+            WeatherUserActionsDbContext db, IAppwriteAuthService authService, string? bearerToken)
         {
             var repository = new SelectionsRepository(db, NullLogger<SelectionsRepository>.Instance);
             var service = new SelectionsService(authService, repository, NullLogger<SelectionsService>.Instance);
@@ -342,7 +342,7 @@ namespace WeatherUserActions.Tests
         }
 
         private static ForecastsController CreateForecastsController(
-            WeatherUserActionsDbContext db, IFirebaseAuthService authService, string? bearerToken)
+            WeatherUserActionsDbContext db, IAppwriteAuthService authService, string? bearerToken)
         {
             var forecastsRepository = new ForecastsRepository(db, NullLogger<ForecastsRepository>.Instance);
             var forecastsService = new ForecastsService(authService, forecastsRepository, NullLogger<ForecastsService>.Instance);

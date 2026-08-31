@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using WeatherUserActions.Controllers;
 using WeatherUserActions.Data;
 using WeatherUserActions.Dtos;
-using WeatherUserActions.FirebaseServices;
+using WeatherUserActions.AppwriteServices;
 using WeatherUserActions.Models;
 using WeatherUserActions.Repositories;
 using WeatherUserActions.Services;
@@ -34,7 +34,7 @@ namespace WeatherUserActions.Tests
         public async Task GetAggregatedForecasts_MissingAuthorizationHeader_ReturnsUnauthorized()
         {
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid("irrelevant"), bearerToken: null);
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid("irrelevant"), bearerToken: null);
 
             var result = await controller.GetAggregatedForecasts(CancellationToken.None);
 
@@ -47,7 +47,7 @@ namespace WeatherUserActions.Tests
             var uid = UniqueUid();
             await SeedUserAsync(uid);
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
 
             var result = await controller.GetAggregatedForecasts(CancellationToken.None);
 
@@ -72,7 +72,7 @@ namespace WeatherUserActions.Tests
             var forecastId = await SeedForecastAsync(citySiteId, timestamp, temperature: 25m, humidity: 50m, windSpeed: 10m, dangerFlag: false);
 
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
 
             var result = await controller.GetAggregatedForecasts(CancellationToken.None);
 
@@ -128,7 +128,7 @@ namespace WeatherUserActions.Tests
             await SeedRatingAsync(raterB, weatherApiForecastId, value: 2);
 
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
 
             var result = await controller.GetAggregatedForecasts(CancellationToken.None);
 
@@ -178,7 +178,7 @@ namespace WeatherUserActions.Tests
             await SeedRatingAsync(raterB, weatherApiForecastId, value: 4);
 
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
 
             var result = await controller.GetAggregatedForecasts(CancellationToken.None);
 
@@ -221,7 +221,7 @@ namespace WeatherUserActions.Tests
             await SeedRatingAsync(rater, weatherApiForecastId, value: 5);
 
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
 
             var result = await controller.GetAggregatedForecasts(CancellationToken.None);
 
@@ -272,7 +272,7 @@ namespace WeatherUserActions.Tests
             await SeedRatingAsync(raterB, weatherApiForecastId, value: 3);
 
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
 
             var result = await controller.GetAggregatedForecasts(CancellationToken.None);
 
@@ -322,7 +322,7 @@ namespace WeatherUserActions.Tests
             await SeedRatingAsync(raterB, openWeatherForecastId, value: 5);
 
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
 
             var result = await controller.GetAggregatedForecasts(CancellationToken.None);
 
@@ -368,7 +368,7 @@ namespace WeatherUserActions.Tests
             await SeedRatingAsync(raterB, openWeatherPastForecastId, value: 5);
 
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
 
             var result = await controller.GetAggregatedForecasts(CancellationToken.None);
 
@@ -404,7 +404,7 @@ namespace WeatherUserActions.Tests
             await SeedRatingAsync(rater, pastForecastId, value: 5);
 
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
 
             var result = await controller.GetAggregatedForecasts(CancellationToken.None);
 
@@ -433,7 +433,7 @@ namespace WeatherUserActions.Tests
             var parisForecastId = await SeedForecastAsync(parisSite, DateTime.UtcNow.AddHours(1));
 
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
 
             var result = await controller.GetAggregatedForecasts(CancellationToken.None);
 
@@ -459,7 +459,7 @@ namespace WeatherUserActions.Tests
             await SeedForecastAsync(citySiteId, DateTime.UtcNow.AddHours(-1));
 
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
 
             var result = await controller.GetAggregatedForecasts(CancellationToken.None);
 
@@ -481,7 +481,7 @@ namespace WeatherUserActions.Tests
             await SeedForecastAsync(citySiteId, DateTime.UtcNow.AddHours(1));
 
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
 
             var result = await controller.GetAggregatedForecasts(CancellationToken.None);
 
@@ -505,7 +505,7 @@ namespace WeatherUserActions.Tests
             var soonerForecastId = await SeedForecastAsync(citySiteId, now.AddHours(1));
 
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
 
             var result = await controller.GetAggregatedForecasts(CancellationToken.None);
 
@@ -553,7 +553,7 @@ namespace WeatherUserActions.Tests
             await SeedRatingAsync(raterB, weatherApiForecastId, value: 2);
 
             await using var db = _fixture.CreateDbContext();
-            var controller = CreateController(db, FakeFirebaseAuthService.ReturningUid(uid), bearerToken: "token");
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
 
             var result = await controller.GetAggregatedForecasts(CancellationToken.None);
 
@@ -658,7 +658,7 @@ namespace WeatherUserActions.Tests
         }
 
         private static ForecastsController CreateController(
-            WeatherUserActionsDbContext db, IFirebaseAuthService authService, string? bearerToken)
+            WeatherUserActionsDbContext db, IAppwriteAuthService authService, string? bearerToken)
         {
             var forecastsRepository = new ForecastsRepository(db, NullLogger<ForecastsRepository>.Instance);
             var forecastsService = new ForecastsService(authService, forecastsRepository, NullLogger<ForecastsService>.Instance);

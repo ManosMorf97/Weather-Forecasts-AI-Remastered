@@ -20,13 +20,13 @@ namespace WeatherUserActions.Controllers
         [HttpPut]
         public async Task<IActionResult> SaveSelections(SaveSelectionsRequest request, CancellationToken cancellationToken)
         {
-            if (!this.TryGetBearerToken(out var idToken))
+            if (!this.TryGetBearerToken(out var jwt))
             {
                 return Unauthorized();
             }
 
             var result = await _selectionsService.SaveSelectionsAsync(
-                idToken, request.Cities, request.ServiceIds, cancellationToken);
+                jwt, request.Cities, request.ServiceIds, cancellationToken);
 
             return result.Status switch
             {
@@ -47,12 +47,12 @@ namespace WeatherUserActions.Controllers
         [HttpGet]
         public async Task<ActionResult<GetSelectionsResponse>> GetSelections(CancellationToken cancellationToken)
         {
-            if (!this.TryGetBearerToken(out var idToken))
+            if (!this.TryGetBearerToken(out var jwt))
             {
                 return Unauthorized();
             }
 
-            var result = await _selectionsService.GetSelectionsAsync(idToken, cancellationToken);
+            var result = await _selectionsService.GetSelectionsAsync(jwt, cancellationToken);
 
             return result.Status switch
             {

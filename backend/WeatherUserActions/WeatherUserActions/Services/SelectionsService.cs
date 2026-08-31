@@ -1,5 +1,5 @@
+using WeatherUserActions.AppwriteServices;
 using WeatherUserActions.Dtos;
-using WeatherUserActions.FirebaseServices;
 using WeatherUserActions.Repositories;
 using WeatherUserActions.Services.Results;
 
@@ -7,20 +7,20 @@ namespace WeatherUserActions.Services
 {
     public class SelectionsService : ISelectionsService
     {
-        private readonly IFirebaseAuthService _firebaseAuthService;
+        private readonly IAppwriteAuthService _appwriteAuthService;
         private readonly ISelectionsRepository _selectionsRepository;
         private readonly ILogger<SelectionsService> _logger;
 
         public SelectionsService(
-            IFirebaseAuthService firebaseAuthService, ISelectionsRepository selectionsRepository, ILogger<SelectionsService> logger)
+            IAppwriteAuthService appwriteAuthService, ISelectionsRepository selectionsRepository, ILogger<SelectionsService> logger)
         {
-            _firebaseAuthService = firebaseAuthService;
+            _appwriteAuthService = appwriteAuthService;
             _selectionsRepository = selectionsRepository;
             _logger = logger;
         }
 
         public async Task<SaveSelectionsResult> SaveSelectionsAsync(
-            string idToken,
+            string jwt,
             IReadOnlyCollection<CityDto> cities,
             IReadOnlyCollection<int> serviceIds,
             CancellationToken cancellationToken = default)
@@ -28,11 +28,11 @@ namespace WeatherUserActions.Services
             string userId;
             try
             {
-                userId = await _firebaseAuthService.VerifyIdTokenAsync(idToken, cancellationToken);
+                userId = await _appwriteAuthService.VerifyJwtAsync(jwt, cancellationToken);
             }
-            catch (FirebaseTokenVerificationException ex)
+            catch (AppwriteTokenVerificationException ex)
             {
-                _logger.LogWarning(ex, "Firebase ID token verification failed");
+                _logger.LogWarning(ex, "Appwrite JWT verification failed");
                 return SaveSelectionsResult.Unauthorized();
             }
 
@@ -51,16 +51,16 @@ namespace WeatherUserActions.Services
             return succeeded ? SaveSelectionsResult.Success() : SaveSelectionsResult.Failed();
         }
 
-        public async Task<GetSelectionsResult> GetSelectionsAsync(string idToken, CancellationToken cancellationToken = default)
+        public async Task<GetSelectionsResult> GetSelectionsAsync(string jwt, CancellationToken cancellationToken = default)
         {
             string userId;
             try
             {
-                userId = await _firebaseAuthService.VerifyIdTokenAsync(idToken, cancellationToken);
+                userId = await _appwriteAuthService.VerifyJwtAsync(jwt, cancellationToken);
             }
-            catch (FirebaseTokenVerificationException ex)
+            catch (AppwriteTokenVerificationException ex)
             {
-                _logger.LogWarning(ex, "Firebase ID token verification failed");
+                _logger.LogWarning(ex, "Appwrite JWT verification failed");
                 return GetSelectionsResult.Unauthorized();
             }
 

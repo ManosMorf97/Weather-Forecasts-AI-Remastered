@@ -6,17 +6,17 @@ actor "End User" as User
 participant "Frontend" as Frontend
 
 User -> Frontend: Select "Log out"
-Frontend -> Frontend: Call Firebase Client SDK\nsign-out method
-Frontend -> Frontend: Clear cached ID token and\nrefresh token from local\npersistence (this device only)
+Frontend -> Frontend: Call Appwrite Web SDK\naccount.deleteSession('current')
+Frontend -> Frontend: SDK clears the stored session\nfrom local persistence (this device only)
 
 note over Frontend
-  Option A - local-only logout: no call
-  to the Authentication Service or the
-  User Actions Server, no server-side
-  token revocation. Other devices/
-  sessions remain logged in; a token
-  stolen before logout still works
-  elsewhere until it naturally expires.
+  Option A - local-only logout: deletes only
+  this device's session, no User Actions
+  Server call, no revocation of other
+  sessions. Other devices/sessions remain
+  logged in; a JWT minted before logout
+  still works elsewhere until it naturally
+  expires (~15 min).
 end note
 
 Frontend -> User: Redirect to login form (UC1)

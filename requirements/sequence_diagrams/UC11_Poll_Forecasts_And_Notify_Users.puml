@@ -6,7 +6,7 @@ actor "Scheduler\n(Cron Trigger)" as CronTrigger
 participant "Scheduler Server" as Scheduler
 participant "Partner Forecasting\nServices" as PartnerAPIs
 database "Database" as DB
-participant "Authentication Service\n(Firebase Auth)" as Auth
+participant "Authentication Service\n(Appwrite)" as Auth
 participant "Notification Providers\n(Email / SMS / Push)" as NotifyProviders
 
 note over CronTrigger, NotifyProviders

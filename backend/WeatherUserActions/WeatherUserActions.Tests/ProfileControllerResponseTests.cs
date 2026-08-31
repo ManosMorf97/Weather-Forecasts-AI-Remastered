@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
 using WeatherUserActions.Controllers;
 using WeatherUserActions.Dtos;
-using WeatherUserActions.FirebaseServices;
+using WeatherUserActions.AppwriteServices;
 using WeatherUserActions.Repositories;
 using WeatherUserActions.Services;
 using WeatherUserActions.Tests.Fakes;
@@ -20,7 +20,7 @@ namespace WeatherUserActions.Tests
         public async Task CreateProfile_InvalidToken_ReturnsUnauthorized()
         {
             var controller = CreateController(
-                FakeFirebaseAuthService.RejectingToken(), FakeProfileRepository.ReturningSelection(false));
+                FakeAppwriteAuthService.RejectingToken(), FakeProfileRepository.ReturningSelection(false));
 
             var result = await controller.CreateProfile(CancellationToken.None);
 
@@ -31,7 +31,7 @@ namespace WeatherUserActions.Tests
         public async Task CreateProfile_ProvisioningFails_ReturnsProblem()
         {
             var controller = CreateController(
-                FakeFirebaseAuthService.ReturningUid("uid-1"), FakeProfileRepository.FailingToProvision());
+                FakeAppwriteAuthService.ReturningUid("uid-1"), FakeProfileRepository.FailingToProvision());
 
             var result = await controller.CreateProfile(CancellationToken.None);
 
@@ -43,7 +43,7 @@ namespace WeatherUserActions.Tests
         public async Task CreateProfile_CitySiteSelectionCheckFails_ReturnsProblem()
         {
             var controller = CreateController(
-                FakeFirebaseAuthService.ReturningUid("uid-1"), FakeProfileRepository.FailingToCheckSelection());
+                FakeAppwriteAuthService.ReturningUid("uid-1"), FakeProfileRepository.FailingToCheckSelection());
 
             var result = await controller.CreateProfile(CancellationToken.None);
 
@@ -55,7 +55,7 @@ namespace WeatherUserActions.Tests
         public async Task CreateProfile_Succeeds_ReturnsOkWithSelection()
         {
             var controller = CreateController(
-                FakeFirebaseAuthService.ReturningUid("uid-1"), FakeProfileRepository.ReturningSelection(true));
+                FakeAppwriteAuthService.ReturningUid("uid-1"), FakeProfileRepository.ReturningSelection(true));
 
             var result = await controller.CreateProfile(CancellationToken.None);
 
@@ -66,7 +66,7 @@ namespace WeatherUserActions.Tests
         }
 
         private static ProfileController CreateController(
-            IFirebaseAuthService authService, IProfileRepository repository)
+            IAppwriteAuthService authService, IProfileRepository repository)
         {
             var service = new ProfileService(authService, repository, NullLogger<ProfileService>.Instance);
             var controller = new ProfileController(service)

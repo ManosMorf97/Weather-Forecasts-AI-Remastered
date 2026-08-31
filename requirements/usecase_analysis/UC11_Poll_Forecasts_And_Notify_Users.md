@@ -20,7 +20,7 @@
 8. System finds all stored forecast records with a danger flag for a (city, service) combination and identifies the users who have both that city and service in their preferences
 9. System excludes, for each danger forecast record, any user who has already been notified for that specific record
 10. System groups the remaining danger forecasts by user, building one consolidated warning list per user who has at least one unnotified warning
-11. System batch-fetches emails for all these users' ids from the Authentication Service (Firebase Admin SDK, up to 100 ids per call)
+11. System batch-fetches emails for all these users' ids from the Authentication Service (Appwrite Server SDK: `users.list` with `Query.equal("$id", ids)`, ids chunked to at most 100 per call)
 12. System sends each such user a single notification containing their full list of warnings via configured channel (email/push)
 13. System logs notification delivery for each user, associated with the specific forecast records covered
 14. System logs polling results

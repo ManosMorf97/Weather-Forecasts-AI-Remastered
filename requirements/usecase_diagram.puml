@@ -71,9 +71,9 @@ note right of UC2
   includes UC4/UC5 only if the
   user has no city/service
   selection yet. Account creation
-  itself (username/email/password)
+  itself (name/email/password)
   happens directly against the
-  Authentication Service (Firebase)
+  Authentication Service (Appwrite)
   via the Frontend's own SDK calls,
   outside this system - no username
   or email is ever stored locally.
@@ -81,9 +81,9 @@ end note
 
 note right of UC13
   User-triggered, but the actual
-  username/email/password change
+  name/email/password change
   happens via the Frontend calling
-  the Firebase Client SDK directly -
+  the Appwrite Web SDK directly -
   no backend service is involved,
   and nothing is cached locally to
   keep in sync. UC9/UC11 fetch
@@ -93,15 +93,14 @@ end note
 
 note right of UC14
   Entirely client-side, same as
-  UC13: Frontend calls the Firebase
-  Client SDK's sign-out method,
-  which clears the cached ID and
-  refresh tokens on this device
-  only (Option A - local-only
-  logout). No backend call is
-  made and no server-side token
-  revocation occurs; other
-  devices/sessions remain
+  UC13: Frontend calls the Appwrite
+  Web SDK's account.deleteSession
+  ('current'), which deletes this
+  device's session only (Option A -
+  single-device logout). No User
+  Actions Server call is made and
+  other sessions are not revoked;
+  other devices/sessions remain
   logged in.
 end note
 

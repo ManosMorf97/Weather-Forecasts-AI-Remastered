@@ -5,7 +5,7 @@ title UC5: Select Forecasting Services - Sequence Diagram
 actor "End User" as User
 participant "Frontend" as Frontend
 participant "User Actions Server" as UserServer
-participant "Authentication Service\n(Firebase Auth)" as Auth
+participant "Authentication Service\n(Appwrite)" as Auth
 database "Database" as DB
 
 note over User, DB

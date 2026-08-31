@@ -4,14 +4,14 @@ title UC2: Create Profile - Sequence Diagram
 
 actor "End User" as User
 participant "Frontend" as Frontend
-participant "Authentication Service\n(Firebase Auth)" as Auth
+participant "Authentication Service\n(Appwrite)" as Auth
 participant "User Actions Server" as UserServer
 database "Database" as DB
 
-note over Frontend: Follows UC1 (Login / Sign Up):\nFrontend holds a valid Firebase ID token
+note over Frontend: Follows UC1 (Login / Sign Up):\nFrontend holds an active Appwrite session
 
-Frontend -> UserServer: Request with Bearer\nFirebase ID token
-UserServer -> Auth: Verify Firebase ID token\n(Admin SDK)
+Frontend -> UserServer: Request with Bearer\nAppwrite JWT
+UserServer -> Auth: Verify JWT (Server SDK:\nClient.setJWT -> account.get)
 
 alt E2: Token verification fails
   Auth --> UserServer: Invalid

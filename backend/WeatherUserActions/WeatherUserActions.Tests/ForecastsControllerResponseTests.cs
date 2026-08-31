@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
 using WeatherUserActions.Controllers;
 using WeatherUserActions.Dtos;
-using WeatherUserActions.FirebaseServices;
+using WeatherUserActions.AppwriteServices;
 using WeatherUserActions.Repositories;
 using WeatherUserActions.Services;
 using WeatherUserActions.Tests.Fakes;
@@ -22,7 +22,7 @@ namespace WeatherUserActions.Tests
         public async Task GetForecasts_InvalidToken_ReturnsUnauthorized()
         {
             var controller = CreateController(
-                FakeFirebaseAuthService.RejectingToken(), FakeForecastsRepository.ReturningForecasts([]), FakeRatingsRepository.Succeeding());
+                FakeAppwriteAuthService.RejectingToken(), FakeForecastsRepository.ReturningForecasts([]), FakeRatingsRepository.Succeeding());
 
             var result = await controller.GetForecasts(CancellationToken.None);
 
@@ -33,7 +33,7 @@ namespace WeatherUserActions.Tests
         public async Task GetForecasts_LoadFails_ReturnsProblem()
         {
             var controller = CreateController(
-                FakeFirebaseAuthService.ReturningUid("uid-1"), FakeForecastsRepository.FailingToLoadForecasts(), FakeRatingsRepository.Succeeding());
+                FakeAppwriteAuthService.ReturningUid("uid-1"), FakeForecastsRepository.FailingToLoadForecasts(), FakeRatingsRepository.Succeeding());
 
             var result = await controller.GetForecasts(CancellationToken.None);
 
@@ -49,7 +49,7 @@ namespace WeatherUserActions.Tests
                 new(1, "Athens", "Greece", "OpenWeather", "CURRENT", DateTime.UtcNow.AddHours(1), 28.5m, 40m, 12m, false, UserRating: 4),
             };
             var controller = CreateController(
-                FakeFirebaseAuthService.ReturningUid("uid-1"), FakeForecastsRepository.ReturningForecasts(forecasts), FakeRatingsRepository.Succeeding());
+                FakeAppwriteAuthService.ReturningUid("uid-1"), FakeForecastsRepository.ReturningForecasts(forecasts), FakeRatingsRepository.Succeeding());
 
             var result = await controller.GetForecasts(CancellationToken.None);
 
@@ -64,7 +64,7 @@ namespace WeatherUserActions.Tests
         public async Task GetAggregatedForecasts_InvalidToken_ReturnsUnauthorized()
         {
             var controller = CreateController(
-                FakeFirebaseAuthService.RejectingToken(), FakeForecastsRepository.ReturningForecasts([]), FakeRatingsRepository.Succeeding());
+                FakeAppwriteAuthService.RejectingToken(), FakeForecastsRepository.ReturningForecasts([]), FakeRatingsRepository.Succeeding());
 
             var result = await controller.GetAggregatedForecasts(CancellationToken.None);
 
@@ -75,7 +75,7 @@ namespace WeatherUserActions.Tests
         public async Task GetAggregatedForecasts_LoadFails_ReturnsProblem()
         {
             var controller = CreateController(
-                FakeFirebaseAuthService.ReturningUid("uid-1"),
+                FakeAppwriteAuthService.ReturningUid("uid-1"),
                 FakeForecastsRepository.ReturningForecasts([]),
                 FakeRatingsRepository.Succeeding(),
                 FakeAggregatedForecastsRepository.FailingToLoadForecasts());
@@ -98,7 +98,7 @@ namespace WeatherUserActions.Tests
                 new("Athens", "OpenWeather", AverageRating: 4.5m, RatingCount: 3, AggregationApplicable: true, IsTie: false, IsUnratedSelection: false),
             };
             var controller = CreateController(
-                FakeFirebaseAuthService.ReturningUid("uid-1"),
+                FakeAppwriteAuthService.ReturningUid("uid-1"),
                 FakeForecastsRepository.ReturningForecasts([]),
                 FakeRatingsRepository.Succeeding(),
                 FakeAggregatedForecastsRepository.ReturningForecasts(forecasts, serviceMetadata));
@@ -117,7 +117,7 @@ namespace WeatherUserActions.Tests
         public async Task RateForecast_InvalidToken_ReturnsUnauthorized()
         {
             var controller = CreateController(
-                FakeFirebaseAuthService.RejectingToken(), FakeForecastsRepository.ReturningForecasts([]), FakeRatingsRepository.Succeeding());
+                FakeAppwriteAuthService.RejectingToken(), FakeForecastsRepository.ReturningForecasts([]), FakeRatingsRepository.Succeeding());
 
             var result = await controller.RateForecast(1, ValidRatingRequest, CancellationToken.None);
 
@@ -128,7 +128,7 @@ namespace WeatherUserActions.Tests
         public async Task RateForecast_ForecastMissing_ReturnsNotFoundProblem()
         {
             var controller = CreateController(
-                FakeFirebaseAuthService.ReturningUid("uid-1"), FakeForecastsRepository.ReturningForecasts([]), FakeRatingsRepository.WithMissingForecast());
+                FakeAppwriteAuthService.ReturningUid("uid-1"), FakeForecastsRepository.ReturningForecasts([]), FakeRatingsRepository.WithMissingForecast());
 
             var result = await controller.RateForecast(1, ValidRatingRequest, CancellationToken.None);
 
@@ -140,7 +140,7 @@ namespace WeatherUserActions.Tests
         public async Task RateForecast_UpsertFails_ReturnsProblem()
         {
             var controller = CreateController(
-                FakeFirebaseAuthService.ReturningUid("uid-1"), FakeForecastsRepository.ReturningForecasts([]), FakeRatingsRepository.FailingToUpsert());
+                FakeAppwriteAuthService.ReturningUid("uid-1"), FakeForecastsRepository.ReturningForecasts([]), FakeRatingsRepository.FailingToUpsert());
 
             var result = await controller.RateForecast(1, ValidRatingRequest, CancellationToken.None);
 
@@ -152,7 +152,7 @@ namespace WeatherUserActions.Tests
         public async Task RateForecast_Succeeds_ReturnsOk()
         {
             var controller = CreateController(
-                FakeFirebaseAuthService.ReturningUid("uid-1"), FakeForecastsRepository.ReturningForecasts([]), FakeRatingsRepository.Succeeding());
+                FakeAppwriteAuthService.ReturningUid("uid-1"), FakeForecastsRepository.ReturningForecasts([]), FakeRatingsRepository.Succeeding());
 
             var result = await controller.RateForecast(1, ValidRatingRequest, CancellationToken.None);
 
@@ -165,7 +165,7 @@ namespace WeatherUserActions.Tests
         public async Task RemoveRating_InvalidToken_ReturnsUnauthorized()
         {
             var controller = CreateController(
-                FakeFirebaseAuthService.RejectingToken(), FakeForecastsRepository.ReturningForecasts([]), FakeRatingsRepository.Succeeding());
+                FakeAppwriteAuthService.RejectingToken(), FakeForecastsRepository.ReturningForecasts([]), FakeRatingsRepository.Succeeding());
 
             var result = await controller.RemoveRating(1, CancellationToken.None);
 
@@ -176,7 +176,7 @@ namespace WeatherUserActions.Tests
         public async Task RemoveRating_RemoveFails_ReturnsProblem()
         {
             var controller = CreateController(
-                FakeFirebaseAuthService.ReturningUid("uid-1"), FakeForecastsRepository.ReturningForecasts([]), FakeRatingsRepository.FailingToRemove());
+                FakeAppwriteAuthService.ReturningUid("uid-1"), FakeForecastsRepository.ReturningForecasts([]), FakeRatingsRepository.FailingToRemove());
 
             var result = await controller.RemoveRating(1, CancellationToken.None);
 
@@ -188,7 +188,7 @@ namespace WeatherUserActions.Tests
         public async Task RemoveRating_Succeeds_ReturnsOk()
         {
             var controller = CreateController(
-                FakeFirebaseAuthService.ReturningUid("uid-1"), FakeForecastsRepository.ReturningForecasts([]), FakeRatingsRepository.Succeeding());
+                FakeAppwriteAuthService.ReturningUid("uid-1"), FakeForecastsRepository.ReturningForecasts([]), FakeRatingsRepository.Succeeding());
 
             var result = await controller.RemoveRating(1, CancellationToken.None);
 
@@ -196,7 +196,7 @@ namespace WeatherUserActions.Tests
         }
 
         private static ForecastsController CreateController(
-            IFirebaseAuthService authService,
+            IAppwriteAuthService authService,
             IForecastsRepository forecastsRepository,
             IRatingsRepository ratingsRepository,
             IAggregatedForecastsRepository? aggregatedForecastsRepository = null)

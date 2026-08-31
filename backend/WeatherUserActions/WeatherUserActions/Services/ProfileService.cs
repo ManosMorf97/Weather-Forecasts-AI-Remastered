@@ -1,4 +1,4 @@
-using WeatherUserActions.FirebaseServices;
+using WeatherUserActions.AppwriteServices;
 using WeatherUserActions.Repositories;
 using WeatherUserActions.Services.Results;
 
@@ -6,28 +6,28 @@ namespace WeatherUserActions.Services
 {
     public class ProfileService : IProfileService
     {
-        private readonly IFirebaseAuthService _firebaseAuthService;
+        private readonly IAppwriteAuthService _appwriteAuthService;
         private readonly IProfileRepository _profileRepository;
         private readonly ILogger<ProfileService> _logger;
 
         public ProfileService(
-            IFirebaseAuthService firebaseAuthService, IProfileRepository profileRepository, ILogger<ProfileService> logger)
+            IAppwriteAuthService appwriteAuthService, IProfileRepository profileRepository, ILogger<ProfileService> logger)
         {
-            _firebaseAuthService = firebaseAuthService;
+            _appwriteAuthService = appwriteAuthService;
             _profileRepository = profileRepository;
             _logger = logger;
         }
 
-        public async Task<ProfileCreationResult> CreateProfileAsync(string idToken, CancellationToken cancellationToken = default)
+        public async Task<ProfileCreationResult> CreateProfileAsync(string jwt, CancellationToken cancellationToken = default)
         {
             string userId;
             try
             {
-                userId = await _firebaseAuthService.VerifyIdTokenAsync(idToken, cancellationToken);
+                userId = await _appwriteAuthService.VerifyJwtAsync(jwt, cancellationToken);
             }
-            catch (FirebaseTokenVerificationException ex)
+            catch (AppwriteTokenVerificationException ex)
             {
-                _logger.LogWarning(ex, "Firebase ID token verification failed");
+                _logger.LogWarning(ex, "Appwrite JWT verification failed");
                 return ProfileCreationResult.Unauthorized();
             }
 
