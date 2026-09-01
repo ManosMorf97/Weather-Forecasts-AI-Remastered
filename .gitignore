@@ -1,5 +1,6 @@
 # Backend
 backend/WeatherUserActions/WeatherUserActions/bin/
+backend/WeatherUserActions/WeatherUserActions/logs/
 backend/WeatherUserActions/WeatherUserActions/obj/
 backend/WeatherUserActions/WeatherUserActions.Tests/bin/
 backend/WeatherUserActions/WeatherUserActions.Tests/obj/
@@ -25,6 +26,7 @@ frontend/.env.*.local
 .DS_Store
 
 # Logs
+
 logs/
 *.log
 npm-debug.log*
@@ -45,7 +47,13 @@ Thumbs.db
 #Python Code Diagram Generation
 requirements/*.py
 requirements/**/*.py
+__pycache__/
+*.pyc
 
 #Other
 Notes.txt
 .claude/rules/
+
+# Local dev helper scripts (contain credentials / are machine-specific)
+scripts/get_jwt.py
+scripts/bruno-guide.md

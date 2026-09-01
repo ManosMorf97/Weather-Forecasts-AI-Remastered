@@ -1,7 +1,10 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using WeatherUserActions.Analytics;
 using WeatherUserActions.AppwriteServices;
+using WeatherUserActions.BackgroundServices;
 using WeatherUserActions.Data;
+using WeatherUserActions.Email;
 using WeatherUserActions.Repositories;
 using WeatherUserActions.Services;
 
@@ -12,6 +15,18 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddHttpClient();
 //explain. what is singleton
 builder.Services.AddSingleton<IAppwriteAuthService, AppwriteAuthService>();
+builder.Services.AddSingleton<IAppwriteUsersService, AppwriteUsersService>();
+builder.Services.AddSingleton<IAnalyticsReportRenderer, AnalyticsReportRenderer>();
+
+// Real SMTP delivery only when a mail host is configured; otherwise log the message.
+if (!string.IsNullOrWhiteSpace(builder.Configuration["Email:Host"]))
+{
+    builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
+}
+else
+{
+    builder.Services.AddSingleton<IEmailSender, LoggingEmailSender>();
+}
 builder.Services.AddScoped<IProfileRepository, ProfileRepository>();
 builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddScoped<ISelectionsRepository, SelectionsRepository>();
@@ -24,6 +39,9 @@ builder.Services.AddScoped<IRatingsRepository, RatingsRepository>();
 builder.Services.AddScoped<IRatingsService, RatingsService>();
 builder.Services.AddScoped<IAggregatedForecastsRepository, AggregatedForecastsRepository>();
 builder.Services.AddScoped<IAggregatedForecastsService, AggregatedForecastsService>();
+builder.Services.AddScoped<IAnalyticsRepository, AnalyticsRepository>();
+builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
+builder.Services.AddHostedService<AnalyticsReportWorker>();
 
 var databaseSection = builder.Configuration.GetSection("Database");
 var connectionString = new SqlConnectionStringBuilder
@@ -37,7 +55,15 @@ var connectionString = new SqlConnectionStringBuilder
 }.ConnectionString;
 
 builder.Services.AddDbContext<WeatherUserActionsDbContext>(options =>
-    options.UseSqlServer(connectionString));
+{
+    options.UseSqlServer(connectionString);
+
+    // Development-only: log SQL with parameter values to the console.
+    if (builder.Environment.IsDevelopment())
+    {
+        options.EnableSensitiveDataLogging();
+    }
+});
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

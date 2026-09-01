@@ -20,6 +20,7 @@ namespace WeatherUserActions.Data
         public DbSet<Rating> Ratings => Set<Rating>();
         public DbSet<Notification> Notifications => Set<Notification>();
         public DbSet<AnalyticsReport> AnalyticsReports => Set<AnalyticsReport>();
+        public DbSet<AnalyticsReportCityMetric> AnalyticsReportCityMetrics => Set<AnalyticsReportCityMetric>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -68,6 +69,46 @@ namespace WeatherUserActions.Data
                     t.HasCheckConstraint("CK_Cities_Latitude", "[Latitude] >= -90 AND [Latitude] <= 90");
                     t.HasCheckConstraint("CK_Cities_Longitude", "[Longitude] >= -180 AND [Longitude] <= 180");
                 });
+            });
+
+            modelBuilder.Entity<AnalyticsReport>(entity =>
+            {
+                // The worker scans by Status; UC9 will look a report up by BatchId.
+                entity.HasIndex(report => report.Status);
+                entity.HasIndex(report => report.BatchId);
+
+                // The delivery pass scans for batches that still need emailing.
+                entity.HasIndex(report => report.DeliveredAt).HasFilter("[DeliveredAt] IS NULL");
+            });
+
+            modelBuilder.Entity<AnalyticsReportCityMetric>(entity =>
+            {
+                entity.HasOne(metric => metric.Report)
+                    .WithMany(report => report.CityMetrics)
+                    .HasForeignKey(metric => metric.ReportId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // City is reference data - deleting one must not cascade into report history, and
+                // keeping it Cascade here would give SQL Server two delete paths into this table.
+                entity.HasOne(metric => metric.City)
+                    .WithMany()
+                    .HasForeignKey(metric => metric.CityId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(metric => new { metric.ReportId, metric.CityId }).IsUnique();
+
+                foreach (var decimalProperty in new[]
+                {
+                    nameof(AnalyticsReportCityMetric.AvgTemperature), nameof(AnalyticsReportCityMetric.StdDevTemperature),
+                    nameof(AnalyticsReportCityMetric.MinTemperature), nameof(AnalyticsReportCityMetric.MaxTemperature),
+                    nameof(AnalyticsReportCityMetric.AvgHumidity), nameof(AnalyticsReportCityMetric.StdDevHumidity),
+                    nameof(AnalyticsReportCityMetric.MinHumidity), nameof(AnalyticsReportCityMetric.MaxHumidity),
+                    nameof(AnalyticsReportCityMetric.AvgWindSpeed), nameof(AnalyticsReportCityMetric.StdDevWindSpeed),
+                    nameof(AnalyticsReportCityMetric.MinWindSpeed), nameof(AnalyticsReportCityMetric.MaxWindSpeed),
+                })
+                {
+                    entity.Property(decimalProperty).HasPrecision(6, 2);
+                }
             });
         }
     }
