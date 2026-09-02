@@ -2,32 +2,97 @@
 
 title UC8: Request Analytics - Activity Diagram
 
+|End User / Frontend|
 start
-:User selects "Request Analytics" option;
+:User selects "Request Analytics";
+:System displays analytics request form;
+:User specifies parameters (cities, services, date range);
+note right
+  Cities and services must each be a
+  subset of the user's own selections.
+  Metrics are fixed: temperature,
+  humidity, wind speed (avg, SD, min,
+  max) + danger-day count + sample count.
+end note
+:User submits request (POST /api/analytics, Bearer JWT);
+
+|User Actions Server (synchronous)|
+:Verify JWT with Authentication Service;
+if (JWT valid?) then (no)
+  :Return 401 Unauthorized;
+  stop
+else (yes)
+endif
+
+:Validate parameters;
+if (Cities and services non-empty, valid date range within 366 days?) then (no)
+  :Return 400 (invalid date range / invalid cities / invalid services);
+  note right: A1
+  stop
+else (yes)
+endif
+
+:Load the user's selected cities and services;
+if (Every requested city and service is in the user's selection?) then (no)
+  :Return 400 (InvalidCities / InvalidServices);
+  note right: A2
+  stop
+else (yes)
+endif
+
+:Create one Queued AnalyticsReport per service (shared batch_id), with a CityMetric row per city;
+if (Saved?) then (no)
+  :Return 500 (failed to queue);
+  note right: E2
+  stop
+else (yes)
+endif
+:Return 202 Accepted with batch_id;
+detach
+
+|Analytics Report Worker (asynchronous, ~5s poll)|
+start
 repeat
-  :System displays analytics request form;
-  :User specifies parameters
-  (cities, date range, services, metrics);
-  :User submits request;
-  :System validates parameters;
-
-  if (Parameters valid?) then (yes)
-    if (Aggregates needed?) then (yes)
-      :System invokes UC12 (Calculate Aggregates);
-    endif
-
-    if (Report generation times out?) then (yes)
-      :System queues request for async processing;
-      note right: Exception E1 - Report generation timeout
-      stop
+  :Poll DB for Queued reports;
+  repeat
+    :Read forecast samples for the report's service, cities and date range;
+    if (Samples loaded?) then (yes)
+      :Compute per-city statistics (avg / SD / min / max, danger days);
+      :Save results, status = Completed;
     else (no)
-      :System generates analytics report;
-      :System presents report preview;
-      stop
+      :Save status = Failed;
+      note right: A3
     endif
-  else (no)
-    :System displays error;
-  endif
-repeat while (Retry?) is (yes) not (no)
+  repeat while (More Queued reports?) is (yes) not (no)
+
+  :Find batches whose reports have all finished but are not yet delivered;
+  repeat
+    :Fetch user's email from Authentication Service;
+    if (Email lookup ok?) then (no)
+      :Leave batch undelivered, retry next cycle;
+      note right: E3
+    else (yes)
+      if (Any Completed reports?) then (no)
+        :Send "report could not be generated" email;
+        note right: A4
+      else (yes)
+        :Render PDF (bar charts + tables);
+        if (PDF rendered?) then (no)
+          :Send text-only email with the numbers;
+          note right: A5
+        else (yes)
+          :Send email with PDF attached;
+        endif
+      endif
+      if (Email sent?) then (yes)
+        :Mark batch delivered;
+      else (no)
+        :Leave batch undelivered, retry next cycle;
+        note right: E3
+      endif
+    endif
+  repeat while (More undelivered batches?) is (yes) not (no)
+repeat while (Worker running?) is (yes) not (no)
+stop
 
 @enduml

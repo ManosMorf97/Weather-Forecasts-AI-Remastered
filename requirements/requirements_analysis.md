@@ -4,7 +4,7 @@
 This document captures functional and non-functional requirements, actors, use cases, acceptance criteria and a brief API sketch for the Weather Forecasts service described in the project spec.
 
 ## Actors
-- End User: registers, creates profile, selects services and cities, searches forecasts, rates forecasts, downloads analytics, receives warnings.
+- End User: registers, creates profile, selects services and cities, searches forecasts, rates forecasts, requests analytics reports (delivered by email), receives warnings.
 - Scheduler: ingests and stores forecasts periodically.
 
 ## Functional Requirements
@@ -21,10 +21,21 @@ This document captures functional and non-functional requirements, actors, use c
 5. Ratings
    - Users can rate predictions on scale 1–5 per forecast item; ratings are stored and aggregated per service and City.
 6. Aggregation & Analytics
-   - System can return: (a) analytics containing forecasts, (b) aggregated forecasts based on service ratings.
-   - For each city, user receives the forecast from the service with the maximum average rating for that city.
-7. Download
-   - Users can download analytics or aggregates (download = receive system response containing multiple forecasts/aggregate data in a structured format, e.g., JSON/CSV/PDF).
+   - Two independent features:
+     - (a) **Analytics report (UC8):** per-city forecast statistics (temperature,
+       humidity, wind speed - average, standard deviation, min, max - plus danger-day
+       and sample counts) for a user-chosen subset of their selected cities and
+       services over a date range. Generated asynchronously by a background worker and
+       emailed to the user as a PDF. Does not use ratings or aggregation.
+     - (b) **Aggregated forecast (UC10 / UC12):** for each city, the forecast from the
+       service with the maximum average rating (services with at least 2 ratings),
+       returned synchronously.
+7. Delivery of analytics
+   - **Current:** the analytics report is delivered automatically as a PDF email
+     attachment when generation completes (plain-text email as a fallback). There is
+     no on-demand download and no format choice.
+   - **Planned (UC9):** let users pull a completed report on demand and choose the
+     format (JSON / CSV / PDF), with an email download link for large files.
 8. Alerts/Warnings
    - Scheduler sends warning messages for life-threatening weather to users subscribed to affected areas.
 
@@ -44,13 +55,14 @@ This document captures functional and non-functional requirements, actors, use c
 - Search Forecast by Area
 - View Current / Hourly / Daily Forecast
 - Rate Forecast
-- Request / Download Analytics or Aggregates
+- Request Analytics (async, emailed as PDF); Download Analytics (UC9, planned)
+- View Aggregated Forecast
 - Receive Warning Notifications
 - System: Scheduled Polling and Storage
 
 ## Acceptance Criteria (examples)
 - Users can receive forecasts from at least one partner services for any City.
-- Downloaded analytics when requested.
+- A requested analytics report is queued, generated, and emailed to the user as a PDF.
 - User ratings update the per-service score used in aggregated selection.
 - Alerts are sent within a defined SLA after a qualifying hazard is detected.
 

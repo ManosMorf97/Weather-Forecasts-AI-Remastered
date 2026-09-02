@@ -4,56 +4,102 @@ title UC8: Request Analytics - Sequence Diagram
 
 actor "End User" as User
 participant "Frontend" as Frontend
-participant "User Actions Server" as UserServer
+participant "User Actions Server\n(Analytics API)" as UserServer
+participant "Analytics Report Worker\n(in-process, ~5s poll)" as Worker
 participant "Authentication Service\n(Appwrite)" as Auth
+participant "Email Provider" as Email
 database "Database" as DB
 
 note over User, DB
-  Preconditions: user is logged in;
-  historical forecast data exists
+  Preconditions: user is logged in; user has at least one
+  city + service selection; historical forecast data exists
 end note
+
+== Synchronous: accept the request ==
 
 User -> Frontend: Select "Request Analytics"
-Frontend -> User: Display analytics request form
-User -> Frontend: Specify parameters (cities,\ndate range, services, metrics)
-User -> Frontend: Submit request
+Frontend -> User: Display request form
+User -> Frontend: Specify cities, services, date range
+User -> Frontend: Submit
+Frontend -> UserServer: POST /api/analytics\n(params, Bearer JWT)
 
-Frontend -> UserServer: Submit analytics request\n(params, Bearer ID token)
-UserServer -> Auth: Verify ID token (Admin SDK)
-Auth --> UserServer: Valid, user_id
-note right of Auth
-  Every Frontend -> UserServer call is
-  independently token-verified this way;
-  omitted from later steps for brevity
-end note
+UserServer -> Auth: Verify JWT (account.get, as the user)
+alt E1: JWT invalid
+  Auth --> UserServer: Error
+  UserServer --> Frontend: 401 Unauthorized
+else Valid
+  Auth --> UserServer: user_id
 
-UserServer -> UserServer: Validate parameters
+  UserServer -> UserServer: Validate params\n(non-empty cities/services,\nstart <= end, range <= 366 days)
+  alt A1: Invalid parameters
+    UserServer --> Frontend: 400 (specific reason)
+    Frontend -> User: Show error (return to form)
+  else Valid
+    UserServer -> DB: Read the user's selected\ncities and services
+    DB --> UserServer: Selection scope
+    alt A2: Requested city/service not in selection
+      UserServer --> Frontend: 400 (InvalidCities / InvalidServices)
+      Frontend -> User: Show error (return to form)
+    else All within selection
+      UserServer -> DB: Insert one Queued AnalyticsReport per\nservice (shared batch_id) + CityMetric rows
+      alt E2: Insert fails
+        DB --> UserServer: Error
+        UserServer --> Frontend: 500 (failed to queue)
+      else Saved
+        DB --> UserServer: OK
+        UserServer --> Frontend: 202 Accepted { batch_id }
+        Frontend -> User: "Your report is being prepared\nand will be emailed to you"
+      end
+    end
+  end
+end
 
-alt A1: Invalid parameters
-  UserServer --> Frontend: Validation error
-  Frontend -> User: Display error
-  note right: User returns to specifying parameters (step 3)
-else Parameters valid
-  opt Aggregates needed
-    group Calculate Aggregates (UC12)
-      UserServer -> DB: Read forecasts + ratings\nper requested city/service
-      DB --> UserServer: Forecasts + ratings
-      UserServer -> UserServer: Select highest-rated service\nper city (tie/no-rating rules\nper UC12 A1/A2)
+== Asynchronous: generate and deliver (Analytics Report Worker) ==
+
+loop every ~5 seconds while running
+  Worker -> DB: Get Queued reports
+  DB --> Worker: Queued reports
+
+  loop for each Queued report
+    Worker -> DB: Read forecast samples\n(service + cities + date range)
+    alt Samples loaded
+      DB --> Worker: Samples
+      Worker -> Worker: Compute per-city statistics\n(avg / SD / min / max, danger days)
+      Worker -> DB: Save results, status = Completed
+    else A3: query fails / no data path
+      DB --> Worker: Error
+      Worker -> DB: Save status = Failed
     end
   end
 
-  alt E1: Report generation timeout
-    UserServer -> UserServer: Queue request for\nasync processing
-    UserServer --> Frontend: Queued (processing async)
-    Frontend -> User: Display "report queued" message
-    note right: Report will be ready for download (UC9) once complete
-  else Generation completes
-    UserServer -> DB: Read report data (cities, date\nrange, services, metrics)
-    DB --> UserServer: Report data
-    UserServer -> UserServer: Generate analytics report
-    UserServer --> Frontend: Report preview
-    Frontend -> User: Display report preview
-    note right: Report is ready for download (UC9)
+  Worker -> DB: Get batches fully generated\nbut not yet delivered
+  DB --> Worker: Undelivered batches
+
+  loop for each undelivered batch
+    Worker -> Auth: Fetch user's email\n(Server SDK, users.get(user_id), API key)
+    alt E3: email lookup fails
+      Auth --> Worker: Error
+      note right of Worker: Batch left undelivered, retried next cycle
+    else Email returned
+      Auth --> Worker: email
+      alt A4: no Completed reports in batch
+        Worker -> Email: Send "could not be generated" mail (no attachment)
+      else has Completed reports
+        Worker -> Worker: Render PDF (bar charts + tables)
+        alt A5: PDF render fails
+          Worker -> Email: Send text-only mail with the numbers
+        else PDF ok
+          Worker -> Email: Send mail with PDF attached
+        end
+      end
+      alt Mail accepted
+        Email --> Worker: Sent
+        Worker -> DB: Mark batch delivered (delivered_at)
+      else E3: mail transport fails
+        Email --> Worker: Error
+        note right of Worker: Batch left undelivered, retried next cycle
+      end
+    end
   end
 end
 

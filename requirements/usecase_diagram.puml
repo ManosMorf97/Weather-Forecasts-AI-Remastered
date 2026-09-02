@@ -58,7 +58,6 @@ UC4 ..> UC3 : <<extend>>
 UC5 ..> UC3 : <<extend>>
 
 UC7 ..> UC6 : <<extend>>
-UC8 ..> UC12 : <<include>>
 UC9 ..> UC8 : <<precondition>>
 UC10 ..> UC12 : <<include>>
 
@@ -86,9 +85,25 @@ note right of UC13
   the Appwrite Web SDK directly -
   no backend service is involved,
   and nothing is cached locally to
-  keep in sync. UC9/UC11 fetch
+  keep in sync. UC8/UC11 fetch
   email on demand from Auth
   whenever they need it.
+end note
+
+note bottom of UC8
+  Asynchronous: the request is queued
+  (202 + batch_id), an in-process worker
+  computes per-city forecast statistics
+  and emails the finished report as a
+  PDF. No aggregation (UC12) is used.
+end note
+
+note bottom of UC9
+  PLANNED - not yet implemented.
+  Today the report is only delivered by
+  email at the end of UC8. On-demand
+  download with a format choice
+  (JSON / CSV / PDF) is future work.
 end note
 
 note right of UC14
@@ -124,10 +139,11 @@ note right of UC11
 end note
 
 note right of UC12
-  Invoked by UC8 and UC10.
-  Uses aggregated service ratings
-  from UC7 to select best-rated
-  service per city
+  Invoked by UC10 (View Aggregated
+  Forecast). Uses aggregated service
+  ratings from UC7 to select the
+  best-rated service per city.
+  UC8 (Analytics) does NOT use it.
 end note
 
 @enduml

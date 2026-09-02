@@ -17,7 +17,7 @@ node "Authentication Service\n<<Appwrite Authentication>>" as Auth
 
 node "Frontend Service\n<<Web / Mobile Client>>" as Frontend
 
-node "User Actions Server\n----\nProfile, City/Service Selection,\nSearch, Rate, Analytics\n& Aggregation API" as UserServer
+node "User Actions Server\n----\nProfile, City/Service Selection,\nSearch, Rate, Analytics\n& Aggregation API\n+ Analytics Report Worker\n(in-process background timer)" as UserServer
 
 database "Database Service" as DB
 
@@ -27,7 +27,7 @@ cloud "External City API" as CityAPI
 
 cloud "Partner Forecasting\nServices" as PartnerAPIs
 
-cloud "Notification Providers\n(Email - Download Links)" as NotifyProvidersDL
+cloud "Email Provider\n(Analytics Report Delivery)" as AnalyticsEmail
 
 cloud "Notification Providers\n(Email / SMS / Push)" as NotifyProviders
 
@@ -38,9 +38,9 @@ Frontend -up-> Auth : Appwrite Web SDK\n(UC1, UC13, UC14)
 Frontend -right-> UserServer : REST/HTTPS\n(Bearer Appwrite JWT)
 Frontend -down-> CityAPI : search cities\n(UC4, no auth, stateless)
 
-UserServer -up-> Auth : verify JWT (Server SDK);\nfetch single user's email (UC9)
-UserServer -down-> DB : upsert user_id (JIT);\nread/write app data
-UserServer -right-> NotifyProvidersDL : send large-file download\nlink via email (UC9 A1)
+UserServer -up-> Auth : verify JWT (Server SDK);\nfetch single user's email (UC8 delivery)
+UserServer -down-> DB : upsert user_id (JIT);\nread/write app data;\npoll queued analytics reports
+UserServer -right-> AnalyticsEmail : email analytics report\nas PDF attachment (UC8)
 
 Scheduler -up-> Auth : batch-fetch emails\n(users.list, <= 100 ids/call)
 Scheduler -down-> DB : read subscriptions,\nwrite forecasts
@@ -87,16 +87,27 @@ note bottom of CityAPI
 end note
 
 note right of UserServer
-  Implements UC2-UC10 and UC12:
+  Implements UC2-UC8, UC10 and UC12:
   Profile (JIT provisioning + CitySite
   check on first authenticated call
   after login - Frontend redirects
   based on the response), Edit
   Selections, Select Cities/Services,
   Search Forecast, Rate Forecasting
-  Service, Request/Download
-  Analytics, View Aggregated
-  Forecast, Calculate Aggregates.
+  Service, Request Analytics, View
+  Aggregated Forecast, Calculate
+  Aggregates.
+
+  Request Analytics (UC8) is async:
+  the API queues the request and
+  returns 202; the in-process
+  Analytics Report Worker polls the
+  DB (~5s), computes per-city forecast
+  statistics, renders a PDF and emails
+  it, retrying delivery until it
+  succeeds. UC9 (on-demand download
+  with a format choice) is not yet
+  implemented.
 end note
 
 note bottom of DB
@@ -105,8 +116,11 @@ note bottom of DB
   - JIT-provisioned, no account
   fields), Cities, Services, Forecasts,
   Ratings, Notifications,
-  AnalyticsReports. No account data
-  stored here.
+  AnalyticsReports (one row per
+  requested service, sharing a
+  batch_id) + AnalyticsReportCityMetric
+  (per-city computed statistics).
+  No account data stored here.
 end note
 
 note bottom of Scheduler

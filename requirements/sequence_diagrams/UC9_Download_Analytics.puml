@@ -1,6 +1,6 @@
 @startuml UC9_Download_Analytics_Sequence_Diagram
 
-title UC9: Download Analytics - Sequence Diagram
+title UC9: Download Analytics - Sequence Diagram (PLANNED - NOT YET IMPLEMENTED)
 
 actor "End User" as User
 participant "Frontend" as Frontend
@@ -10,8 +10,14 @@ participant "Notification Providers\n(Email / SMS / Push)" as NotifyProviders
 database "Database" as DB
 
 note over User, DB
-  Preconditions: user has requested analytics (UC8)
-  and the report has been generated
+  **PLANNED - NOT YET IMPLEMENTED.**
+  Today the report is delivered automatically as a PDF
+  email attachment at the end of UC8 (no download endpoint,
+  no format choice). The flow below is the intended future
+  on-demand download.
+
+  Preconditions: user has requested analytics (UC8) and the
+  report batch has finished generating.
 end note
 
 User -> Frontend: Select "Download"
@@ -19,16 +25,13 @@ Frontend -> User: Display format options\n(JSON, CSV, PDF)
 User -> Frontend: Select desired format
 
 loop Until success or user gives up
-  Frontend -> UserServer: Request report in selected\nformat (Bearer ID token)
-  UserServer -> Auth: Verify ID token (Admin SDK)
+  Frontend -> UserServer: Request report in selected\nformat (Bearer JWT)
+  UserServer -> Auth: Verify JWT
   Auth --> UserServer: Valid, user_id
-  note right of Auth
-    Every Frontend -> UserServer call is
-    independently token-verified this way;
-    omitted from later steps for brevity
-  end note
 
-  UserServer -> UserServer: Convert report to\nselected format
+  UserServer -> DB: Read stored report data
+  DB --> UserServer: Report data
+  UserServer -> UserServer: Convert to selected format
 
   alt E1: Format conversion fails
     UserServer --> Frontend: Conversion error
@@ -36,7 +39,7 @@ loop Until success or user gives up
     User -> Frontend: Select alternative format
   else Conversion succeeds
     alt A1: Large file
-      UserServer -> Auth: Fetch user's email\n(single-user Admin SDK lookup)
+      UserServer -> Auth: Fetch user's email\n(single-user Server SDK lookup)
       Auth --> UserServer: Email address
       note right
         Email is fetched on demand from Auth
@@ -46,11 +49,9 @@ loop Until success or user gives up
       NotifyProviders --> UserServer: Queued/sent
       UserServer --> Frontend: Download link sent
       Frontend -> User: Display "link sent to\nyour email" message
-      note right: User can download from the link later
     else File size acceptable
       UserServer --> Frontend: Converted file
-      Frontend -> User: Initiate download
-      Frontend -> User: User receives file
+      Frontend -> User: Browser downloads the file
     end
   end
 end

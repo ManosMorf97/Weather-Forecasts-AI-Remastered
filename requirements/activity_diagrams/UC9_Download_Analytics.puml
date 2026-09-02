@@ -1,9 +1,16 @@
 @startuml UC9_Download_Analytics_Activity_Diagram
 
-title UC9: Download Analytics - Activity Diagram
+title UC9: Download Analytics - Activity Diagram (PLANNED - NOT YET IMPLEMENTED)
 
 start
 :User selects "Download" option;
+note right
+  **PLANNED - NOT YET IMPLEMENTED**
+  Today the report is delivered automatically as a
+  PDF email attachment at the end of UC8. This diagram
+  describes the intended future on-demand download
+  with a choice of format (JSON / CSV / PDF).
+end note
 :System displays format options (JSON, CSV, PDF);
 :User selects desired format;
 

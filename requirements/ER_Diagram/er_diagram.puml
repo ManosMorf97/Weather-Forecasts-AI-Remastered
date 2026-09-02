@@ -18,11 +18,11 @@ entity "User" as user {
   (Appwrite user id / $id). Row is
   created lazily (JIT) on first login.
   Whenever a username or email
-  is needed (e.g. notifications,
-  UC9's email-download link),
-  the app fetches it from Auth
-  by user_id on demand - single
-  lookup for one user, or a
+  is needed (e.g. danger-forecast
+  notifications, UC8 analytics
+  report delivery), the app fetches
+  it from Auth by user_id on demand
+  - single lookup for one user, or a
   batch lookup (up to 100 ids
   per call) for many at once.
 }
@@ -112,15 +112,51 @@ entity "Notification" as notification {
 entity "AnalyticsReport" as report {
   * report_id : INT <<PK>>
   --
-  user_id : INT <<FK>>
-  cities : VARCHAR
-  services : VARCHAR
+  user_id : VARCHAR <<FK>>
+  batch_id : UNIQUEIDENTIFIER
+  service_id : INT <<FK>>
   date_range_start : DATE
   date_range_end : DATE
-  metrics : VARCHAR
   format : VARCHAR
   status : VARCHAR
   created_at : DATETIME
+  delivered_at : DATETIME NULL
+  ..
+  One row per (request, service).
+  A single POST /api/analytics
+  creates one row per selected
+  service, all sharing batch_id.
+  status: Queued | Completed | Failed.
+  format is currently unused (always
+  "JSON"). delivered_at is set when
+  the batch has been emailed.
+}
+
+entity "AnalyticsReportCityMetric" as report_metric {
+  * analytics_report_city_metric_id : INT <<PK>>
+  --
+  report_id : INT <<FK>>
+  city_id : INT <<FK>>
+  avg_temperature : DECIMAL NULL
+  std_dev_temperature : DECIMAL NULL
+  min_temperature : DECIMAL NULL
+  max_temperature : DECIMAL NULL
+  avg_humidity : DECIMAL NULL
+  std_dev_humidity : DECIMAL NULL
+  min_humidity : DECIMAL NULL
+  max_humidity : DECIMAL NULL
+  avg_wind_speed : DECIMAL NULL
+  std_dev_wind_speed : DECIMAL NULL
+  min_wind_speed : DECIMAL NULL
+  max_wind_speed : DECIMAL NULL
+  danger_day_count : INT
+  sample_count : INT
+  ..
+  Per-city summary for one report
+  (one service). Stat columns are
+  NULL until generated, or when no
+  forecast data exists for that
+  city+service in the date range.
 }
 
 city    ||--o{ citysite : has
@@ -140,6 +176,10 @@ forecast ||--o{ rating : "rated by"
 user     ||--o{ notification : receives
 forecast ||--o{ notification : triggers
 
-user ||--o{ report : requests
+user    ||--o{ report : requests
+service ||--o{ report : "covered by"
+
+report ||--o{ report_metric : "has per-city"
+city   ||--o{ report_metric : "summarised in"
 
 @enduml

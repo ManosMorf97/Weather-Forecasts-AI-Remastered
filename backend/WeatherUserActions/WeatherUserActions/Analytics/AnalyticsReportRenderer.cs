@@ -51,8 +51,6 @@ namespace WeatherUserActions.Analytics
                             column.Item().Element(element => NumbersTable(element, section));
                         }
                     });
-
-                    page.Footer().AlignRight().Text($"Generated {DateTime.UtcNow:yyyy-MM-dd HH:mm} UTC");
                 });
             }).GeneratePdf();
         }

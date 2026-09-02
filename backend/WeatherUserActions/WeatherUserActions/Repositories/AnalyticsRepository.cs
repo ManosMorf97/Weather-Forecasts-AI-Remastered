@@ -51,25 +51,22 @@ namespace WeatherUserActions.Repositories
             {
                 var distinctCityIds = cityIds.Distinct().ToList();
                 var now = DateTime.UtcNow;
-
-                foreach (var serviceId in serviceIds.Distinct())
+                var reports = serviceIds.Distinct().Select(serviceId => new AnalyticsReport
                 {
-                    _db.AnalyticsReports.Add(new AnalyticsReport
-                    {
-                        UserId = userId,
-                        BatchId = batchId,
-                        ServiceId = serviceId,
-                        DateRangeStart = dateRangeStart,
-                        DateRangeEnd = dateRangeEnd,
-                        Format = "JSON",
-                        Status = AnalyticsReportStatus.Queued,
-                        CreatedAt = now,
-                        CityMetrics = distinctCityIds
-                            .Select(cityId => new AnalyticsReportCityMetric { CityId = cityId })
-                            .ToList(),
-                    });
-                }
+                    UserId = userId,
+                    BatchId = batchId,
+                    ServiceId = serviceId,
+                    DateRangeStart = dateRangeStart,
+                    DateRangeEnd = dateRangeEnd,
+                    Format = "JSON",
+                    Status = AnalyticsReportStatus.Queued,
+                    CreatedAt = now,
+                    CityMetrics = distinctCityIds
+                        .Select(cityId => new AnalyticsReportCityMetric { CityId = cityId })
+                        .ToList(),
+                });
 
+                _db.AnalyticsReports.AddRange(reports);
                 await _db.SaveChangesAsync(cancellationToken);
                 return true;
             }
