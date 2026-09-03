@@ -21,13 +21,13 @@ namespace WeatherUserActions.Dtos
     public record DeliverableAnalyticsBatch(
         Guid BatchId,
         string UserId,
+        DateOnly DateRangeStart,
+        DateOnly DateRangeEnd,
         List<DeliverableAnalyticsReport> Reports);
 
     public record DeliverableAnalyticsReport(
         string ServiceName,
         string Status,
-        DateOnly DateRangeStart,
-        DateOnly DateRangeEnd,
         List<AnalyticsReportCityRow> Cities);
 
     // One forecast row reduced to the fields the statistics are computed from.

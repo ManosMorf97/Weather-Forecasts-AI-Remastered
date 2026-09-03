@@ -19,6 +19,7 @@ namespace WeatherUserActions.Data
         public DbSet<Forecast> Forecasts => Set<Forecast>();
         public DbSet<Rating> Ratings => Set<Rating>();
         public DbSet<Notification> Notifications => Set<Notification>();
+        public DbSet<AnalyticsReportBatch> AnalyticsReportBatches => Set<AnalyticsReportBatch>();
         public DbSet<AnalyticsReport> AnalyticsReports => Set<AnalyticsReport>();
         public DbSet<AnalyticsReportCityMetric> AnalyticsReportCityMetrics => Set<AnalyticsReportCityMetric>();
 
@@ -71,14 +72,22 @@ namespace WeatherUserActions.Data
                 });
             });
 
+            modelBuilder.Entity<AnalyticsReportBatch>(entity =>
+            {
+                // The delivery pass scans for batches that still need emailing.
+                entity.HasIndex(batch => batch.DeliveredAt).HasFilter("[DeliveredAt] IS NULL");
+
+                entity.HasMany(batch => batch.Reports)
+                    .WithOne(report => report.Batch)
+                    .HasForeignKey(report => report.BatchId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
             modelBuilder.Entity<AnalyticsReport>(entity =>
             {
-                // The worker scans by Status; UC9 will look a report up by BatchId.
+                // The generation pass scans by Status. Lookups by BatchId (the worker's delivery
+                // pass, and UC9) are served by the batch foreign-key index.
                 entity.HasIndex(report => report.Status);
-                entity.HasIndex(report => report.BatchId);
-
-                // The delivery pass scans for batches that still need emailing.
-                entity.HasIndex(report => report.DeliveredAt).HasFilter("[DeliveredAt] IS NULL");
             });
 
             modelBuilder.Entity<AnalyticsReportCityMetric>(entity =>

@@ -19,6 +19,6 @@ namespace WeatherUserActions.Models
         public ICollection<UserService> UserServices { get; set; } = new List<UserService>();
         public ICollection<Rating> Ratings { get; set; } = new List<Rating>();
         public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
-        public ICollection<AnalyticsReport> AnalyticsReports { get; set; } = new List<AnalyticsReport>();
+        public ICollection<AnalyticsReportBatch> AnalyticsReportBatches { get; set; } = new List<AnalyticsReportBatch>();
     }
 }

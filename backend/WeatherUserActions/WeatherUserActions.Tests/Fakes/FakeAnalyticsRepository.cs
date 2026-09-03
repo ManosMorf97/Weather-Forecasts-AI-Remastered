@@ -44,9 +44,14 @@ namespace WeatherUserActions.Tests.Fakes
             CancellationToken cancellationToken = default) =>
             Task.FromResult(_enqueueSucceeds);
 
+        // The methods below belong to the background-worker path (ProcessQueuedReportsAsync), which
+        // AnalyticsControllerResponseTests never exercises - they run for real against Testcontainers
+        // in AnalyticsControllerLogicTests. They throw so a test that accidentally reaches the worker
+        // path via this fake fails loudly instead of silently getting an empty success.
+
         public Task<(bool Succeeded, List<QueuedAnalyticsReport> Reports)> TryGetQueuedReportsAsync(
             CancellationToken cancellationToken = default) =>
-            Task.FromResult((true, new List<QueuedAnalyticsReport>()));
+            throw new NotSupportedException("FakeAnalyticsRepository does not implement the worker path.");
 
         public Task<(bool Succeeded, List<ForecastSample> Samples)> TryGetForecastSamplesAsync(
             int serviceId,
@@ -54,20 +59,20 @@ namespace WeatherUserActions.Tests.Fakes
             DateOnly dateRangeStart,
             DateOnly dateRangeEnd,
             CancellationToken cancellationToken = default) =>
-            Task.FromResult((true, new List<ForecastSample>()));
+            throw new NotSupportedException("FakeAnalyticsRepository does not implement the worker path.");
 
         public Task<bool> TrySaveReportResultAsync(
             int reportId,
             IReadOnlyCollection<CityMetricResult> cityMetrics,
             string status,
             CancellationToken cancellationToken = default) =>
-            Task.FromResult(true);
+            throw new NotSupportedException("FakeAnalyticsRepository does not implement the worker path.");
 
         public Task<(bool Succeeded, List<DeliverableAnalyticsBatch> Batches)> TryGetUndeliveredBatchesAsync(
             CancellationToken cancellationToken = default) =>
-            Task.FromResult((true, new List<DeliverableAnalyticsBatch>()));
+            throw new NotSupportedException("FakeAnalyticsRepository does not implement the worker path.");
 
         public Task<bool> TryMarkBatchDeliveredAsync(Guid batchId, CancellationToken cancellationToken = default) =>
-            Task.FromResult(true);
+            throw new NotSupportedException("FakeAnalyticsRepository does not implement the worker path.");
     }
 }

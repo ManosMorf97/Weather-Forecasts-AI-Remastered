@@ -116,10 +116,11 @@ note bottom of DB
   - JIT-provisioned, no account
   fields), Cities, Services, Forecasts,
   Ratings, Notifications,
-  AnalyticsReports (one row per
-  requested service, sharing a
-  batch_id) + AnalyticsReportCityMetric
-  (per-city computed statistics).
+  AnalyticsReportBatch (one row per
+  request) with a child AnalyticsReport
+  per requested service +
+  AnalyticsReportCityMetric (per-city
+  computed statistics).
   No account data stored here.
 end note
 

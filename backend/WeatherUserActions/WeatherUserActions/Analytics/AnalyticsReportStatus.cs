@@ -1,4 +1,4 @@
-namespace WeatherUserActions.Models
+namespace WeatherUserActions.Analytics
 {
     // Lifecycle of a single AnalyticsReport row (UC8). Stored as text in AnalyticsReport.Status.
     public static class AnalyticsReportStatus

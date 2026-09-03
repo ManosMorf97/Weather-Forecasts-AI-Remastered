@@ -40,7 +40,7 @@ if (Every requested city and service is in the user's selection?) then (no)
 else (yes)
 endif
 
-:Create one Queued AnalyticsReport per service (shared batch_id), with a CityMetric row per city;
+:Create an AnalyticsReportBatch with one Queued AnalyticsReport per service, each with a CityMetric row per city;
 if (Saved?) then (no)
   :Return 500 (failed to queue);
   note right: E2

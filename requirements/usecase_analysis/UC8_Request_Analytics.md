@@ -22,8 +22,8 @@ computes the statistics, and the finished report is **emailed to the user as a P
    sample count per city.
 4. User submits the request (`POST /api/analytics`, Bearer JWT)
 5. System verifies the JWT and validates the parameters (see A1, A2)
-6. System creates **one queued report per requested service**, all sharing a single
-   `batch_id`, and immediately responds `202 Accepted` with the `batch_id`
+6. System creates an **`AnalyticsReportBatch`** holding **one queued `AnalyticsReport`
+   per requested service**, and immediately responds `202 Accepted` with the `batch_id`
 7. Later, the **Analytics Report Worker** (polls roughly every 5 s) picks up each queued
    report and computes its per-city statistics from stored forecasts
 8. Once **every** report in the batch has finished generating, the worker fetches the
@@ -52,9 +52,10 @@ computes the statistics, and the finished report is **emailed to the user as a P
     **text-only email** containing the statistics instead of the PDF.
 
 **Postconditions:**
-- One `AnalyticsReport` row per requested service (each with per-city
-  `AnalyticsReportCityMetric` rows), status `Completed` or `Failed`
-- The batch has been emailed to the user (`delivered_at` set)
+- One `AnalyticsReportBatch` row for the request, with one child `AnalyticsReport` per
+  requested service (each with per-city `AnalyticsReportCityMetric` rows), status
+  `Completed` or `Failed`
+- The batch has been emailed to the user (`AnalyticsReportBatch.delivered_at` set)
 
 **Exceptions:**
 - **E1:** JWT verification fails - `401`, nothing is queued
@@ -68,6 +69,6 @@ computes the statistics, and the finished report is **emailed to the user as a P
 - Analytics does **not** use aggregation (UC12 is not involved); statistics are computed
   directly over stored forecasts for the user's chosen services.
 - Delivery format is always **PDF** (plus the plain-text email body). The stored
-  `format` column is currently unused.
+  `AnalyticsReportBatch.format` column is currently unused.
 - A user-initiated download with a choice of format (UC9) is **planned, not yet
   implemented** - see UC9.

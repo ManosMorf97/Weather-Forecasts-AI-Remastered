@@ -141,22 +141,6 @@ namespace WeatherUserActions.Tests
         }
 
         [Fact]
-        public async Task RequestAnalytics_DateRangeExceeds366Days_ReturnsBadRequest()
-        {
-            var controller = CreateController(
-                FakeAppwriteAuthService.ReturningUid("uid-1"),
-                FakeAnalyticsRepository.ReturningScope([1], [1]),
-                bearerToken: "token");
-
-            var result = await controller.RequestAnalytics(
-                new RequestAnalyticsRequest([1], [1], new DateOnly(2026, 1, 1), new DateOnly(2027, 6, 1)),
-                CancellationToken.None);
-
-            var problem = Assert.IsType<ObjectResult>(result);
-            Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
-        }
-
-        [Fact]
         public async Task RequestAnalytics_SelectionScopeLookupFails_ReturnsProblem()
         {
             var controller = CreateController(

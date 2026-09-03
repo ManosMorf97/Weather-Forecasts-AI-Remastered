@@ -10,8 +10,8 @@ namespace WeatherUserActions.Repositories
         Task<(bool Succeeded, HashSet<int> CityIds, HashSet<int> ServiceIds)> TryGetUserSelectionScopeAsync(
             string userId, CancellationToken cancellationToken = default);
 
-        // UC8: writes one Queued AnalyticsReport per service, all sharing batchId, each with an
-        // (empty) AnalyticsReportCityMetric row per requested city. Returns false on failure.
+        // UC8: writes one AnalyticsReportBatch (batchId) with one Queued AnalyticsReport per service,
+        // each with an (empty) AnalyticsReportCityMetric row per requested city. Returns false on failure.
         Task<bool> TryEnqueueReportsAsync(
             string userId,
             Guid batchId,
@@ -48,8 +48,8 @@ namespace WeatherUserActions.Repositories
         Task<(bool Succeeded, List<DeliverableAnalyticsBatch> Batches)> TryGetUndeliveredBatchesAsync(
             CancellationToken cancellationToken = default);
 
-        // Stamps DeliveredAt on every report in the batch. Returns false on failure (the batch is
-        // then retried by the next delivery pass).
+        // Stamps DeliveredAt on the batch. Returns false on failure (the batch is then retried by
+        // the next delivery pass).
         Task<bool> TryMarkBatchDeliveredAsync(Guid batchId, CancellationToken cancellationToken = default);
     }
 }

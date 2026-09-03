@@ -69,6 +69,7 @@ namespace WeatherUserActions.Tests
             Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
 
             await using var verifyDb = _fixture.CreateDbContext();
+            Assert.Equal(0, await verifyDb.AnalyticsReportBatches.CountAsync());
             Assert.Equal(0, await verifyDb.AnalyticsReports.CountAsync());
             Assert.Equal(0, await verifyDb.AnalyticsReportCityMetrics.CountAsync());
         }
@@ -93,7 +94,9 @@ namespace WeatherUserActions.Tests
             Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
 
             await using var verifyDb = _fixture.CreateDbContext();
+            Assert.Equal(0, await verifyDb.AnalyticsReportBatches.CountAsync());
             Assert.Equal(0, await verifyDb.AnalyticsReports.CountAsync());
+            Assert.Equal(0, await verifyDb.AnalyticsReportCityMetrics.CountAsync());
         }
 
         [Fact]
@@ -115,7 +118,9 @@ namespace WeatherUserActions.Tests
             Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
 
             await using var verifyDb = _fixture.CreateDbContext();
+            Assert.Equal(0, await verifyDb.AnalyticsReportBatches.CountAsync());
             Assert.Equal(0, await verifyDb.AnalyticsReports.CountAsync());
+            Assert.Equal(0, await verifyDb.AnalyticsReportCityMetrics.CountAsync());
         }
 
         [Fact]
@@ -139,7 +144,7 @@ namespace WeatherUserActions.Tests
         }
 
         [Fact]
-        public async Task RequestAnalytics_TwoSelectedServices_QueuesOneReportPerServiceWithCityMetricRows()
+        public async Task RequestAnalytics_TwoSelectedServices_CreatesOneBatchWithOneReportPerServiceAndCityMetricRows()
         {
             var uid = UniqueUid();
             await SeedUserAsync(uid);
@@ -160,20 +165,25 @@ namespace WeatherUserActions.Tests
             Assert.NotEqual(Guid.Empty, body.BatchId);
 
             await using var verifyDb = _fixture.CreateDbContext();
-            var reports = await verifyDb.AnalyticsReports
-                .Include(report => report.CityMetrics)
-                .OrderBy(report => report.ServiceId)
-                .ToListAsync();
+            var batch = await verifyDb.AnalyticsReportBatches
+                .Include(batch => batch.Reports)
+                    .ThenInclude(report => report.CityMetrics)
+                .SingleAsync();
 
+            Assert.Equal(body.BatchId, batch.BatchId);
+            Assert.Equal(uid, batch.UserId);
+            Assert.Equal("JSON", batch.Format);
+            Assert.Equal(RangeStart, batch.DateRangeStart);
+            Assert.Equal(RangeEnd, batch.DateRangeEnd);
+            Assert.Null(batch.DeliveredAt);
+            //
+            var reports = batch.Reports.OrderBy(report => report.ServiceId).ToList();
             Assert.Equal(2, reports.Count);
+            Assert.Equal(new[] { openWeather, weatherApi }, reports.Select(report => report.ServiceId).ToArray());
             Assert.All(reports, report =>
             {
-                Assert.Equal(body.BatchId, report.BatchId);
-                Assert.Equal(uid, report.UserId);
+                Assert.Equal(batch.BatchId, report.BatchId);
                 Assert.Equal(AnalyticsReportStatus.Queued, report.Status);
-                Assert.Equal("JSON", report.Format);
-                Assert.Equal(RangeStart, report.DateRangeStart);
-                Assert.Equal(RangeEnd, report.DateRangeEnd);
 
                 var metric = Assert.Single(report.CityMetrics);
                 Assert.Equal(cityId, metric.CityId);
@@ -182,7 +192,6 @@ namespace WeatherUserActions.Tests
                 Assert.Equal(0, metric.DangerDayCount);
                 Assert.Equal(0, metric.SampleCount);
             });
-            Assert.Equal(new[] { openWeather, weatherApi }, reports.Select(report => report.ServiceId).ToArray());
         }
 
         [Fact]
@@ -226,7 +235,6 @@ namespace WeatherUserActions.Tests
             Assert.Equal(3.00m, metric.StdDevWindSpeed);
             Assert.Equal(4.00m, metric.MinWindSpeed);
             Assert.Equal(10.00m, metric.MaxWindSpeed);
-
             var email = Assert.Single(emailSender.Sent);
             Assert.Equal(UserEmail, email.ToEmail);
             Assert.Contains("ready", email.Subject);
@@ -324,7 +332,8 @@ namespace WeatherUserActions.Tests
             {
                 var report = await afterFailure.AnalyticsReports.SingleAsync(r => r.BatchId == batchId);
                 Assert.Equal(AnalyticsReportStatus.Completed, report.Status);
-                Assert.Null(report.DeliveredAt);
+                var batch = await afterFailure.AnalyticsReportBatches.SingleAsync(b => b.BatchId == batchId);
+                Assert.Null(batch.DeliveredAt);
             }
 
             // Second tick: transport recovered - the batch is delivered.
@@ -334,8 +343,8 @@ namespace WeatherUserActions.Tests
 
             await using (var afterDelivery = _fixture.CreateDbContext())
             {
-                var report = await afterDelivery.AnalyticsReports.SingleAsync(r => r.BatchId == batchId);
-                Assert.NotNull(report.DeliveredAt);
+                var batch = await afterDelivery.AnalyticsReportBatches.SingleAsync(b => b.BatchId == batchId);
+                Assert.NotNull(batch.DeliveredAt);
             }
 
             // Third tick: nothing left to generate or deliver.
@@ -378,12 +387,257 @@ namespace WeatherUserActions.Tests
 
             Assert.Equal(AnalyticsReportStatus.Completed, reports.Single(r => r.ServiceId == openWeather).Status);
             Assert.Equal(AnalyticsReportStatus.Failed, reports.Single(r => r.ServiceId == weatherApi).Status);
-            Assert.All(reports, report => Assert.NotNull(report.DeliveredAt));
+
+            var batch = await verifyDb.AnalyticsReportBatches.SingleAsync(b => b.BatchId == batchId);
+            Assert.NotNull(batch.DeliveredAt);
 
             var email = Assert.Single(emailSender.Sent);
             Assert.Contains("ready", email.Subject);
             Assert.Contains("WeatherAPI", email.Body);
             Assert.Single(email.Attachments);
+        }
+
+        [Fact]
+        public async Task ProcessQueuedReports_TwoCitiesTwoServices_EachReportCoversOnlyItsOwnServiceAndCity()
+        {
+            var uid = UniqueUid();
+            await SeedUserAsync(uid);
+            var openWeather = await SeedServiceAsync("OpenWeather");
+            var weatherApi = await SeedServiceAsync("WeatherAPI", "https://example2.test");
+            var athensId = await SeedCityAsync("Athens", "Greece");
+            var parisId = await SeedCityAsync("Paris", "France", 48.85m, 2.35m);
+
+            // Four distinct (city, service) selections = four CitySites, each with its own forecasts.
+            var owAthens = await SeedSelectionAsync(uid, athensId, openWeather);
+            var owParis = await SeedSelectionAsync(uid, parisId, openWeather);
+            var waAthens = await SeedSelectionAsync(uid, athensId, weatherApi);
+            var waParis = await SeedSelectionAsync(uid, parisId, weatherApi);
+
+            // Disjoint averages per (service, city): OW/Athens 15, OW/Paris 30, WA/Athens 45, WA/Paris 10.
+            await SeedForecastAsync(owAthens, new DateTime(2026, 8, 10, 12, 0, 0), temperature: 10m);
+            await SeedForecastAsync(owAthens, new DateTime(2026, 8, 20, 12, 0, 0), temperature: 20m);
+            await SeedForecastAsync(owParis, new DateTime(2026, 8, 10, 12, 0, 0), temperature: 25m);
+            await SeedForecastAsync(owParis, new DateTime(2026, 8, 20, 12, 0, 0), temperature: 35m);
+            await SeedForecastAsync(waAthens, new DateTime(2026, 8, 10, 12, 0, 0), temperature: 40m);
+            await SeedForecastAsync(waAthens, new DateTime(2026, 8, 20, 12, 0, 0), temperature: 50m);
+            await SeedForecastAsync(waParis, new DateTime(2026, 8, 10, 12, 0, 0), temperature: 5m);
+            await SeedForecastAsync(waParis, new DateTime(2026, 8, 20, 12, 0, 0), temperature: 15m);
+
+            var batchId = await RequestAnalyticsAsync(uid, [athensId, parisId], [openWeather, weatherApi]);
+            var emailSender = new FakeEmailSender();
+            await ProcessQueuedReportsAsync(emailSender);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var reports = await verifyDb.AnalyticsReports
+                .Include(report => report.CityMetrics)
+                .Where(report => report.BatchId == batchId)
+                .ToListAsync();
+
+            Assert.Equal(2, reports.Count);
+            Assert.All(reports, report => Assert.Equal(AnalyticsReportStatus.Completed, report.Status));
+            Assert.All(reports, report => Assert.All(report.CityMetrics, metric => Assert.Equal(2, metric.SampleCount)));
+
+            var openWeatherReport = reports.Single(report => report.ServiceId == openWeather);
+            Assert.Equal(15.00m, Assert.Single(openWeatherReport.CityMetrics, metric => metric.CityId == athensId).AvgTemperature);
+            Assert.Equal(30.00m, Assert.Single(openWeatherReport.CityMetrics, metric => metric.CityId == parisId).AvgTemperature);
+
+            var weatherApiReport = reports.Single(report => report.ServiceId == weatherApi);
+            Assert.Equal(45.00m, Assert.Single(weatherApiReport.CityMetrics, metric => metric.CityId == athensId).AvgTemperature);
+            Assert.Equal(10.00m, Assert.Single(weatherApiReport.CityMetrics, metric => metric.CityId == parisId).AvgTemperature);
+
+            // Two reports, still one batch -> exactly one delivery email.
+            var email = Assert.Single(emailSender.Sent);
+            Assert.Equal(UserEmail, email.ToEmail);
+        }
+
+        [Fact]
+        public async Task ProcessQueuedReports_TwoUsersShareTheSameCitySites_RequestersBatchUsesTheSharedForecasts()
+        {
+            var requester = UniqueUid();
+            var otherUser = UniqueUid();
+            await SeedUserAsync(requester);
+            await SeedUserAsync(otherUser);
+            var openWeather = await SeedServiceAsync("OpenWeather");
+            var weatherApi = await SeedServiceAsync("WeatherAPI", "https://example2.test");
+            var cityId = await SeedCityAsync("Athens", "Greece");
+
+            // Both users select the same two (city, service) pairs; SeedSelectionAsync reuses each CitySite.
+            var openWeatherSite = await SeedSelectionAsync(requester, cityId, openWeather);
+            var weatherApiSite = await SeedSelectionAsync(requester, cityId, weatherApi);
+            await SeedSelectionAsync(otherUser, cityId, openWeather);
+            await SeedSelectionAsync(otherUser, cityId, weatherApi);
+
+            await SeedForecastAsync(openWeatherSite, new DateTime(2026, 8, 10, 12, 0, 0), temperature: 12m);
+            await SeedForecastAsync(openWeatherSite, new DateTime(2026, 8, 20, 12, 0, 0), temperature: 18m);
+            await SeedForecastAsync(weatherApiSite, new DateTime(2026, 8, 10, 12, 0, 0), temperature: 40m);
+            await SeedForecastAsync(weatherApiSite, new DateTime(2026, 8, 20, 12, 0, 0), temperature: 50m);
+
+            await RequestAnalyticsAsync(requester, [cityId], [openWeather, weatherApi]);
+            var emailSender = new FakeEmailSender();
+            await ProcessQueuedReportsAsync(emailSender);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var batch = await verifyDb.AnalyticsReportBatches
+                .Include(analyticsBatch => analyticsBatch.Reports)
+                    .ThenInclude(report => report.CityMetrics)
+                .SingleAsync();
+
+            Assert.Equal(requester, batch.UserId);
+            Assert.Equal(2, batch.Reports.Count);
+
+            var openWeatherMetric = Assert.Single(batch.Reports.Single(report => report.ServiceId == openWeather).CityMetrics);
+            Assert.Equal(2, openWeatherMetric.SampleCount);
+            Assert.Equal(15.00m, openWeatherMetric.AvgTemperature);
+
+            var weatherApiMetric = Assert.Single(batch.Reports.Single(report => report.ServiceId == weatherApi).CityMetrics);
+            Assert.Equal(2, weatherApiMetric.SampleCount);
+            Assert.Equal(45.00m, weatherApiMetric.AvgTemperature);
+
+            // The shared selection does not fan the mail out - one batch, one email, to the requester.
+            var email = Assert.Single(emailSender.Sent);
+            Assert.Equal(UserEmail, email.ToEmail);
+        }
+
+        [Fact]
+        public async Task RequestAnalytics_EnforcesPerUserScope_RejectsAnotherUsersCityOrServiceButAcceptsTheUsersOwn()
+        {
+            var requester = UniqueUid();
+            var otherUser = UniqueUid();
+            await SeedUserAsync(requester);
+            await SeedUserAsync(otherUser);
+            var sharedService = await SeedServiceAsync("OpenWeather");
+            var otherOnlyService = await SeedServiceAsync("WeatherAPI", "https://example2.test");
+            var sharedCity = await SeedCityAsync("Paris", "France", 48.85m, 2.35m);
+            var otherOnlyCity = await SeedCityAsync("Rome", "Italy", 41.90m, 12.50m);
+
+            // requester selects only (Paris, OpenWeather). otherUser also has (Rome, OpenWeather)
+            // and (Paris, WeatherAPI) - so Rome and WeatherAPI are both outside the requester's scope.
+            await SeedSelectionAsync(requester, sharedCity, sharedService);
+            await SeedSelectionAsync(otherUser, sharedCity, sharedService);
+            await SeedSelectionAsync(otherUser, otherOnlyCity, sharedService);
+            await SeedSelectionAsync(otherUser, sharedCity, otherOnlyService);
+
+            await using var db = _fixture.CreateDbContext();
+            var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid(requester), bearerToken: "token");
+
+            var cityResult = await controller.RequestAnalytics(
+                new RequestAnalyticsRequest([otherOnlyCity], [sharedService], RangeStart, RangeEnd), CancellationToken.None);
+            Assert.Equal(StatusCodes.Status400BadRequest, Assert.IsType<ObjectResult>(cityResult).StatusCode);
+
+            var serviceResult = await controller.RequestAnalytics(
+                new RequestAnalyticsRequest([sharedCity], [otherOnlyService], RangeStart, RangeEnd), CancellationToken.None);
+            Assert.Equal(StatusCodes.Status400BadRequest, Assert.IsType<ObjectResult>(serviceResult).StatusCode);
+
+            // The one (city, service) pair that is in the requester's own selection is accepted.
+            var acceptedResult = await controller.RequestAnalytics(
+                new RequestAnalyticsRequest([sharedCity], [sharedService], RangeStart, RangeEnd), CancellationToken.None);
+            var batchId = Assert.IsType<RequestAnalyticsResponse>(Assert.IsType<AcceptedResult>(acceptedResult).Value).BatchId;
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var batch = await verifyDb.AnalyticsReportBatches
+                .Include(analyticsBatch => analyticsBatch.Reports)
+                .SingleAsync();
+            Assert.Equal(batchId, batch.BatchId);
+            Assert.Equal(requester, batch.UserId);
+            Assert.Equal(sharedService, Assert.Single(batch.Reports).ServiceId);
+        }
+
+        [Fact]
+        public async Task ProcessQueuedReports_BothUsersRequestOverTheSharedCitySite_EachGetsTheirOwnBatchAndEmail()
+        {
+            var userA = UniqueUid();
+            var userB = UniqueUid();
+            await SeedUserAsync(userA);
+            await SeedUserAsync(userB);
+            var serviceId = await SeedServiceAsync("OpenWeather");
+            var cityId = await SeedCityAsync("Athens", "Greece");
+
+            // One CitySite, both users selecting it.
+            var sharedCitySiteId = await SeedSelectionAsync(userA, cityId, serviceId);
+            await SeedSelectionAsync(userB, cityId, serviceId);
+            await SeedForecastAsync(sharedCitySiteId, new DateTime(2026, 8, 10, 12, 0, 0), temperature: 12m);
+            await SeedForecastAsync(sharedCitySiteId, new DateTime(2026, 8, 20, 12, 0, 0), temperature: 18m);
+
+            // Both users request analytics.
+            var batchA = await RequestAnalyticsAsync(userA, [cityId], [serviceId]);
+            var batchB = await RequestAnalyticsAsync(userB, [cityId], [serviceId]);
+            Assert.NotEqual(batchA, batchB);
+
+            var emailSender = new FakeEmailSender();
+            await ProcessQueuedReportsAsync(emailSender);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var batches = await verifyDb.AnalyticsReportBatches
+                .Include(batch => batch.Reports)
+                    .ThenInclude(report => report.CityMetrics)
+                .ToListAsync();
+
+            Assert.Equal(2, batches.Count);
+            Assert.Equal(userA, batches.Single(batch => batch.BatchId == batchA).UserId);
+            Assert.Equal(userB, batches.Single(batch => batch.BatchId == batchB).UserId);
+
+            // Two requests -> two report rows and two city-metric rows total, nothing shared or duplicated.
+            Assert.Equal(2, await verifyDb.AnalyticsReports.CountAsync());
+            Assert.Equal(2, await verifyDb.AnalyticsReportCityMetrics.CountAsync());
+
+            // One email per requester.
+            Assert.Equal(2, emailSender.Sent.Count);
+        }
+
+        [Fact]
+        public async Task ProcessQueuedReports_TwoRequestersOverDifferentCitySites_EachBatchCoversOnlyItsOwnCityAndService()
+        {
+            var userA = UniqueUid();
+            var userB = UniqueUid();
+            await SeedUserAsync(userA);
+            await SeedUserAsync(userB);
+            var openWeather = await SeedServiceAsync("OpenWeather");
+            var weatherApi = await SeedServiceAsync("WeatherAPI", "https://example2.test");
+            var athensId = await SeedCityAsync("Athens", "Greece");
+            var parisId = await SeedCityAsync("Paris", "France", 48.85m, 2.35m);
+
+            // No overlap: userA has (Athens, OpenWeather), userB has (Paris, WeatherAPI).
+            var athensSiteId = await SeedSelectionAsync(userA, athensId, openWeather);
+            var parisSiteId = await SeedSelectionAsync(userB, parisId, weatherApi);
+            await SeedForecastAsync(athensSiteId, new DateTime(2026, 8, 10, 12, 0, 0), temperature: 10m);
+            await SeedForecastAsync(athensSiteId, new DateTime(2026, 8, 20, 12, 0, 0), temperature: 20m);
+            await SeedForecastAsync(parisSiteId, new DateTime(2026, 8, 10, 12, 0, 0), temperature: 30m);
+            await SeedForecastAsync(parisSiteId, new DateTime(2026, 8, 20, 12, 0, 0), temperature: 40m);
+
+            var batchA = await RequestAnalyticsAsync(userA, [athensId], [openWeather]);
+            var batchB = await RequestAnalyticsAsync(userB, [parisId], [weatherApi]);
+            Assert.NotEqual(batchA, batchB);
+
+            var emailSender = new FakeEmailSender();
+            await ProcessQueuedReportsAsync(emailSender);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var batches = await verifyDb.AnalyticsReportBatches
+                .Include(batch => batch.Reports)
+                    .ThenInclude(report => report.CityMetrics)
+                .ToListAsync();
+
+            Assert.Equal(2, batches.Count);
+            Assert.Equal(2, await verifyDb.AnalyticsReports.CountAsync());
+            Assert.Equal(2, await verifyDb.AnalyticsReportCityMetrics.CountAsync());
+
+            var batchARow = batches.Single(batch => batch.BatchId == batchA);
+            Assert.Equal(userA, batchARow.UserId);
+            var reportA = Assert.Single(batchARow.Reports);
+            Assert.Equal(openWeather, reportA.ServiceId);
+            var metricA = Assert.Single(reportA.CityMetrics);
+            Assert.Equal(athensId, metricA.CityId);
+            Assert.Equal(15.00m, metricA.AvgTemperature);
+
+            var batchBRow = batches.Single(batch => batch.BatchId == batchB);
+            Assert.Equal(userB, batchBRow.UserId);
+            var reportB = Assert.Single(batchBRow.Reports);
+            Assert.Equal(weatherApi, reportB.ServiceId);
+            var metricB = Assert.Single(reportB.CityMetrics);
+            Assert.Equal(parisId, metricB.CityId);
+            Assert.Equal(35.00m, metricB.AvgTemperature);
+
+            Assert.Equal(2, emailSender.Sent.Count);
         }
 
         // --- helpers ---

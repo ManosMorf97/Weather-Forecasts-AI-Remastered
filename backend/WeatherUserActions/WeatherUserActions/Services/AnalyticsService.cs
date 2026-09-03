@@ -200,7 +200,7 @@ namespace WeatherUserActions.Services
             {
                 var sections = completed
                     .Select(report => new AnalyticsReportSection(
-                        report.ServiceName, report.DateRangeStart, report.DateRangeEnd, report.Cities))
+                        report.ServiceName, batch.DateRangeStart, batch.DateRangeEnd, report.Cities))
                     .ToList();
 
                 IReadOnlyCollection<EmailAttachment>? attachments = null;

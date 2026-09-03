@@ -41,7 +41,7 @@ else Valid
       UserServer --> Frontend: 400 (InvalidCities / InvalidServices)
       Frontend -> User: Show error (return to form)
     else All within selection
-      UserServer -> DB: Insert one Queued AnalyticsReport per\nservice (shared batch_id) + CityMetric rows
+      UserServer -> DB: Insert an AnalyticsReportBatch with one Queued\nAnalyticsReport per service + CityMetric rows
       alt E2: Insert fails
         DB --> UserServer: Error
         UserServer --> Frontend: 500 (failed to queue)

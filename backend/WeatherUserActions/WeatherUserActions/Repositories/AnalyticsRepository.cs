@@ -1,5 +1,6 @@
 using System.Data.Common;
 using Microsoft.EntityFrameworkCore;
+using WeatherUserActions.Analytics;
 using WeatherUserActions.Data;
 using WeatherUserActions.Dtos;
 using WeatherUserActions.Models;
@@ -50,23 +51,25 @@ namespace WeatherUserActions.Repositories
             try
             {
                 var distinctCityIds = cityIds.Distinct().ToList();
-                var now = DateTime.UtcNow;
-                var reports = serviceIds.Distinct().Select(serviceId => new AnalyticsReport
+                var batch = new AnalyticsReportBatch
                 {
-                    UserId = userId,
                     BatchId = batchId,
-                    ServiceId = serviceId,
+                    UserId = userId,
                     DateRangeStart = dateRangeStart,
                     DateRangeEnd = dateRangeEnd,
                     Format = "JSON",
-                    Status = AnalyticsReportStatus.Queued,
-                    CreatedAt = now,
-                    CityMetrics = distinctCityIds
-                        .Select(cityId => new AnalyticsReportCityMetric { CityId = cityId })
-                        .ToList(),
-                });
+                    CreatedAt = DateTime.UtcNow,
+                    Reports = serviceIds.Distinct().Select(serviceId => new AnalyticsReport
+                    {
+                        ServiceId = serviceId,
+                        Status = AnalyticsReportStatus.Queued,
+                        CityMetrics = distinctCityIds
+                            .Select(cityId => new AnalyticsReportCityMetric { CityId = cityId })
+                            .ToList(),
+                    }).ToList(),
+                };
 
-                _db.AnalyticsReports.AddRange(reports);
+                _db.AnalyticsReportBatches.Add(batch);
                 await _db.SaveChangesAsync(cancellationToken);
                 return true;
             }
@@ -93,11 +96,11 @@ namespace WeatherUserActions.Repositories
                     .Select(report => new QueuedAnalyticsReport(
                         report.ReportId,
                         report.BatchId,
-                        report.UserId,
+                        report.Batch.UserId,
                         report.ServiceId,
                         report.Service.Name,
-                        report.DateRangeStart,
-                        report.DateRangeEnd,
+                        report.Batch.DateRangeStart,
+                        report.Batch.DateRangeEnd,
                         report.CityMetrics
                             .Select(metric => new QueuedAnalyticsReportCity(metric.CityId, metric.City.Name, metric.City.Country))
                             .ToList()))
@@ -212,43 +215,35 @@ namespace WeatherUserActions.Repositories
         {
             try
             {
-                var rows = await _db.AnalyticsReports
+                var batches = await _db.AnalyticsReportBatches
                     .AsNoTracking()
-                    .Where(report => report.DeliveredAt == null
-                        && !_db.AnalyticsReports.Any(sibling =>
-                            sibling.BatchId == report.BatchId && sibling.Status == AnalyticsReportStatus.Queued))
-                    .OrderBy(report => report.BatchId)
-                    .ThenBy(report => report.ServiceId)
-                    .Select(report => new
-                    {
-                        report.BatchId,
-                        report.UserId,
-                        ServiceName = report.Service.Name,
-                        report.Status,
-                        report.DateRangeStart,
-                        report.DateRangeEnd,
-                        Cities = report.CityMetrics
-                            .OrderBy(metric => metric.CityId)
-                            .Select(metric => new AnalyticsReportCityRow(
-                                metric.City.Name,
-                                new CityMetricResult(
-                                    metric.CityId,
-                                    metric.AvgTemperature, metric.StdDevTemperature, metric.MinTemperature, metric.MaxTemperature,
-                                    metric.AvgHumidity, metric.StdDevHumidity, metric.MinHumidity, metric.MaxHumidity,
-                                    metric.AvgWindSpeed, metric.StdDevWindSpeed, metric.MinWindSpeed, metric.MaxWindSpeed,
-                                    metric.DangerDayCount, metric.SampleCount)))
-                            .ToList(),
-                    })
+                    .Where(batch => batch.DeliveredAt == null
+                        && batch.Reports.Any()
+                        && batch.Reports.All(report => report.Status != AnalyticsReportStatus.Queued))
+                    .OrderBy(batch => batch.BatchId)
+                    .Select(batch => new DeliverableAnalyticsBatch(
+                        batch.BatchId,
+                        batch.UserId,
+                        batch.DateRangeStart,
+                        batch.DateRangeEnd,
+                        batch.Reports
+                            .OrderBy(report => report.ServiceId)
+                            .Select(report => new DeliverableAnalyticsReport(
+                                report.Service.Name,
+                                report.Status,
+                                report.CityMetrics
+                                    .OrderBy(metric => metric.CityId)
+                                    .Select(metric => new AnalyticsReportCityRow(
+                                        metric.City.Name,
+                                        new CityMetricResult(
+                                            metric.CityId,
+                                            metric.AvgTemperature, metric.StdDevTemperature, metric.MinTemperature, metric.MaxTemperature,
+                                            metric.AvgHumidity, metric.StdDevHumidity, metric.MinHumidity, metric.MaxHumidity,
+                                            metric.AvgWindSpeed, metric.StdDevWindSpeed, metric.MinWindSpeed, metric.MaxWindSpeed,
+                                            metric.DangerDayCount, metric.SampleCount)))
+                                    .ToList()))
+                            .ToList()))
                     .ToListAsync(cancellationToken);
-
-                var batches = rows
-                    .GroupBy(row => (row.BatchId, row.UserId))
-                    .Select(group => new DeliverableAnalyticsBatch(
-                        group.Key.BatchId,
-                        group.Key.UserId,
-                        group.Select(row => new DeliverableAnalyticsReport(
-                            row.ServiceName, row.Status, row.DateRangeStart, row.DateRangeEnd, row.Cities)).ToList()))
-                    .ToList();
 
                 return (true, batches);
             }
@@ -263,16 +258,16 @@ namespace WeatherUserActions.Repositories
         {
             try
             {
-                var now = DateTime.UtcNow;
-                var reports = await _db.AnalyticsReports
-                    .Where(report => report.BatchId == batchId && report.DeliveredAt == null)
-                    .ToListAsync(cancellationToken);
+                var batch = await _db.AnalyticsReportBatches
+                    .SingleOrDefaultAsync(batch => batch.BatchId == batchId, cancellationToken);
 
-                foreach (var report in reports)
+                if (batch is null)
                 {
-                    report.DeliveredAt = now;
+                    _logger.LogWarning("Analytics batch {BatchId} vanished before it could be marked delivered", batchId);
+                    return false;
                 }
 
+                batch.DeliveredAt = DateTime.UtcNow;
                 await _db.SaveChangesAsync(cancellationToken);
                 return true;
             }

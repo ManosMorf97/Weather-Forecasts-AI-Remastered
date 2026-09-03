@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using WeatherUserActions.Analytics;
 using WeatherUserActions.Data;
 using WeatherUserActions.Models;
 using WeatherUserActions.Repositories;

@@ -43,4 +43,4 @@ format (JSON / CSV / PDF).
 - No `GET` download endpoint exists.
 - Only PDF is produced; there is no JSON or CSV serialisation of report data.
 - Delivery is push (worker emails the PDF), not pull (user requests it).
-- `AnalyticsReport.format` is stored but unused (always `"JSON"`).
+- `AnalyticsReportBatch.format` is stored but unused (always `"JSON"`).

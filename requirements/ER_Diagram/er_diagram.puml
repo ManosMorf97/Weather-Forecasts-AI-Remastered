@@ -109,27 +109,39 @@ entity "Notification" as notification {
   sent_at : DATETIME
 }
 
-entity "AnalyticsReport" as report {
-  * report_id : INT <<PK>>
+entity "AnalyticsReportBatch" as report_batch {
+  * batch_id : UNIQUEIDENTIFIER <<PK>>
   --
   user_id : VARCHAR <<FK>>
-  batch_id : UNIQUEIDENTIFIER
-  service_id : INT <<FK>>
   date_range_start : DATE
   date_range_end : DATE
   format : VARCHAR
-  status : VARCHAR
   created_at : DATETIME
   delivered_at : DATETIME NULL
   ..
-  One row per (request, service).
-  A single POST /api/analytics
-  creates one row per selected
-  service, all sharing batch_id.
+  One row per POST /api/analytics
+  request. Holds everything shared
+  by the request's per-service
+  reports: requester, date range,
+  delivery format and delivery
+  state. format is currently unused
+  (always "JSON"). delivered_at is
+  set when the batch has been
+  emailed.
+}
+
+entity "AnalyticsReport" as report {
+  * report_id : INT <<PK>>
+  --
+  batch_id : UNIQUEIDENTIFIER <<FK>>
+  service_id : INT <<FK>>
+  status : VARCHAR
+  ..
+  One row per (batch, service). A
+  single POST /api/analytics creates
+  one AnalyticsReportBatch with one
+  of these per selected service.
   status: Queued | Completed | Failed.
-  format is currently unused (always
-  "JSON"). delivered_at is set when
-  the batch has been emailed.
 }
 
 entity "AnalyticsReportCityMetric" as report_metric {
@@ -176,8 +188,9 @@ forecast ||--o{ rating : "rated by"
 user     ||--o{ notification : receives
 forecast ||--o{ notification : triggers
 
-user    ||--o{ report : requests
-service ||--o{ report : "covered by"
+user         ||--o{ report_batch : requests
+report_batch ||--o{ report : "has per-service"
+service      ||--o{ report : "covered by"
 
 report ||--o{ report_metric : "has per-city"
 city   ||--o{ report_metric : "summarised in"
