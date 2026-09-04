@@ -30,6 +30,7 @@ namespace WeatherUserActions.Analytics
                     page.Content().PaddingVertical(10).Column(column =>
                     {
                         column.Spacing(18);
+                        //CLAUDE: I think it is reduntant, batchId is useless reference for user experience.
                         column.Item().Text($"Reference: {batchId}");
 
                         foreach (var section in sections)

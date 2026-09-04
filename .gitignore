@@ -39,6 +39,8 @@ SQLsecret.sql
 .env
 *.pem
 *.key
+# Machine-local secrets loaded by Program.cs (keep secrets.example.json tracked)
+backend/**/secrets.json
 
 # OS
 Thumbs.db

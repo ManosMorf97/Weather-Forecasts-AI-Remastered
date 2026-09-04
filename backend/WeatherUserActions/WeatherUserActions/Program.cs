@@ -10,6 +10,10 @@ using WeatherUserActions.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Machine-local secrets (SMTP credentials, ...). Git-ignored; loaded last so it overrides
+// appsettings*.json. Copy secrets.example.json to secrets.json to set up locally.
+builder.Configuration.AddJsonFile("secrets.json", optional: true, reloadOnChange: true);
+
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 builder.Services.AddHttpClient();
