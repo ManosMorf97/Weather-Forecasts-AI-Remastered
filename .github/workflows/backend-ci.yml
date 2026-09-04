@@ -3,17 +3,35 @@ name: Backend CI
 on:
   push:
     branches: [main]
-    paths:
-      - "backend/WeatherUserActions/**"
-      - ".github/workflows/backend-ci.yml"
   pull_request:
     branches: [main]
-    paths:
-      - "backend/WeatherUserActions/**"
-      - ".github/workflows/backend-ci.yml"
 
 jobs:
-  build-and-test:
+  # Decide which backend(s) changed so each build job only runs when relevant.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      weatheruseractions: ${{ steps.filter.outputs.weatheruseractions }}
+      predictionupdater: ${{ steps.filter.outputs.predictionupdater }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Detect changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            weatheruseractions:
+              - 'backend/WeatherUserActions/**'
+              - '.github/workflows/backend-ci.yml'
+            predictionupdater:
+              - 'backend/PredictionUpdater/**'
+              - '.github/workflows/backend-ci.yml'
+
+  weatheruseractions:
+    needs: changes
+    if: ${{ needs.changes.outputs.weatheruseractions == 'true' }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -36,3 +54,37 @@ jobs:
 
       - name: Test
         run: dotnet test WeatherUserActions.slnx --no-build --configuration Release
+
+  predictionupdater:
+    needs: changes
+    if: ${{ needs.changes.outputs.predictionupdater == 'true' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend/PredictionUpdater
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: backend/PredictionUpdater/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npm run db:generate
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm test
