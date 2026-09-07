@@ -16,6 +16,8 @@ export interface NormalizedForecast {
   type: ForecastType;
   /** UTC instant. For DAILY this is the city-local 08:00 / 15:00 / 21:00 converted to UTC. */
   timestamp: Date;
+  /** Minutes east of UTC for the city's location at `timestamp` (e.g. Athens summer = 180). */
+  offsetMinutes: number;
   temperatureC: number;
   humidityPct: number;
   windSpeedKmh: number;

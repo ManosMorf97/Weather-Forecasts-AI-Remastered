@@ -101,6 +101,7 @@ namespace WeatherUserActions.Repositories
                         winner.ServiceName,
                         forecast.Type,
                         forecast.Timestamp,
+                        forecast.OffsetMinutes,
                         forecast.Temperature,
                         forecast.Humidity,
                         forecast.WindSpeed,

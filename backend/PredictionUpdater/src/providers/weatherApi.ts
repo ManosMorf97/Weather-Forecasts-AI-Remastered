@@ -9,7 +9,8 @@ import type { CityInput, NormalizedForecast, WeatherProvider } from './types.js'
 //   - `current`: temp_c, humidity, wind_kph.
 //   - `forecast.forecastday[].hour[]`: time (local "YYYY-MM-DD HH:mm"), time_epoch (UTC s),
 //     temp_c, humidity, wind_kph.
-//   - `location.tz_id` / `location.localtime_epoch` for local-time handling.
+//   - `location.tz_id` / `location.localtime_epoch` for local-time handling; derive offsetMinutes
+//     from them and set it on every NormalizedForecast row.
 //   - `alerts.alert[]`: { severity, effective, expires, ... }. severity is a CAP value
 //     ("Extreme" / "Severe" / ...). Compare against config.dangerSeverities; if a matching
 //     alert's [effective, expires] window covers a forecast instant, set danger = true.

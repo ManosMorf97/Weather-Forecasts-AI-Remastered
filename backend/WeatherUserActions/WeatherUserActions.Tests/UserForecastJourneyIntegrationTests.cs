@@ -169,6 +169,7 @@ namespace WeatherUserActions.Tests
                 CitySiteId = citySiteId,
                 Timestamp = timestamp,
                 Type = "CURRENT",
+                OffsetMinutes = 0,
                 Temperature = 20m,
                 Humidity = 50m,
                 WindSpeed = 10m,

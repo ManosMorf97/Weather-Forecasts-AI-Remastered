@@ -46,7 +46,7 @@ namespace WeatherUserActions.Tests
         {
             var forecasts = new List<ForecastItemDto>
             {
-                new(1, "Athens", "Greece", "OpenWeather", "CURRENT", DateTime.UtcNow.AddHours(1), 28.5m, 40m, 12m, false, UserRating: 4),
+                new(1, "Athens", "Greece", "OpenWeather", "CURRENT", DateTime.UtcNow.AddHours(1), 180, 28.5m, 40m, 12m, false, UserRating: 4),
             };
             var controller = CreateController(
                 FakeAppwriteAuthService.ReturningUid("uid-1"), FakeForecastsRepository.ReturningForecasts(forecasts), FakeRatingsRepository.Succeeding());
@@ -91,7 +91,7 @@ namespace WeatherUserActions.Tests
         {
             var forecasts = new List<AggregatedForecastItemDto>
             {
-                new(1, "Athens", "Greece", "OpenWeather", "CURRENT", DateTime.UtcNow.AddHours(1), 28.5m, 40m, 12m, false),
+                new(1, "Athens", "Greece", "OpenWeather", "CURRENT", DateTime.UtcNow.AddHours(1), 180, 28.5m, 40m, 12m, false),
             };
             var serviceMetadata = new List<ServiceAggregationMetadataDto>
             {

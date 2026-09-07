@@ -43,6 +43,7 @@ async function storeForCitySite(
     citySiteId,
     timestamp: f.timestamp,
     type: f.type,
+    offsetMinutes: f.offsetMinutes,
     temperatureC: round(f.temperatureC, TEMP_DP),
     humidityPct: round(f.humidityPct, HUMIDITY_DP),
     windSpeedKmh: round(f.windSpeedKmh, WIND_DP),
@@ -67,6 +68,7 @@ async function storeForCitySite(
     }
 
     const unchanged =
+      match.offsetMinutes === row.offsetMinutes &&
       match.temperatureC === row.temperatureC &&
       match.humidityPct === row.humidityPct &&
       match.windSpeedKmh === row.windSpeedKmh &&

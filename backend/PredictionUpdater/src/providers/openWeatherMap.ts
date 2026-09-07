@@ -8,7 +8,8 @@ import type { CityInput, NormalizedForecast, WeatherProvider } from './types.js'
 // Response notes:
 //   - `list[]`: 3-hourly steps. Each: dt (UTC seconds), main.temp (C), main.humidity (%),
 //     wind.speed (m/s -> *3.6 for km/h).
-//   - `city.timezone`: offset from UTC in seconds -> derive local 08/15/21 for DAILY.
+//   - `city.timezone`: offset from UTC in seconds -> derive local 08/15/21 for DAILY, and set
+//     offsetMinutes (city.timezone / 60) on every NormalizedForecast row.
 //   - No alerts on this endpoint: danger is always false.
 // Mapping:
 //   - CURRENT  -> first `list` entry at/after now.

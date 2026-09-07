@@ -64,6 +64,7 @@ describe('OpenMeteoProvider', () => {
     const current = forecasts.filter((f) => f.type === 'CURRENT');
     expect(current).toHaveLength(1);
     expect(current[0]).toMatchObject({
+      offsetMinutes: 180,
       temperatureC: 30.4,
       humidityPct: 45,
       windSpeedKmh: 12,
@@ -83,6 +84,7 @@ describe('OpenMeteoProvider', () => {
       '2026-09-04T14:00:00.000Z',
       '2026-09-04T15:00:00.000Z',
     ]);
+    expect(hourly.every((f) => f.offsetMinutes === 180)).toBe(true);
   });
 
   it('returns 3 daily slots (08/15/21 local) for each of the next 3 days', async () => {
@@ -94,5 +96,6 @@ describe('OpenMeteoProvider', () => {
     // First wanted day is 2026-09-05; 08:00 Athens => 05:00 UTC.
     expect(daily[0]?.timestamp.toISOString()).toBe('2026-09-05T05:00:00.000Z');
     expect(daily.every((f) => f.danger === false)).toBe(true);
+    expect(daily.every((f) => f.offsetMinutes === 180)).toBe(true);
   });
 });

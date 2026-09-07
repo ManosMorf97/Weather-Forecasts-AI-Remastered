@@ -7,6 +7,7 @@ namespace WeatherUserActions.Dtos
         string Service,
         string Type,
         DateTime Timestamp,
+        int OffsetMinutes,
         decimal Temperature,
         decimal Humidity,
         decimal WindSpeed,

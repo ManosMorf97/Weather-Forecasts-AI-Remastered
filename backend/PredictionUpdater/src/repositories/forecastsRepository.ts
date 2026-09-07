@@ -5,6 +5,7 @@ export interface ForecastRow {
   citySiteId: number;
   timestamp: Date;
   type: string;
+  offsetMinutes: number;
   temperatureC: number;
   humidityPct: number;
   windSpeedKmh: number;
@@ -15,6 +16,7 @@ export interface ExistingForecast {
   forecastId: number;
   timestamp: Date;
   type: string;
+  offsetMinutes: number;
   temperatureC: number;
   humidityPct: number;
   windSpeedKmh: number;
@@ -37,6 +39,7 @@ export class ForecastsRepository {
         forecastId: true,
         timestamp: true,
         type: true,
+        offsetMinutes: true,
         temperature: true,
         humidity: true,
         windSpeed: true,
@@ -48,6 +51,7 @@ export class ForecastsRepository {
       forecastId: r.forecastId,
       timestamp: r.timestamp,
       type: r.type,
+      offsetMinutes: r.offsetMinutes,
       temperatureC: r.temperature.toNumber(),
       humidityPct: r.humidity.toNumber(),
       windSpeedKmh: r.windSpeed.toNumber(),
@@ -63,6 +67,7 @@ export class ForecastsRepository {
         citySiteId: r.citySiteId,
         timestamp: r.timestamp,
         type: r.type,
+        offsetMinutes: r.offsetMinutes,
         temperature: r.temperatureC,
         humidity: r.humidityPct,
         windSpeed: r.windSpeedKmh,
@@ -77,6 +82,7 @@ export class ForecastsRepository {
     await this.db.forecast.update({
       where: { forecastId },
       data: {
+        offsetMinutes: row.offsetMinutes,
         temperature: row.temperatureC,
         humidity: row.humidityPct,
         windSpeed: row.windSpeedKmh,

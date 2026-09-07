@@ -69,7 +69,8 @@ namespace WeatherUserActions.Tests
             var citySiteId = await SeedCitySiteAsync(cityId, serviceId);
             await SeedUserCitySiteAsync(uid, citySiteId);
             var timestamp = DateTime.UtcNow.AddHours(1);
-            var forecastId = await SeedForecastAsync(citySiteId, timestamp, temperature: 25m, humidity: 50m, windSpeed: 10m, dangerFlag: false);
+            var forecastId = await SeedForecastAsync(
+                citySiteId, timestamp, offsetMinutes: 180, temperature: 25m, humidity: 50m, windSpeed: 10m, dangerFlag: false);
 
             await using var db = _fixture.CreateDbContext();
             var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
@@ -84,6 +85,7 @@ namespace WeatherUserActions.Tests
             Assert.Equal("Greece", forecast.Country);
             Assert.Equal("OpenWeather", forecast.Service);
             Assert.Equal(timestamp, forecast.Timestamp, TimeSpan.FromSeconds(1));
+            Assert.Equal(180, forecast.OffsetMinutes);
             Assert.Equal(25m, forecast.Temperature);
             Assert.Equal(50m, forecast.Humidity);
             Assert.Equal(10m, forecast.WindSpeed);
@@ -621,6 +623,7 @@ namespace WeatherUserActions.Tests
         private async Task<int> SeedForecastAsync(
             int citySiteId,
             DateTime timestamp,
+            int offsetMinutes = 0,
             decimal temperature = 20m,
             decimal humidity = 50m,
             decimal windSpeed = 10m,
@@ -632,6 +635,7 @@ namespace WeatherUserActions.Tests
                 CitySiteId = citySiteId,
                 Timestamp = timestamp,
                 Type = "CURRENT",
+                OffsetMinutes = offsetMinutes,
                 Temperature = temperature,
                 Humidity = humidity,
                 WindSpeed = windSpeed,

@@ -32,6 +32,7 @@ const responseSchema = z.object({
 
 interface HourlyPoint {
   utc: Date;
+  offsetMinutes: number;
   hourLocal: number;
   dateKey: string;
   temperatureC: number;
@@ -74,12 +75,13 @@ export class OpenMeteoProvider implements WeatherProvider {
     out.push({
       type: 'CURRENT',
       timestamp: localWallTimeToUtc(currentLocal, offsetMinutes),
+      offsetMinutes,
       temperatureC: data.current.temperature_2m,
       humidityPct: data.current.relative_humidity_2m,
       windSpeedKmh: data.current.wind_speed_10m,
       danger: false,
     });
-
+    //CLAUDE. We need 3 timestamps
     const hourly: HourlyPoint[] = [];
     for (let i = 0; i < data.hourly.time.length; i++) {
       const t = data.hourly.temperature_2m[i];
@@ -91,6 +93,7 @@ export class OpenMeteoProvider implements WeatherProvider {
       const local = parseIsoLocal(timeStr);
       hourly.push({
         utc: localWallTimeToUtc(local, offsetMinutes),
+        offsetMinutes,
         hourLocal: local.hour,
         dateKey: localDateKey(local),
         temperatureC: t,
@@ -118,6 +121,7 @@ export class OpenMeteoProvider implements WeatherProvider {
 function pointValues(p: HourlyPoint) {
   return {
     timestamp: p.utc,
+    offsetMinutes: p.offsetMinutes,
     temperatureC: p.temperatureC,
     humidityPct: p.humidityPct,
     windSpeedKmh: p.windSpeedKmh,

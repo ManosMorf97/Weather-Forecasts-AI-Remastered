@@ -65,7 +65,8 @@ namespace WeatherUserActions.Tests
             var citySiteId = await SeedCitySiteAsync(cityId, serviceId);
             await SeedUserCitySiteAsync(uid, citySiteId);
             var timestamp = DateTime.UtcNow.AddHours(1);
-            await SeedForecastAsync(citySiteId, timestamp, "CURRENT", temperature: 25m, humidity: 50m, windSpeed: 10m, dangerFlag: false);
+            await SeedForecastAsync(
+                citySiteId, timestamp, "CURRENT", offsetMinutes: 180, temperature: 25m, humidity: 50m, windSpeed: 10m, dangerFlag: false);
 
             await using var db = _fixture.CreateDbContext();
             var controller = CreateController(db, FakeAppwriteAuthService.ReturningUid(uid), bearerToken: "token");
@@ -80,6 +81,7 @@ namespace WeatherUserActions.Tests
             Assert.Equal("OpenWeather", forecast.Service);
             Assert.Equal("CURRENT", forecast.Type);
             Assert.Equal(timestamp, forecast.Timestamp, TimeSpan.FromSeconds(1));
+            Assert.Equal(180, forecast.OffsetMinutes);
             Assert.Equal(25m, forecast.Temperature);
             Assert.Equal(50m, forecast.Humidity);
             Assert.Equal(10m, forecast.WindSpeed);
@@ -294,12 +296,15 @@ namespace WeatherUserActions.Tests
             var accuWeatherTimestamp = DateTime.UtcNow.AddHours(1);
 
             var openWeatherFuture = await SeedForecastAsync(
-                openWeatherSite, openWeatherTimestamp, "CURRENT", temperature: 22m, humidity: 55m, windSpeed: 8m, dangerFlag: false);
+                openWeatherSite, openWeatherTimestamp, "CURRENT",
+                offsetMinutes: 180, temperature: 22m, humidity: 55m, windSpeed: 8m, dangerFlag: false);
             await SeedForecastAsync(openWeatherSite, DateTime.UtcNow.AddHours(-1), "CURRENT"); // past - must be excluded
             var weatherApiFuture = await SeedForecastAsync(
-                weatherApiSite, weatherApiTimestamp, "CURRENT", temperature: 18m, humidity: 70m, windSpeed: 15m, dangerFlag: false);
+                weatherApiSite, weatherApiTimestamp, "CURRENT",
+                offsetMinutes: 60, temperature: 18m, humidity: 70m, windSpeed: 15m, dangerFlag: false);
             var accuWeatherFuture = await SeedForecastAsync(
-                accuWeatherSite, accuWeatherTimestamp, "CURRENT", temperature: 30m, humidity: 40m, windSpeed: 5m, dangerFlag: true);
+                accuWeatherSite, accuWeatherTimestamp, "CURRENT",
+                offsetMinutes: -300, temperature: 30m, humidity: 40m, windSpeed: 5m, dangerFlag: true);
 
             await SeedRatingAsync(uidA, openWeatherFuture, value: 5); // OpenWeather rated by A, WeatherAPI left unrated by A
             await SeedRatingAsync(uidB, accuWeatherFuture, value: 3);
@@ -315,6 +320,7 @@ namespace WeatherUserActions.Tests
                 var openWeatherForA = Assert.Single(bodyA.Forecasts, f => f.Service == "OpenWeather");
                 Assert.Equal(openWeatherFuture, openWeatherForA.ForecastId);
                 Assert.Equal(openWeatherTimestamp, openWeatherForA.Timestamp, TimeSpan.FromSeconds(1));
+                Assert.Equal(180, openWeatherForA.OffsetMinutes);
                 Assert.Equal(22m, openWeatherForA.Temperature);
                 Assert.Equal(55m, openWeatherForA.Humidity);
                 Assert.Equal(8m, openWeatherForA.WindSpeed);
@@ -324,6 +330,7 @@ namespace WeatherUserActions.Tests
                 var weatherApiForA = Assert.Single(bodyA.Forecasts, f => f.Service == "WeatherAPI");
                 Assert.Equal(weatherApiFuture, weatherApiForA.ForecastId);
                 Assert.Equal(weatherApiTimestamp, weatherApiForA.Timestamp, TimeSpan.FromSeconds(1));
+                Assert.Equal(60, weatherApiForA.OffsetMinutes);
                 Assert.Equal(18m, weatherApiForA.Temperature);
                 Assert.Equal(70m, weatherApiForA.Humidity);
                 Assert.Equal(15m, weatherApiForA.WindSpeed);
@@ -342,6 +349,7 @@ namespace WeatherUserActions.Tests
                 Assert.Equal("AccuWeather", accuWeatherForB.Service);
                 Assert.Equal(accuWeatherFuture, accuWeatherForB.ForecastId);
                 Assert.Equal(accuWeatherTimestamp, accuWeatherForB.Timestamp, TimeSpan.FromSeconds(1));
+                Assert.Equal(-300, accuWeatherForB.OffsetMinutes);
                 Assert.Equal(30m, accuWeatherForB.Temperature);
                 Assert.Equal(40m, accuWeatherForB.Humidity);
                 Assert.Equal(5m, accuWeatherForB.WindSpeed);
@@ -566,6 +574,7 @@ namespace WeatherUserActions.Tests
             int citySiteId,
             DateTime timestamp,
             string type,
+            int offsetMinutes = 0,
             decimal temperature = 20m,
             decimal humidity = 50m,
             decimal windSpeed = 10m,
@@ -577,6 +586,7 @@ namespace WeatherUserActions.Tests
                 CitySiteId = citySiteId,
                 Timestamp = timestamp,
                 Type = type,
+                OffsetMinutes = offsetMinutes,
                 Temperature = temperature,
                 Humidity = humidity,
                 WindSpeed = windSpeed,

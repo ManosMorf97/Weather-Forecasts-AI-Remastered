@@ -8,7 +8,8 @@ import type { CityInput, NormalizedForecast, WeatherProvider } from './types.js'
 // Response notes:
 //   - `currentConditions`: temp (C), humidity (%), windspeed (km/h with unitGroup=metric).
 //   - `days[].hours[]`: datetime ("HH:mm:ss"), datetimeEpoch (UTC s), temp, humidity, windspeed.
-//   - `tzoffset`: hours from UTC (may be fractional).
+//   - `tzoffset`: hours from UTC (may be fractional) -> offsetMinutes = tzoffset * 60, set on every
+//     NormalizedForecast row.
 //   - `alerts[]`: { severity?, event, onset, ends, ... }. severity is not always present -
 //     when absent, fall back to treating any alert as non-danger unless `event` clearly maps.
 // Mapping: CURRENT -> currentConditions; HOURLY -> next 3 hours; DAILY -> hours at local

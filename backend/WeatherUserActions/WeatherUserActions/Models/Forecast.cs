@@ -28,6 +28,12 @@ namespace WeatherUserActions.Models
 
         public bool DangerFlag { get; set; }
 
+        // Minutes east of UTC for Timestamp's location at that instant (e.g. Athens summer = 180).
+        // Snapshotted per row - see PredictionUpdater/prisma/schema.prisma for why it isn't derived
+        // from City on read.
+        [Range(-720, 840)]
+        public int OffsetMinutes { get; set; }
+
         public DateTime RetrievedAt { get; set; }
 
         public ICollection<Rating> Ratings { get; set; } = new List<Rating>();

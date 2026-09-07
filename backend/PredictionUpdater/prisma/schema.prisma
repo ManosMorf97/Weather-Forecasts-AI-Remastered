@@ -14,10 +14,9 @@ generator client {
 
 datasource db {
   provider = "sqlserver"
-  // Used only by the Prisma CLI. `scripts/prisma.ts` sets DATABASE_URL from the assembled
-  // YOUR_SERVER / YOUR_USER / YOUR_PASSWORD before invoking the CLI; the runtime client gets
-  // the same URL via `new PrismaClient({ datasourceUrl })` in src/db/client.ts.
-  url = env("DATABASE_URL")
+  // Prisma 7 no longer reads connection URLs from schema files. Configure the database URL in
+  // `prisma.config.ts` for the CLI, and pass `datasourceUrl` / the appropriate driver config to
+  // `new PrismaClient(...)` at runtime.
 }
 
 model User {
@@ -95,15 +94,19 @@ model UserService {
 }
 
 model Forecast {
-  forecastId  Int      @id @default(autoincrement()) @map("ForecastId")
-  citySiteId  Int      @map("CitySiteId")
-  timestamp   DateTime @map("Timestamp") @db.DateTime2
-  type        String   @map("Type") @db.NVarChar(450)
-  temperature Decimal  @map("Temperature") @db.Decimal(3, 1)
-  humidity    Decimal  @map("Humidity") @db.Decimal(5, 2)
-  windSpeed   Decimal  @map("WindSpeed") @db.Decimal(5, 2)
-  dangerFlag  Boolean  @map("DangerFlag")
-  retrievedAt DateTime @map("RetrievedAt") @db.DateTime2
+  forecastId    Int      @id @default(autoincrement()) @map("ForecastId")
+  citySiteId    Int      @map("CitySiteId")
+  timestamp     DateTime @map("Timestamp") @db.DateTime2
+  type          String   @map("Type") @db.NVarChar(450)
+  temperature   Decimal  @map("Temperature") @db.Decimal(3, 1)
+  humidity      Decimal  @map("Humidity") @db.Decimal(5, 2)
+  windSpeed     Decimal  @map("WindSpeed") @db.Decimal(5, 2)
+  dangerFlag    Boolean  @map("DangerFlag")
+  // Minutes east of UTC for `timestamp`'s location at that instant (e.g. Athens summer = 180).
+  // Snapshotted per row, not looked up from City, because DST shifts it across the forecast
+  // window - lets the frontend render local wall-clock without its own timezone database.
+  offsetMinutes Int      @map("OffsetMinutes")
+  retrievedAt   DateTime @map("RetrievedAt") @db.DateTime2
 
   citySite      CitySite       @relation(fields: [citySiteId], references: [citySiteId], onDelete: NoAction, onUpdate: NoAction)
   notifications Notification[]

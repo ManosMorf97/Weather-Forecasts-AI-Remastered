@@ -38,6 +38,7 @@ namespace WeatherUserActions.Repositories
                         forecast.CitySite.Service.Name,
                         forecast.Type,
                         forecast.Timestamp,
+                        forecast.OffsetMinutes,
                         forecast.Temperature,
                         forecast.Humidity,
                         forecast.WindSpeed,
