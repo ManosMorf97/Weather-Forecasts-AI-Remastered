@@ -14,9 +14,11 @@ generator client {
 
 datasource db {
   provider = "sqlserver"
-  // Prisma 7 no longer reads connection URLs from schema files. Configure the database URL in
-  // `prisma.config.ts` for the CLI, and pass `datasourceUrl` / the appropriate driver config to
-  // `new PrismaClient(...)` at runtime.
+  // Used only by the Prisma CLI (`db pull` / `generate`). `scripts/prisma.ts` assembles this
+  // from YOUR_SERVER / YOUR_USER / YOUR_PASSWORD and exports it before invoking the CLI.
+  // The runtime client ignores this and gets its URL via `new PrismaClient({ datasourceUrl })`
+  // (see src/db/client.ts).
+  url = env("DATABASE_URL")
 }
 
 model User {
