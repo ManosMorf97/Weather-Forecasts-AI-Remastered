@@ -166,7 +166,10 @@ model AnalyticsReportCityMetrics {
 model AnalyticsReports {
   ReportId                   Int                          @id(map: "PK_AnalyticsReports") @default(autoincrement())
   Status                     String                       @db.NVarChar(450)
-  BatchId                    String                       @default(dbgenerated("00000000-0000-0000-0000-000000000000"), map: "DF__Analytics__Batch__6E01572D") @db.UniqueIdentifier
+  // `db pull` drops the SQL quotes around this uniqueidentifier literal; they must be restored
+  // by hand after every re-pull or `prisma db push` fails ("numeric is incompatible with
+  // uniqueidentifier").
+  BatchId                    String                       @default(dbgenerated("'00000000-0000-0000-0000-000000000000'"), map: "DF__Analytics__Batch__6E01572D") @db.UniqueIdentifier
   ServiceId                  Int                          @default(0, map: "DF__Analytics__Servi__6EF57B66")
   AnalyticsReportCityMetrics AnalyticsReportCityMetrics[]
   AnalyticsReportBatches     AnalyticsReportBatches       @relation(fields: [BatchId], references: [BatchId], onDelete: Cascade, onUpdate: NoAction, map: "FK_AnalyticsReports_AnalyticsReportBatches_BatchId")

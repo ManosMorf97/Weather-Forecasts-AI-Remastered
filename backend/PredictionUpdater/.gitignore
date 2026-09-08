@@ -5,3 +5,6 @@ dist/
 
 # Prisma's generated client (regenerated from schema.prisma via `npm run db:generate`)
 src/generated/
+
+# Local helper: re-quotes SQL Server defaults that `prisma db pull` mangles
+fix-schema-after-pull.py
