@@ -5,14 +5,7 @@ import type {
   DangerForecast,
   NotificationsRepository,
 } from '../repositories/notificationsRepository.js';
-
-export interface NotifySummary {
-  dangerForecasts: number;
-  usersWithWarnings: number;
-  usersNotified: number;
-  deliveriesFailed: number;
-  emailsMissing: number;
-}
+import type { NotificationResult } from './types.js';
 
 const CHANNEL = 'email';
 
@@ -23,8 +16,8 @@ export async function notifyDangerForecasts(
   users: UsersLookup,
   email: EmailSender,
   now: Date = new Date(),
-): Promise<NotifySummary> {
-  const empty: NotifySummary = {
+): Promise<NotificationResult> {
+  const empty: NotificationResult = {
     dangerForecasts: 0,
     usersWithWarnings: 0,
     usersNotified: 0,

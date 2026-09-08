@@ -1,5 +1,5 @@
 import type { ForecastsRepository, ForecastRow } from '../repositories/forecastsRepository.js';
-import type { CitySiteForecasts } from './poll.js';
+import type { CitySiteForecasts, StorageResult } from './types.js';
 
 // DB column scales (Temperature decimal(3,1), Humidity/WindSpeed decimal(5,2)). We round to
 // these before comparing and inserting so "same forecast, polled again" is a stable no-op.
@@ -9,19 +9,13 @@ const WIND_DP = 2;
 
 const round = (value: number, dp: number): number => Number(value.toFixed(dp));
 
-export interface StoreSummary {
-  inserted: number;
-  updated: number;
-  skipped: number;
-}
-
 // UC11 step 7 with A4 (skip exact duplicate) and A5 (update when values changed).
 export async function storeForecasts(
   repo: ForecastsRepository,
   polled: CitySiteForecasts[],
   retrievedAt: Date,
-): Promise<StoreSummary> {
-  const summary: StoreSummary = { inserted: 0, updated: 0, skipped: 0 };
+): Promise<StorageResult> {
+  const summary: StorageResult = { inserted: 0, updated: 0, skipped: 0 };
 
   for (const entry of polled) {
     const one = await storeForCitySite(repo, entry.citySiteId, entry.forecasts, retrievedAt);
@@ -38,7 +32,7 @@ async function storeForCitySite(
   citySiteId: number,
   forecasts: CitySiteForecasts['forecasts'],
   retrievedAt: Date,
-): Promise<StoreSummary> {
+): Promise<StorageResult> {
   const rows: ForecastRow[] = forecasts.map((f) => ({
     citySiteId,
     timestamp: f.timestamp,

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { buildSqlServerUrl } from './db/connectionUrl.js';
+import type { SqlServerParts } from './db/connectionUrl.js';
 
 // All runtime configuration comes from the environment. The YOUR_* names are ambient machine
 // env vars shared with WeatherUserActions (its Program.cs reads the same YOUR_SERVER / YOUR_USER
@@ -27,15 +27,15 @@ const schema = z.object({
   SMTP_PORT: z.coerce.number().int().positive().default(587),
   SMTP_USER: z.string().min(1).optional(),
   SMTP_PASSWORD: z.string().min(1).optional(),
-  EMAIL_FROM: z.string().default('Weather Alerts <noreply@weatherforecasts.local>'),
+  EMAIL_FROM: z.string().default('Weather Alerts <noreply@forecastsUpdater.local>'),
 
   HTTP_TIMEOUT_MS: z.coerce.number().int().positive().default(15_000),
   LOG_LEVEL: z.string().default('info'),
 });
 
 export type Config = z.infer<typeof schema> & {
-  /** Prisma SQL Server URL, assembled from YOUR_SERVER / YOUR_USER / YOUR_PASSWORD / DB_NAME. */
-  readonly databaseUrl: string;
+  /** DB connection parts from YOUR_SERVER / YOUR_USER / YOUR_PASSWORD / DB_NAME. */
+  readonly sqlServer: SqlServerParts;
   /** CAP severities normalised to a lower-case set for matching. */
   readonly dangerSeverities: ReadonlySet<string>;
 };
@@ -48,12 +48,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const parsed = schema.parse(env);
   cached = {
     ...parsed,
-    databaseUrl: buildSqlServerUrl({
+    sqlServer: {
       server: parsed.YOUR_SERVER,
       user: parsed.YOUR_USER,
       password: parsed.YOUR_PASSWORD,
       database: parsed.DB_NAME,
-    }),
+    },
     dangerSeverities: new Set(
       parsed.DANGER_CAP_SEVERITIES.split(',')
         .map((s) => s.trim().toLowerCase())

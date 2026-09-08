@@ -1,132 +1,192 @@
-// These models mirror the tables owned by the WeatherUserActions .NET service (EF Core
-// migrations). PredictionUpdater NEVER migrates this database - it only reads and writes rows.
-//
-// Regenerate against the real database with:  npm run db:pull
-// `prisma db pull` keeps the @map / @@map / relation names below on re-introspection, and will
-// also pull in the tables this job does not use (Ratings, Analytics*). Leave those in.
-//
-// If the .NET schema changes (a migration touches Forecasts / Notifications / CitySites / ...),
-// re-run `npm run db:pull` and the test suite before deploying.
-
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
+  previewFeatures = ["partialIndexes"]
 }
 
 datasource db {
   provider = "sqlserver"
-  // Used only by the Prisma CLI (`db pull` / `generate`). `scripts/prisma.ts` assembles this
-  // from YOUR_SERVER / YOUR_USER / YOUR_PASSWORD and exports it before invoking the CLI.
-  // The runtime client ignores this and gets its URL via `new PrismaClient({ datasourceUrl })`
-  // (see src/db/client.ts).
-  url = env("DATABASE_URL")
 }
 
 model User {
-  userId    String   @id @map("UserId") @db.NVarChar(128)
-  createdAt DateTime @map("CreatedAt") @db.DateTime2
-
-  userCitySites UserCitySite[]
-  userServices  UserService[]
-  notifications Notification[]
+  userId                 String                   @id(map: "PK_Users") @map("UserId") @db.NVarChar(128)
+  createdAt              DateTime                 @map("CreatedAt")
+  AnalyticsReportBatches AnalyticsReportBatches[]
+  notifications          Notification[]
+  Ratings                Ratings[]
+  userCitySites          UserCitySite[]
+  userServices           UserService[]
 
   @@map("Users")
 }
 
 model City {
-  cityId    Int     @id @default(autoincrement()) @map("CityId")
-  name      String  @map("Name") @db.NVarChar(200)
-  country   String  @map("Country") @db.NVarChar(200)
-  latitude  Decimal @map("Latitude") @db.Decimal(11, 8)
-  longitude Decimal @map("Longitude") @db.Decimal(11, 8)
-
-  citySites CitySite[]
+  cityId                     Int                          @id(map: "PK_Cities") @default(autoincrement()) @map("CityId")
+  name                       String                       @map("Name") @db.NVarChar(200)
+  country                    String                       @map("Country") @db.NVarChar(200)
+  latitude                   Decimal                      @map("Latitude") @db.Decimal(11, 8)
+  longitude                  Decimal                      @map("Longitude") @db.Decimal(11, 8)
+  AnalyticsReportCityMetrics AnalyticsReportCityMetrics[]
+  citySites                  CitySite[]
 
   @@unique([name, country, latitude, longitude], map: "IX_Cities_Name_Country_Latitude_Longitude")
   @@map("Cities")
 }
 
 model ForecastingService {
-  serviceId   Int    @id @default(autoincrement()) @map("ServiceId")
-  name        String @map("Name") @db.NVarChar(Max)
-  apiEndpoint String @map("ApiEndpoint") @db.NVarChar(Max)
-
-  citySites    CitySite[]
-  userServices UserService[]
+  serviceId        Int                @id(map: "PK_ForecastingServices") @default(autoincrement()) @map("ServiceId")
+  name             String             @map("Name") @db.NVarChar(Max)
+  apiEndpoint      String             @map("ApiEndpoint") @db.NVarChar(Max)
+  AnalyticsReports AnalyticsReports[]
+  citySites        CitySite[]
+  userServices     UserService[]
 
   @@map("ForecastingServices")
 }
 
 model CitySite {
-  citySiteId Int @id @default(autoincrement()) @map("CitySiteId")
-  cityId     Int @map("CityId")
-  serviceId  Int @map("ServiceId")
-
-  city    City               @relation(fields: [cityId], references: [cityId], onDelete: NoAction, onUpdate: NoAction)
-  service ForecastingService @relation(fields: [serviceId], references: [serviceId], onDelete: NoAction, onUpdate: NoAction)
-
-  userCitySites UserCitySite[]
+  citySiteId    Int                @id(map: "PK_CitySites") @default(autoincrement()) @map("CitySiteId")
+  cityId        Int                @map("CityId")
+  serviceId     Int                @map("ServiceId")
+  city          City               @relation(fields: [cityId], references: [cityId], onDelete: Cascade, onUpdate: NoAction, map: "FK_CitySites_Cities_CityId")
+  service       ForecastingService @relation(fields: [serviceId], references: [serviceId], onDelete: Cascade, onUpdate: NoAction, map: "FK_CitySites_ForecastingServices_ServiceId")
   forecasts     Forecast[]
+  userCitySites UserCitySite[]
 
   @@unique([cityId, serviceId], map: "IX_CitySites_CityId_ServiceId")
+  @@index([serviceId], map: "IX_CitySites_ServiceId")
   @@map("CitySites")
 }
 
 model UserCitySite {
   userId     String   @map("UserId") @db.NVarChar(128)
   citySiteId Int      @map("CitySiteId")
-  addedAt    DateTime @map("AddedAt") @db.DateTime2
+  addedAt    DateTime @map("AddedAt")
+  citySite   CitySite @relation(fields: [citySiteId], references: [citySiteId], onDelete: Cascade, onUpdate: NoAction, map: "FK_UserCitySites_CitySites_CitySiteId")
+  user       User     @relation(fields: [userId], references: [userId], onDelete: Cascade, onUpdate: NoAction, map: "FK_UserCitySites_Users_UserId")
 
-  user     User     @relation(fields: [userId], references: [userId], onDelete: NoAction, onUpdate: NoAction)
-  citySite CitySite @relation(fields: [citySiteId], references: [citySiteId], onDelete: NoAction, onUpdate: NoAction)
-
-  @@id([userId, citySiteId])
+  @@id([userId, citySiteId], map: "PK_UserCitySites")
+  @@index([citySiteId], map: "IX_UserCitySites_CitySiteId")
   @@map("UserCitySites")
 }
 
 model UserService {
-  userId    String   @map("UserId") @db.NVarChar(128)
-  serviceId Int      @map("ServiceId")
-  addedAt   DateTime @map("AddedAt") @db.DateTime2
+  userId    String             @map("UserId") @db.NVarChar(128)
+  serviceId Int                @map("ServiceId")
+  addedAt   DateTime           @map("AddedAt")
+  service   ForecastingService @relation(fields: [serviceId], references: [serviceId], onDelete: Cascade, onUpdate: NoAction, map: "FK_UserServices_ForecastingServices_ServiceId")
+  user      User               @relation(fields: [userId], references: [userId], onDelete: Cascade, onUpdate: NoAction, map: "FK_UserServices_Users_UserId")
 
-  user    User               @relation(fields: [userId], references: [userId], onDelete: NoAction, onUpdate: NoAction)
-  service ForecastingService @relation(fields: [serviceId], references: [serviceId], onDelete: NoAction, onUpdate: NoAction)
-
-  @@id([userId, serviceId])
+  @@id([userId, serviceId], map: "PK_UserServices")
+  @@index([serviceId], map: "IX_UserServices_ServiceId")
   @@map("UserServices")
 }
 
 model Forecast {
-  forecastId    Int      @id @default(autoincrement()) @map("ForecastId")
-  citySiteId    Int      @map("CitySiteId")
-  timestamp     DateTime @map("Timestamp") @db.DateTime2
-  type          String   @map("Type") @db.NVarChar(450)
-  temperature   Decimal  @map("Temperature") @db.Decimal(3, 1)
-  humidity      Decimal  @map("Humidity") @db.Decimal(5, 2)
-  windSpeed     Decimal  @map("WindSpeed") @db.Decimal(5, 2)
-  dangerFlag    Boolean  @map("DangerFlag")
-  // Minutes east of UTC for `timestamp`'s location at that instant (e.g. Athens summer = 180).
-  // Snapshotted per row, not looked up from City, because DST shifts it across the forecast
-  // window - lets the frontend render local wall-clock without its own timezone database.
-  offsetMinutes Int      @map("OffsetMinutes")
-  retrievedAt   DateTime @map("RetrievedAt") @db.DateTime2
-
-  citySite      CitySite       @relation(fields: [citySiteId], references: [citySiteId], onDelete: NoAction, onUpdate: NoAction)
+  forecastId    Int            @id(map: "PK_Forecasts") @default(autoincrement()) @map("ForecastId")
+  citySiteId    Int            @map("CitySiteId")
+  timestamp     DateTime       @map("Timestamp")
+  type          String         @map("Type") @db.NVarChar(450)
+  temperature   Decimal        @map("Temperature") @db.Decimal(3, 1)
+  humidity      Decimal        @map("Humidity") @db.Decimal(5, 2)
+  windSpeed     Decimal        @map("WindSpeed") @db.Decimal(5, 2)
+  dangerFlag    Boolean        @map("DangerFlag")
+  retrievedAt   DateTime       @map("RetrievedAt")
+  offsetMinutes Int            @default(0, map: "DF__Forecasts__Offse__14270015") @map("OffsetMinutes")
+  citySite      CitySite       @relation(fields: [citySiteId], references: [citySiteId], onDelete: Cascade, onUpdate: NoAction, map: "FK_Forecasts_CitySites_CitySiteId")
   notifications Notification[]
+  Ratings       Ratings[]
 
   @@unique([citySiteId, timestamp, type], map: "IX_Forecasts_CitySiteId_Timestamp_Type")
   @@map("Forecasts")
 }
 
 model Notification {
-  notificationId Int      @id @default(autoincrement()) @map("NotificationId")
+  notificationId Int      @id(map: "PK_Notifications") @default(autoincrement()) @map("NotificationId")
   userId         String   @map("UserId") @db.NVarChar(128)
   forecastId     Int      @map("ForecastId")
   channel        String   @map("Channel") @db.NVarChar(Max)
   status         String   @map("Status") @db.NVarChar(Max)
-  sentAt         DateTime @map("SentAt") @db.DateTime2
+  sentAt         DateTime @map("SentAt")
+  forecast       Forecast @relation(fields: [forecastId], references: [forecastId], onDelete: Cascade, onUpdate: NoAction, map: "FK_Notifications_Forecasts_ForecastId")
+  user           User     @relation(fields: [userId], references: [userId], onDelete: Cascade, onUpdate: NoAction, map: "FK_Notifications_Users_UserId")
 
-  user     User     @relation(fields: [userId], references: [userId], onDelete: NoAction, onUpdate: NoAction)
-  forecast Forecast @relation(fields: [forecastId], references: [forecastId], onDelete: NoAction, onUpdate: NoAction)
-
+  @@index([forecastId], map: "IX_Notifications_ForecastId")
+  @@index([userId], map: "IX_Notifications_UserId")
   @@map("Notifications")
+}
+
+model EFMigrationsHistory {
+  MigrationId    String @id(map: "PK___EFMigrationsHistory") @db.NVarChar(150)
+  ProductVersion String @db.NVarChar(32)
+
+  @@map("__EFMigrationsHistory")
+}
+
+model AnalyticsReportBatches {
+  BatchId          String             @id(map: "PK_AnalyticsReportBatches") @db.UniqueIdentifier
+  UserId           String             @db.NVarChar(128)
+  DateRangeStart   DateTime           @db.Date
+  DateRangeEnd     DateTime           @db.Date
+  Format           String             @db.NVarChar(Max)
+  CreatedAt        DateTime
+  DeliveredAt      DateTime?
+  Users            User               @relation(fields: [UserId], references: [userId], onDelete: Cascade, onUpdate: NoAction, map: "FK_AnalyticsReportBatches_Users_UserId")
+  AnalyticsReports AnalyticsReports[]
+
+  @@index([DeliveredAt], map: "IX_AnalyticsReportBatches_DeliveredAt", where: raw("([DeliveredAt] IS NULL)"))
+  @@index([UserId], map: "IX_AnalyticsReportBatches_UserId")
+}
+
+model AnalyticsReportCityMetrics {
+  AnalyticsReportCityMetricId Int              @id(map: "PK_AnalyticsReportCityMetrics") @default(autoincrement())
+  ReportId                    Int
+  CityId                      Int
+  AvgTemperature              Decimal?         @db.Decimal(6, 2)
+  StdDevTemperature           Decimal?         @db.Decimal(6, 2)
+  MinTemperature              Decimal?         @db.Decimal(6, 2)
+  MaxTemperature              Decimal?         @db.Decimal(6, 2)
+  AvgHumidity                 Decimal?         @db.Decimal(6, 2)
+  StdDevHumidity              Decimal?         @db.Decimal(6, 2)
+  MinHumidity                 Decimal?         @db.Decimal(6, 2)
+  MaxHumidity                 Decimal?         @db.Decimal(6, 2)
+  AvgWindSpeed                Decimal?         @db.Decimal(6, 2)
+  StdDevWindSpeed             Decimal?         @db.Decimal(6, 2)
+  MinWindSpeed                Decimal?         @db.Decimal(6, 2)
+  MaxWindSpeed                Decimal?         @db.Decimal(6, 2)
+  DangerDayCount              Int
+  SampleCount                 Int
+  AnalyticsReports            AnalyticsReports @relation(fields: [ReportId], references: [ReportId], onDelete: Cascade, onUpdate: NoAction, map: "FK_AnalyticsReportCityMetrics_AnalyticsReports_ReportId")
+  Cities                      City             @relation(fields: [CityId], references: [cityId], onUpdate: NoAction, map: "FK_AnalyticsReportCityMetrics_Cities_CityId")
+
+  @@unique([ReportId, CityId], map: "IX_AnalyticsReportCityMetrics_ReportId_CityId")
+  @@index([CityId], map: "IX_AnalyticsReportCityMetrics_CityId")
+}
+
+model AnalyticsReports {
+  ReportId                   Int                          @id(map: "PK_AnalyticsReports") @default(autoincrement())
+  Status                     String                       @db.NVarChar(450)
+  BatchId                    String                       @default(dbgenerated("00000000-0000-0000-0000-000000000000"), map: "DF__Analytics__Batch__6E01572D") @db.UniqueIdentifier
+  ServiceId                  Int                          @default(0, map: "DF__Analytics__Servi__6EF57B66")
+  AnalyticsReportCityMetrics AnalyticsReportCityMetrics[]
+  AnalyticsReportBatches     AnalyticsReportBatches       @relation(fields: [BatchId], references: [BatchId], onDelete: Cascade, onUpdate: NoAction, map: "FK_AnalyticsReports_AnalyticsReportBatches_BatchId")
+  ForecastingServices        ForecastingService           @relation(fields: [ServiceId], references: [serviceId], onDelete: Cascade, onUpdate: NoAction, map: "FK_AnalyticsReports_ForecastingServices_ServiceId")
+
+  @@index([BatchId], map: "IX_AnalyticsReports_BatchId")
+  @@index([ServiceId], map: "IX_AnalyticsReports_ServiceId")
+  @@index([Status], map: "IX_AnalyticsReports_Status")
+}
+
+model Ratings {
+  RatingId   Int      @id(map: "PK_Ratings") @default(autoincrement())
+  UserId     String   @db.NVarChar(128)
+  ForecastId Int
+  Value      Int
+  CreatedAt  DateTime
+  UpdatedAt  DateTime
+  Forecasts  Forecast @relation(fields: [ForecastId], references: [forecastId], onDelete: Cascade, onUpdate: NoAction, map: "FK_Ratings_Forecasts_ForecastId")
+  Users      User     @relation(fields: [UserId], references: [userId], onDelete: Cascade, onUpdate: NoAction, map: "FK_Ratings_Users_UserId")
+
+  @@unique([UserId, ForecastId], map: "IX_Ratings_UserId_ForecastId")
+  @@index([ForecastId], map: "IX_Ratings_ForecastId")
 }

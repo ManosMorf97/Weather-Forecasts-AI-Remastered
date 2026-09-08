@@ -45,19 +45,20 @@ npm install
 #   YOUR_APPWRITE_ENDPOINT / _PROJECT_ID / _API_KEY -> danger-notification email lookup
 cp .env.example .env            # this service's own API keys / SMTP - all optional
 
-# Generate the Prisma client. schema.prisma is hand-written to match the EF schema;
-# once you can reach the real DB, replace it with the introspected version:
+# Generate the Prisma client into src/generated/prisma (also runs on postinstall).
+# schema.prisma is the introspected mirror of the EF schema - re-pull when the DB changes:
 npm run db:pull                 # prisma db pull + generate  (keeps the @map names)
 # or, offline:
 npm run db:generate
 
-npm test                        # adapter tests run without a DB
+npm test                        # provider tests need no DB; the repo tests use Testcontainers
 npm run dev                     # one cycle against the assembled connection
 ```
 
-`db:pull` / `db:generate` go through `scripts/prisma.ts`, which assembles `DATABASE_URL`
-from `YOUR_SERVER` / `YOUR_USER` / `YOUR_PASSWORD` / `DB_NAME` before invoking the Prisma CLI.
-The runtime client gets the same URL via `new PrismaClient({ datasourceUrl })`.
+`prisma.config.ts` (Prisma 7) resolves the CLI's connection URL: `DATABASE_URL` if set,
+otherwise assembled from `YOUR_SERVER` / `YOUR_USER` / `YOUR_PASSWORD` / `DB_NAME`. The runtime
+client does not use a URL - it connects through `@prisma/adapter-mssql` with the same parts
+(see `src/db/client.ts`).
 
 ## Deployment
 

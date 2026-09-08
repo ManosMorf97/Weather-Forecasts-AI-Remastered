@@ -14,7 +14,7 @@ import { runCycle } from './pipeline/run.js';
 // Run-once job. The external scheduler decides how often this process starts.
 async function main(): Promise<number> {
   const config = loadConfig();
-  const prisma = createPrismaClient();
+  const prisma = createPrismaClient(config.sqlServer);
 
   try {
     const summary = await runCycle({

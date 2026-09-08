@@ -1,35 +1,12 @@
 import { logger } from '../logging/logger.js';
-import type { EmailSender } from '../notifications/emailSender.js';
-import type { UsersLookup } from '../notifications/appwriteUsers.js';
-import type { ForecastsRepository } from '../repositories/forecastsRepository.js';
-import type { NotificationsRepository } from '../repositories/notificationsRepository.js';
-import type { SelectionsRepository } from '../repositories/selectionsRepository.js';
-import type { WeatherProvider } from '../providers/types.js';
-import { pollForecasts, type PollSummary } from './poll.js';
-import { storeForecasts, type StoreSummary } from './store.js';
-import { notifyDangerForecasts, type NotifySummary } from './notify.js';
-
-export interface RunDeps {
-  registry: Map<string, WeatherProvider>;
-  selectionsRepo: SelectionsRepository;
-  forecastsRepo: ForecastsRepository;
-  notificationsRepo: NotificationsRepository;
-  users: UsersLookup;
-  email: EmailSender;
-}
-
-export interface RunSummary {
-  selections: number;
-  poll?: PollSummary;
-  store?: StoreSummary;
-  notify?: NotifySummary;
-  // E1: every attempted service failed this cycle.
-  allServicesFailed: boolean;
-}
+import { pollForecasts } from './poll.js';
+import { storeForecasts } from './store.js';
+import { notifyDangerForecasts } from './notify.js';
+import type { CycleDeps, CycleResult } from './types.js';
 
 // One full UC11 cycle: read selections -> poll -> store -> notify. Intended to be invoked as
 // a run-once job by an external scheduler (cron / k8s CronJob / cloud scheduler).
-export async function runCycle(deps: RunDeps): Promise<RunSummary> {
+export async function runCycle(deps: CycleDeps): Promise<CycleResult> {
   const selections = await deps.selectionsRepo.getServiceSelections();
 
   if (selections.length === 0) {

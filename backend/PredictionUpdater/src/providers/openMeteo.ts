@@ -6,7 +6,8 @@ import {
   localDateKey,
   localWallTimeToUtc,
   parseIsoLocal,
-  wantedDailyDateKeys,
+  getNext3DateDays,
+  type LocalWallTime,
 } from './timeSlots.js';
 import type { CityInput, NormalizedForecast, WeatherProvider } from './types.js';
 
@@ -30,6 +31,8 @@ const responseSchema = z.object({
   }),
 });
 
+type OpenMeteoResponse = z.infer<typeof responseSchema>;
+
 interface HourlyPoint {
   utc: Date;
   offsetMinutes: number;
@@ -48,6 +51,8 @@ export class OpenMeteoProvider implements WeatherProvider {
     private readonly baseUrl: string = DEFAULT_BASE_URL,
   ) {}
 
+  // IO only: build the request, fetch, validate, then hand the parsed body to the pure
+  // selection helpers below. Everything testable lives in those helpers.
   async fetchForCity(city: CityInput, signal?: AbortSignal): Promise<NormalizedForecast[]> {
     const url = new URL(this.baseUrl);
     url.search = new URLSearchParams({
@@ -66,56 +71,91 @@ export class OpenMeteoProvider implements WeatherProvider {
     }
 
     const data = responseSchema.parse(await res.json());
-    const offsetMinutes = data.utc_offset_seconds / 60;
-    const now = Date.now();
-
-    const out: NormalizedForecast[] = [];
-
-    const currentLocal = parseIsoLocal(data.current.time);
-    out.push({
-      type: 'CURRENT',
-      timestamp: localWallTimeToUtc(currentLocal, offsetMinutes),
-      offsetMinutes,
-      temperatureC: data.current.temperature_2m,
-      humidityPct: data.current.relative_humidity_2m,
-      windSpeedKmh: data.current.wind_speed_10m,
-      danger: false,
-    });
-    //CLAUDE. We need 3 timestamps
-    const hourly: HourlyPoint[] = [];
-    for (let i = 0; i < data.hourly.time.length; i++) {
-      const t = data.hourly.temperature_2m[i];
-      const h = data.hourly.relative_humidity_2m[i];
-      const w = data.hourly.wind_speed_10m[i];
-      const timeStr = data.hourly.time[i];
-      if (t == null || h == null || w == null || timeStr == null) continue;
-
-      const local = parseIsoLocal(timeStr);
-      hourly.push({
-        utc: localWallTimeToUtc(local, offsetMinutes),
-        offsetMinutes,
-        hourLocal: local.hour,
-        dateKey: localDateKey(local),
-        temperatureC: t,
-        humidityPct: h,
-        windSpeedKmh: w,
-      });
-    }
-
-    for (const point of hourly.filter((p) => p.utc.getTime() > now).slice(0, HOURLY_COUNT)) {
-      out.push({ type: 'HOURLY', ...pointValues(point), danger: false });
-    }
-
-    const wantedDates = wantedDailyDateKeys(currentLocal);
-    for (const point of hourly) {
-      const isSlot = (DAILY_SLOT_HOURS as readonly number[]).includes(point.hourLocal);
-      if (isSlot && wantedDates.has(point.dateKey) && point.utc.getTime() > now) {
-        out.push({ type: 'DAILY', ...pointValues(point), danger: false });
-      }
-    }
-
-    return out;
+    return toForecasts(data, Date.now());
   }
+}
+
+// Pure: parsed Open-Meteo body -> our forecast rows, as of the instant `now`.
+export function toForecasts(data: OpenMeteoResponse, now: number): NormalizedForecast[] {
+  const offsetMinutes = data.utc_offset_seconds / 60;
+  const todayLocal = parseIsoLocal(data.current.time);
+  const points = fetchALLHourlyPoints(data.hourly, offsetMinutes);
+
+  return [
+    fetchCurrent(data.current, offsetMinutes),
+    ...fetchNext3HourlyPoints(points, now),
+    ...fetchDaily(points, todayLocal, now),
+  ];
+}
+
+// 1. The single CURRENT reading.
+function fetchCurrent(
+  current: OpenMeteoResponse['current'],
+  offsetMinutes: number,
+): NormalizedForecast {
+  return {
+    type: 'CURRENT',
+    timestamp: localWallTimeToUtc(parseIsoLocal(current.time), offsetMinutes),
+    offsetMinutes,
+    temperatureC: current.temperature_2m,
+    humidityPct: current.relative_humidity_2m,
+    windSpeedKmh: current.wind_speed_10m,
+    danger: false,
+  };
+}
+
+// 2. Every usable hourly entry, normalised. Rows with a null value are skipped. Both the
+//    HOURLY and DAILY selections read from this list.
+function fetchALLHourlyPoints(
+  hourly: OpenMeteoResponse['hourly'],
+  offsetMinutes: number,
+): HourlyPoint[] {
+  const points: HourlyPoint[] = [];
+  for (let i = 0; i < hourly.time.length; i++) {
+    const t = hourly.temperature_2m[i];
+    const h = hourly.relative_humidity_2m[i];
+    const w = hourly.wind_speed_10m[i];
+    const timeStr = hourly.time[i];
+    if (t == null || h == null || w == null || timeStr == null) continue;
+
+    const local = parseIsoLocal(timeStr);
+    points.push({
+      utc: localWallTimeToUtc(local, offsetMinutes),
+      offsetMinutes,
+      hourLocal: local.hour,
+      dateKey: localDateKey(local),
+      temperatureC: t,
+      humidityPct: h,
+      windSpeedKmh: w,
+    });
+  }
+  return points;
+}
+
+// 3. The next 3 hourly points still in the future.
+function fetchNext3HourlyPoints(points: HourlyPoint[], now: number): NormalizedForecast[] {
+  return points
+    .filter((p) => p.utc.getTime() > now)
+    .slice(0, HOURLY_COUNT)
+    .map((p) => ({ type: 'HOURLY', ...pointValues(p), danger: false }));
+}
+
+// 4. Future hourly points that land on a DAILY slot (08/15/21 local) of the next DAILY_DAYS days.
+function fetchDaily(
+  points: HourlyPoint[],
+  todayLocal: LocalWallTime,
+  now: number,
+): NormalizedForecast[] {
+  const wantedDates = getNext3DateDays(todayLocal);
+  const slotHours = DAILY_SLOT_HOURS as readonly number[];
+  return points
+    .filter(
+      (p) =>
+        slotHours.includes(p.hourLocal) &&
+        wantedDates.has(p.dateKey) &&
+        p.utc.getTime() > now,
+    )
+    .map((p) => ({ type: 'DAILY', ...pointValues(p), danger: false }));
 }
 
 function pointValues(p: HourlyPoint) {

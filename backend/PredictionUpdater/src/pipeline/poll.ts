@@ -1,26 +1,14 @@
 import { logger } from '../logging/logger.js';
 import type { ServiceSelection } from '../repositories/selectionsRepository.js';
 import type { NormalizedForecast, WeatherProvider } from '../providers/types.js';
-
-export interface CitySiteForecasts {
-  citySiteId: number;
-  serviceName: string;
-  forecasts: NormalizedForecast[];
-}
-
-export interface PollSummary {
-  servicesAttempted: number;
-  servicesSucceeded: number;
-  failedServices: string[];
-  results: CitySiteForecasts[];
-}
+import type { CitySiteForecasts, PollingResult } from './types.js';
 
 // UC11 steps 3-6. A1 (a provider failing) is logged and skipped without stopping other
 // services or cities. A service counts as "succeeded" if at least one of its cities returned.
 export async function pollForecasts(
   selections: ServiceSelection[],
   registry: Map<string, WeatherProvider>,
-): Promise<PollSummary> {
+): Promise<PollingResult> {
   const results: CitySiteForecasts[] = [];
   const failedServices: string[] = [];
   let servicesSucceeded = 0;

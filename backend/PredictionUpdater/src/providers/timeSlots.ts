@@ -34,7 +34,7 @@ export function parseIsoLocal(isoLocal: string): Required<LocalWallTime> {
 
 // The set of local calendar dates we want DAILY rows for: the next DAILY_DAYS days after
 // `todayLocal`. Keys are "YYYY-M-D" (no zero padding) for comparison against parsed parts.
-export function wantedDailyDateKeys(todayLocal: LocalWallTime): Set<string> {
+export function getNext3DateDays(todayLocal: LocalWallTime): Set<string> {
   const startUtcDay = Date.UTC(todayLocal.year, todayLocal.month - 1, todayLocal.day);
   const keys = new Set<string>();
   for (let i = 1; i <= DAILY_DAYS; i++) {
