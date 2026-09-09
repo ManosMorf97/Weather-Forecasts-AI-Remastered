@@ -4,6 +4,8 @@ export interface DangerForecast {
   forecastId: number;
   citySiteId: number;
   timestamp: Date;
+  /** Minutes east of UTC for the city at `timestamp` - to render local wall-clock in the email. */
+  offsetMinutes: number;
   type: string;
   temperatureC: number;
   windSpeedKmh: number;
@@ -25,6 +27,7 @@ export class NotificationsRepository {
         forecastId: true,
         citySiteId: true,
         timestamp: true,
+        offsetMinutes: true,
         type: true,
         temperature: true,
         windSpeed: true,
@@ -41,6 +44,7 @@ export class NotificationsRepository {
       forecastId: r.forecastId,
       citySiteId: r.citySiteId,
       timestamp: r.timestamp,
+      offsetMinutes: r.offsetMinutes,
       type: r.type,
       temperatureC: r.temperature.toNumber(),
       windSpeedKmh: r.windSpeed.toNumber(),
@@ -50,9 +54,9 @@ export class NotificationsRepository {
     }));
   }
 
-  // Step 8: user ids that have any of these CitySites in their profile, keyed by citySiteId.
-  async getSubscribersByCitySite(citySiteIds: number[]): Promise<Map<number, string[]>> {
-    const byCitySite = new Map<number, string[]>();
+  // Step 8: for each of these CitySites, the set of user ids that have it in their profile.
+  async getSubscribersByCitySite(citySiteIds: number[]): Promise<Map<number, Set<string>>> {
+    const byCitySite = new Map<number, Set<string>>();
     if (citySiteIds.length === 0) return byCitySite;
 
     const rows = await this.db.userCitySite.findMany({
@@ -61,26 +65,30 @@ export class NotificationsRepository {
     });
 
     for (const row of rows) {
-      const list = byCitySite.get(row.citySiteId) ?? [];
-      list.push(row.userId);
-      byCitySite.set(row.citySiteId, list);
+      const set = byCitySite.get(row.citySiteId) ?? new Set<string>();
+      set.add(row.userId);
+      byCitySite.set(row.citySiteId, set);
     }
     return byCitySite;
   }
 
-  // Step 9: (userId, forecastId) pairs that already have a delivered notification, so they
-  // are excluded from this cycle. A failed delivery is NOT counted as notified - it retries.
-  async getDeliveredPairs(forecastIds: number[]): Promise<Set<string>> {
-    const delivered = new Set<string>();
-    if (forecastIds.length === 0) return delivered;
+  // Step 9: for each of these forecasts, the set of user ids already sent a notification for it,
+  // so they are excluded this cycle. A failed delivery is NOT counted as notified - it retries.
+  async getNotifiedUsersByForecast(forecastIds: number[]): Promise<Map<number, Set<string>>> {
+    const byForecast = new Map<number, Set<string>>();
+    if (forecastIds.length === 0) return byForecast;
 
     const rows = await this.db.notification.findMany({
       where: { forecastId: { in: forecastIds }, status: 'Sent' },
       select: { userId: true, forecastId: true },
     });
 
-    for (const row of rows) delivered.add(`${row.userId}|${row.forecastId}`);
-    return delivered;
+    for (const row of rows) {
+      const set = byForecast.get(row.forecastId) ?? new Set<string>();
+      set.add(row.userId);
+      byForecast.set(row.forecastId, set);
+    }
+    return byForecast;
   }
 
   // Step 13: one Notification row per (user, forecast) covered by a delivery attempt.

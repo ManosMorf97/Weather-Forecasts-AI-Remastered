@@ -34,21 +34,26 @@ export async function notifyDangerForecasts(
 
   const citySiteIds = [...new Set(dangerForecasts.map((d) => d.citySiteId))];
   const subscribersByCitySite = await repo.getSubscribersByCitySite(citySiteIds);
-  const deliveredPairs = await repo.getDeliveredPairs(dangerForecasts.map((d) => d.forecastId));
+  const notifiedByForecast = await repo.getNotifiedUsersByForecast(
+    dangerForecasts.map((d) => d.forecastId),
+  );
 
-  // Step 10: build one warning list per user, excluding already-delivered (user, forecast) pairs.
+  // Step 10: build one warning list per user. Recipients = this forecast's subscribers minus
+  // the users already notified for it.
+  const NONE: ReadonlySet<string> = new Set();
   const warningsByUser = new Map<string, DangerForecast[]>();
   for (const forecast of dangerForecasts) {
-    const subscribers = subscribersByCitySite.get(forecast.citySiteId) ?? [];
-    if (subscribers.length === 0) {
+    const recipients = (subscribersByCitySite.get(forecast.citySiteId) ?? NONE).difference(
+      notifiedByForecast.get(forecast.forecastId) ?? NONE,
+    );
+    if (recipients.size === 0) {
       logger.info(
         { forecastId: forecast.forecastId, citySiteId: forecast.citySiteId },
-        'danger forecast has no subscribers', // A6
+        'no subscribers need to be informed', // A6, or all already notified
       );
       continue;
     }
-    for (const userId of subscribers) {
-      if (deliveredPairs.has(`${userId}|${forecast.forecastId}`)) continue;
+    for (const userId of recipients) {
       const list = warningsByUser.get(userId) ?? [];
       list.push(forecast);
       warningsByUser.set(userId, list);
@@ -110,7 +115,7 @@ function buildBody(warnings: DangerForecast[]): string {
     .slice()
     .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
     .map((w) => {
-      const when = w.timestamp.toISOString().replace('T', ' ').slice(0, 16) + ' UTC';
+      const when = formatLocal(w.timestamp, w.offsetMinutes);
       return `- ${w.cityName}, ${w.country} (${w.serviceName}, ${w.type}) at ${when}: ` +
         `${w.temperatureC.toFixed(1)}°C, wind ${w.windSpeedKmh.toFixed(0)} km/h`;
     });
@@ -122,4 +127,17 @@ function buildBody(warnings: DangerForecast[]): string {
     '',
     'Stay informed through your local authorities.',
   ].join('\n');
+}
+
+// A UTC instant plus the location's offset (minutes east of UTC) rendered as local wall-clock,
+// e.g. 2026-09-09 15:00 (UTC+03:00). The offset is snapshotted per forecast, so it is already
+// DST-correct for that instant.
+function formatLocal(utc: Date, offsetMinutes: number): string {
+  const local = new Date(utc.getTime() + offsetMinutes * 60_000);
+  const stamp = local.toISOString().replace('T', ' ').slice(0, 16);
+  const sign = offsetMinutes < 0 ? '-' : '+';
+  const abs = Math.abs(offsetMinutes);
+  const hh = String(Math.trunc(abs / 60)).padStart(2, '0');
+  const mm = String(abs % 60).padStart(2, '0');
+  return `${stamp} (UTC${sign}${hh}:${mm})`;
 }

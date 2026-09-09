@@ -5,7 +5,7 @@
   "type": "module",
   "description": "UC11 scheduler: polls partner weather services, stores forecasts, notifies users of danger. Separate process from WeatherUserActions; shares only the database.",
   "engines": {
-    "node": ">=20.19.0"
+    "node": ">=22"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
