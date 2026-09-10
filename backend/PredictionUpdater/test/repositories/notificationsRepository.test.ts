@@ -50,6 +50,36 @@ async function seedForecast(retrievedAt: Date) {
 async function seedUser(userId: string) {
   return prisma.user.create({ data: { userId, createdAt: new Date() } });
 }
+//CHECK IT
+
+// Two dangerous forecasts (CURRENT and HOURLY) on one fresh citySite, each with its own
+// `retrievedAt` - so a test can prove getNotifiedUsersByForecast treats forecasts independently.
+async function seedTwoForecasts(retrievedAtA: Date, retrievedAtB: Date) {
+  const service = await prisma.forecastingService.create({
+    data: { name: 'Open-Meteo', apiEndpoint: 'https://example.test' },
+  });
+  const city = await prisma.city.create({
+    data: { name: 'Athens', country: 'Greece', latitude: '37.98380000', longitude: '23.72750000' },
+  });
+  const citySite = await prisma.citySite.create({
+    data: { cityId: city.cityId, serviceId: service.serviceId },
+  });
+  const base = {
+    citySiteId: citySite.citySiteId,
+    temperature: '35.0',
+    humidity: '20.00',
+    windSpeed: '10.00',
+    dangerFlag: true,
+    offsetMinutes: 180,
+  };
+  const forecastA = await prisma.forecast.create({
+    data: { ...base, timestamp: new Date('2026-09-10T12:00:00Z'), type: 'CURRENT', retrievedAt: retrievedAtA },
+  });
+  const forecastB = await prisma.forecast.create({
+    data: { ...base, timestamp: new Date('2026-09-10T13:00:00Z'), type: 'HOURLY', retrievedAt: retrievedAtB },
+  });
+  return { forecastA, forecastB };
+}
 
 describe('NotificationsRepository.getNotifiedUsersByForecast', () => {
   it('counts a Sent notification sent at/after the forecast was last updated', async () => {
@@ -160,5 +190,56 @@ describe('NotificationsRepository.getNotifiedUsersByForecast', () => {
     ]);
 
     expect([...(result.get(forecast.forecastId) ?? [])]).toEqual(['erin']);
+    expect(result.get(forecast.forecastId)?.size).toBe(1);
+  });
+
+  //Check IT
+  it('keeps forecasts independent across two users and two forecasts', async () => {
+    const retrievedAtA = new Date('2026-09-10T09:00:00Z'); // forecast A escalated here
+    const retrievedAtB = new Date('2026-09-10T10:00:00Z'); // forecast B escalated here
+    const { forecastA, forecastB } = await seedTwoForecasts(retrievedAtA, retrievedAtB);
+    const frank = await seedUser('frank');
+    const grace = await seedUser('grace');
+
+    await prisma.notification.createMany({
+      data: [
+        // frank: notified for A before it escalated -> stale, due for a re-notify on A
+        {
+          userId: frank.userId,
+          forecastId: forecastA.forecastId,
+          channel: 'email',
+          status: 'Sent',
+          sentAt: new Date('2026-09-10T08:00:00Z'),
+        },
+        // frank: notified for B after it escalated -> still covered on B
+        {
+          userId: frank.userId,
+          forecastId: forecastB.forecastId,
+          channel: 'email',
+          status: 'Sent',
+          sentAt: new Date('2026-09-10T10:30:00Z'),
+        },
+        // grace: notified for A after it escalated -> still covered on A
+        {
+          userId: grace.userId,
+          forecastId: forecastA.forecastId,
+          channel: 'email',
+          status: 'Sent',
+          sentAt: new Date('2026-09-10T09:30:00Z'),
+        },
+        // grace: never notified for B at all
+      ],
+    });
+
+    const repo = new NotificationsRepository(prisma);
+    const result = await repo.getNotifiedUsersByForecast([
+      { forecastId: forecastA.forecastId, retrievedAt: retrievedAtA },
+      { forecastId: forecastB.forecastId, retrievedAt: retrievedAtB },
+    ]);
+
+    // frank's send for A predates A's escalation, so A only still covers grace.
+    expect([...(result.get(forecastA.forecastId) ?? [])]).toEqual(['grace']);
+    // grace was never sent B, so B only still covers frank.
+    expect([...(result.get(forecastB.forecastId) ?? [])]).toEqual(['frank']);
   });
 });
