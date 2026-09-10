@@ -6,6 +6,8 @@ export interface DangerForecast {
   timestamp: Date;
   /** Minutes east of UTC for the city at `timestamp` - to render local wall-clock in the email. */
   offsetMinutes: number;
+  /** When this row was last polled/updated - a re-notify trigger if it moves past a prior send. */
+  retrievedAt: Date;
   type: string;
   temperatureC: number;
   windSpeedKmh: number;
@@ -28,6 +30,7 @@ export class NotificationsRepository {
         citySiteId: true,
         timestamp: true,
         offsetMinutes: true,
+        retrievedAt: true,
         type: true,
         temperature: true,
         windSpeed: true,
@@ -45,6 +48,7 @@ export class NotificationsRepository {
       citySiteId: r.citySiteId,
       timestamp: r.timestamp,
       offsetMinutes: r.offsetMinutes,
+      retrievedAt: r.retrievedAt,
       type: r.type,
       temperatureC: r.temperature.toNumber(),
       windSpeedKmh: r.windSpeed.toNumber(),
@@ -72,14 +76,23 @@ export class NotificationsRepository {
     return byCitySite;
   }
 
-  // Step 9: for each of these forecasts, the set of user ids already sent a notification for it,
-  // so they are excluded this cycle. A failed delivery is NOT counted as notified - it retries.
-  async getNotifiedUsersByForecast(forecastIds: number[]): Promise<Map<number, Set<string>>> {
+  // Step 9: for each of these forecasts, the set of user ids already sent a notification that
+  // still covers the CURRENT data - so they are excluded this cycle. A failed delivery is NOT
+  // counted as notified - it retries. A send from BEFORE the forecast's last update does not
+  // count either - store.ts updates a changed forecast in place (same forecastId, `retrievedAt`
+  // bumped), so `sentAt < retrievedAt` is this cycle's signal that the data moved past what the
+  // user was told, and they are re-notified with the escalated values.
+  async getNotifiedUsersByForecast(
+    forecasts: { forecastId: number; retrievedAt: Date }[],
+  ): Promise<Map<number, Set<string>>> {
     const byForecast = new Map<number, Set<string>>();
-    if (forecastIds.length === 0) return byForecast;
+    if (forecasts.length === 0) return byForecast;
 
     const rows = await this.db.notification.findMany({
-      where: { forecastId: { in: forecastIds }, status: 'Sent' },
+      where: {
+        status: 'Sent',
+        OR: forecasts.map((f) => ({ forecastId: f.forecastId, sentAt: { gte: f.retrievedAt } })),
+      },
       select: { userId: true, forecastId: true },
     });
 

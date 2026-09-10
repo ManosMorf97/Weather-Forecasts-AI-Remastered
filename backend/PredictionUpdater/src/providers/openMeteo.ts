@@ -15,6 +15,8 @@ const DEFAULT_BASE_URL = 'https://api.open-meteo.com/v1/forecast';
 
 // With timezone=auto every `time` string is local wall-clock (no offset suffix); we convert
 // back to UTC with utc_offset_seconds. wind_speed_unit=kmh gives us our canonical unit directly.
+// This endpoint carries no alert data, so every row this adapter emits has danger: false - that
+// is this provider's honest signal, not a pipeline rule.
 const responseSchema = z.object({
   utc_offset_seconds: z.number(),
   current: z.object({

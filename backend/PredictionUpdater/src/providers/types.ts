@@ -22,9 +22,10 @@ export interface NormalizedForecast {
   humidityPct: number;
   windSpeedKmh: number;
   /**
-   * True only when the provider supplied an official CAP alert (Extreme/Severe) covering this
-   * instant. Providers without an alerts feed (Open-Meteo, OpenWeatherMap /forecast) always
-   * report false - see the services discussion.
+   * True when this provider judges the instant life-threatening. Each adapter decides from
+   * whatever danger signal its API exposes (e.g. an official CAP alert of Extreme/Severe);
+   * an adapter with no such signal reports false. The poll/notify pipeline treats every
+   * provider the same - it never assumes which services can or cannot raise danger.
    */
   danger: boolean;
 }

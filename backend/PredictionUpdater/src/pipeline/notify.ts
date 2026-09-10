@@ -35,11 +35,11 @@ export async function notifyDangerForecasts(
   const citySiteIds = [...new Set(dangerForecasts.map((d) => d.citySiteId))];
   const subscribersByCitySite = await repo.getSubscribersByCitySite(citySiteIds);
   const notifiedByForecast = await repo.getNotifiedUsersByForecast(
-    dangerForecasts.map((d) => d.forecastId),
+    dangerForecasts.map((d) => ({ forecastId: d.forecastId, retrievedAt: d.retrievedAt })),
   );
 
   // Step 10: build one warning list per user. Recipients = this forecast's subscribers minus
-  // the users already notified for it.
+  // the users already notified for its current data (an escalated/updated forecast re-notifies).
   const NONE: ReadonlySet<string> = new Set();
   const warningsByUser = new Map<string, DangerForecast[]>();
   for (const forecast of dangerForecasts) {
@@ -132,7 +132,7 @@ function buildBody(warnings: DangerForecast[]): string {
 // A UTC instant plus the location's offset (minutes east of UTC) rendered as local wall-clock,
 // e.g. 2026-09-09 15:00 (UTC+03:00). The offset is snapshotted per forecast, so it is already
 // DST-correct for that instant.
-function formatLocal(utc: Date, offsetMinutes: number): string {
+export function formatLocal(utc: Date, offsetMinutes: number): string {
   const local = new Date(utc.getTime() + offsetMinutes * 60_000);
   const stamp = local.toISOString().replace('T', ' ').slice(0, 16);
   const sign = offsetMinutes < 0 ? '-' : '+';

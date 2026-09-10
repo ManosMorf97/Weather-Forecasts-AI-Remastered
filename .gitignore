@@ -10,6 +10,16 @@ backend/**/*.user
 backend/**/*.db
 backend/**/*.sqlite
 
+# PredictionUpdater
+backend/PredictionUpdater/node_modules/
+backend/PredictionUpdater/dist/
+# Prisma's generated client (regenerated from schema.prisma via `npm run db:generate`)
+backend/PredictionUpdater/src/generated/
+# Local helper: re-quotes SQL Server defaults that `prisma db pull` mangles
+backend/PredictionUpdater/fix-schema-after-pull.py
+# Personal scratch notes
+backend/PredictionUpdater/ReadingCode.txt
+
 # Frontend
 frontend/node_modules/
 frontend/dist/

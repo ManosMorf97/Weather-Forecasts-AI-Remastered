@@ -27,7 +27,7 @@ const schema = z.object({
   SMTP_PORT: z.coerce.number().int().positive().default(587),
   SMTP_USER: z.string().min(1).optional(),
   SMTP_PASSWORD: z.string().min(1).optional(),
-  EMAIL_FROM: z.string().default('Weather Alerts <noreply@forecastsUpdater.local>'),
+  EMAIL_FROM: z.string().default('Weather Alerts <noreply@forecastsupdater.local>'),
 
   HTTP_TIMEOUT_MS: z.coerce.number().int().positive().default(15_000),
   LOG_LEVEL: z.string().default('info'),
@@ -52,7 +52,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       server: parsed.YOUR_SERVER,
       user: parsed.YOUR_USER,
       password: parsed.YOUR_PASSWORD,
-      database: parsed.DB_NAME,
+      database: "weather_forecasts_AI",
     },
     dangerSeverities: new Set(
       parsed.DANGER_CAP_SEVERITIES.split(',')
