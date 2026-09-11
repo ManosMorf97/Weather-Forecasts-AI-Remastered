@@ -25,15 +25,19 @@ the SQL Server database, whose schema is owned by `WeatherUserActions`' EF Core 
 
 | `Name` | Adapter | Key | Danger |
 |---|---|---|---|
-| `Open-Meteo` | `openMeteo.ts` ✅ done | none | never flags |
-| `OpenWeatherMap` | `openWeatherMap.ts` — TODO | `OPENWEATHERMAP_API_KEY` | never flags |
-| `WeatherAPI` | `weatherApi.ts` — TODO | `WEATHERAPI_API_KEY` | Extreme/Severe CAP alert |
-| `Visual Crossing` | `visualCrossing.ts` — TODO | `VISUALCROSSING_API_KEY` | Extreme/Severe CAP alert |
+| `Open-Meteo` | `openMeteo.ts` | none | never flags (no alert feed) |
+| `OpenWeatherMap` | `openWeatherMap.ts` | `OPENWEATHERMAP_API_KEY` | never flags (no alert feed) |
+| `WeatherAPI` | `weatherApi.ts` | `WEATHERAPI_API_KEY` | configured CAP severities (`DANGER_CAP_SEVERITIES`) |
+| `Visual Crossing` | `visualCrossing.ts` | `VISUALCROSSING_API_KEY` | configured CAP severities (`DANGER_CAP_SEVERITIES`) |
 
 A service with no adapter registered (missing key) is logged and skipped.
 
 All adapters normalise to: **°C, %, km/h, UTC instants**. DAILY = next 3 local days at
-08:00 / 15:00 / 21:00 local (resolved from each provider's own offset).
+08:00 / 15:00 / 21:00 local (resolved from each provider's own offset) — except OpenWeatherMap,
+whose free endpoint is 3-hourly, so 08:00 never lands on its grid; only the 15:00/21:00 slots are
+reachable there. HOURLY = next 3 readings; OpenWeatherMap emits none, since its data is 3-hourly,
+not hourly, and a fabricated "next 3 hours" would misrepresent it rather than round-trip it
+honestly.
 
 ## Setup
 
@@ -76,6 +80,4 @@ column this job uses (`Forecasts`, `Notifications`, `CitySites`, …) will other
 
 ## Still TODO
 
-- `openWeatherMap.ts`, `weatherApi.ts`, `visualCrossing.ts` adapters (notes in each file).
-- CAP alert → row mapping helper for the two alert providers.
 - DB-backed pipeline tests (`store`, `notify`) via `@testcontainers/mssqlserver`.

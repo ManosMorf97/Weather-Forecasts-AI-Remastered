@@ -47,3 +47,17 @@ export function getNext3DateDays(todayLocal: LocalWallTime): Set<string> {
 export function localDateKey(local: LocalWallTime): string {
   return `${local.year}-${local.month}-${local.day}`;
 }
+
+// Inverse of localWallTimeToUtc: given a UTC instant and the location's offset, recover the
+// local wall-clock parts at that instant. Needed by adapters whose API gives a UTC epoch plus a
+// numeric offset, rather than an already-local time string (Open-Meteo's `current.time`).
+export function utcToLocalWallTime(utcMs: number, offsetMinutes: number): Required<LocalWallTime> {
+  const shifted = new Date(utcMs + offsetMinutes * MS_PER_MINUTE);
+  return {
+    year: shifted.getUTCFullYear(),
+    month: shifted.getUTCMonth() + 1,
+    day: shifted.getUTCDate(),
+    hour: shifted.getUTCHours(),
+    minute: shifted.getUTCMinutes(),
+  };
+}

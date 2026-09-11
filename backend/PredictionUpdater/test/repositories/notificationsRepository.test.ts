@@ -1,6 +1,7 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import type { PrismaClient } from '../../src/generated/prisma/client.js';
 import { NotificationsRepository } from '../../src/repositories/notificationsRepository.js';
+import { seedUser } from '../support/seed.js';
 import { startTestDb, truncateAll, type TestDb } from '../support/testDb.js';
 
 let db: TestDb | undefined;
@@ -47,11 +48,6 @@ async function seedForecast(retrievedAt: Date) {
   return forecast;
 }
 
-async function seedUser(userId: string) {
-  return prisma.user.create({ data: { userId, createdAt: new Date() } });
-}
-//CHECK IT
-
 // Two dangerous forecasts (CURRENT and HOURLY) on one fresh citySite, each with its own
 // `retrievedAt` - so a test can prove getNotifiedUsersByForecast treats forecasts independently.
 async function seedTwoForecasts(retrievedAtA: Date, retrievedAtB: Date) {
@@ -85,7 +81,7 @@ describe('NotificationsRepository.getNotifiedUsersByForecast', () => {
   it('counts a Sent notification sent at/after the forecast was last updated', async () => {
     const retrievedAt = new Date('2026-09-10T09:00:00Z');
     const forecast = await seedForecast(retrievedAt);
-    const alice = await seedUser('alice');
+    const alice = await seedUser(prisma, 'alice');
     await prisma.notification.create({
       data: {
         userId: alice.userId,
@@ -107,7 +103,7 @@ describe('NotificationsRepository.getNotifiedUsersByForecast', () => {
   it('does not count a Sent notification from before the forecast was last updated', async () => {
     const retrievedAt = new Date('2026-09-10T09:00:00Z'); // the forecast changed at this instant
     const forecast = await seedForecast(retrievedAt);
-    const bob = await seedUser('bob');
+    const bob = await seedUser(prisma, 'bob');
     await prisma.notification.create({
       data: {
         userId: bob.userId,
@@ -129,7 +125,7 @@ describe('NotificationsRepository.getNotifiedUsersByForecast', () => {
   it('does not count a Failed delivery as notified, regardless of timing', async () => {
     const retrievedAt = new Date('2026-09-10T09:00:00Z');
     const forecast = await seedForecast(retrievedAt);
-    const carol = await seedUser('carol');
+    const carol = await seedUser(prisma, 'carol');
     await prisma.notification.create({
       data: {
         userId: carol.userId,
@@ -163,8 +159,8 @@ describe('NotificationsRepository.getNotifiedUsersByForecast', () => {
   it('re-notifies only the user whose send predates an escalation, on one forecast', async () => {
     const retrievedAt = new Date('2026-09-10T09:00:00Z'); // the forecast just escalated
     const forecast = await seedForecast(retrievedAt);
-    const dave = await seedUser('dave'); // notified before the escalation -> due for a re-notify
-    const erin = await seedUser('erin'); // notified after the escalation -> already covered
+    const dave = await seedUser(prisma, 'dave'); // notified before the escalation -> due for a re-notify
+    const erin = await seedUser(prisma, 'erin'); // notified after the escalation -> already covered
     await prisma.notification.createMany({
       data: [
         {
@@ -193,13 +189,12 @@ describe('NotificationsRepository.getNotifiedUsersByForecast', () => {
     expect(result.get(forecast.forecastId)?.size).toBe(1);
   });
 
-  //Check IT
   it('keeps forecasts independent across two users and two forecasts', async () => {
     const retrievedAtA = new Date('2026-09-10T09:00:00Z'); // forecast A escalated here
     const retrievedAtB = new Date('2026-09-10T10:00:00Z'); // forecast B escalated here
     const { forecastA, forecastB } = await seedTwoForecasts(retrievedAtA, retrievedAtB);
-    const frank = await seedUser('frank');
-    const grace = await seedUser('grace');
+    const frank = await seedUser(prisma, 'frank');
+    const grace = await seedUser(prisma, 'grace');
 
     await prisma.notification.createMany({
       data: [

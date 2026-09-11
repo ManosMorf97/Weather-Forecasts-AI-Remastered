@@ -92,9 +92,18 @@ describe('OpenMeteoProvider', () => {
 
     const daily = (await provider.fetchForCity(ATHENS)).filter((f) => f.type === 'DAILY');
 
-    expect(daily).toHaveLength(9);
-    // First wanted day is 2026-09-05; 08:00 Athens => 05:00 UTC.
-    expect(daily[0]?.timestamp.toISOString()).toBe('2026-09-05T05:00:00.000Z');
+    // 3 slots (08/15/21 Athens => 05/12/18 UTC) x 3 wanted days (Sep 5-7).
+    expect(daily.map((f) => f.timestamp.toISOString())).toEqual([
+      '2026-09-05T05:00:00.000Z',
+      '2026-09-05T12:00:00.000Z',
+      '2026-09-05T18:00:00.000Z',
+      '2026-09-06T05:00:00.000Z',
+      '2026-09-06T12:00:00.000Z',
+      '2026-09-06T18:00:00.000Z',
+      '2026-09-07T05:00:00.000Z',
+      '2026-09-07T12:00:00.000Z',
+      '2026-09-07T18:00:00.000Z',
+    ]);
     expect(daily.every((f) => f.danger === false)).toBe(true);
     expect(daily.every((f) => f.offsetMinutes === 180)).toBe(true);
   });
