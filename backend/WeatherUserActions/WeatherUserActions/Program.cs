@@ -68,6 +68,23 @@ builder.Services.AddDbContext<WeatherUserActionsDbContext>(options =>
         options.EnableSensitiveDataLogging();
     }
 });
+
+// The frontend origin allowed to call this API directly (i.e. not through the Vite dev proxy,
+// which never needs CORS since the browser only ever talks to Vite's own origin).
+const string FrontendCorsPolicy = "Frontend";
+var frontendUrl = Environment.GetEnvironmentVariable("YOUR_FRONTEND_URL")
+    ?? builder.Configuration["Cors:AllowedOrigin"];
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(FrontendCorsPolicy, policy =>
+    {
+        if (!string.IsNullOrWhiteSpace(frontendUrl))
+        {
+            policy.WithOrigins(frontendUrl).AllowAnyHeader().AllowAnyMethod();
+        }
+    });
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -81,6 +98,7 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseRouting();
 
+app.UseCors(FrontendCorsPolicy);
 app.UseAuthorization();
 
 app.MapStaticAssets();

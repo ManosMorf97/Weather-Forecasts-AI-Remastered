@@ -36,6 +36,9 @@ so a request that takes tens of seconds never ties up a web request thread. See
 # Machine env vars (shared with PredictionUpdater):
 #   YOUR_SERVER  YOUR_USER  YOUR_PASSWORD           -> DB connection (db: weather_forecasts_AI)
 #   YOUR_APPWRITE_ENDPOINT / _PROJECT_ID / _API_KEY  -> caller JWT verification + user email lookup
+#   YOUR_FRONTEND_URL                                -> CORS-allowed origin (only needed when the
+#                                                        frontend calls this API directly instead
+#                                                        of through Vite's dev proxy)
 
 cp WeatherUserActions/secrets.example.json WeatherUserActions/secrets.json
 # fill in SMTP creds for real email delivery - without them, emails are just logged (LoggingEmailSender)

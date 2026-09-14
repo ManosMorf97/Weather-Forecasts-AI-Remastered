@@ -1,0 +1,84 @@
+:root {
+  --text: #55647a;
+  --text-h: #0f172a;
+  --border: #dbe7f3;
+  --card-bg: #ffffff;
+  --accent: #2f86eb;
+  --accent-hover: #1f6fd1;
+  --accent-bg: rgba(47, 134, 235, 0.1);
+  --shell-gradient: linear-gradient(160deg, #eaf6ff 0%, #cfe9ff 45%, #9fd0ff 100%);
+  --shadow:
+    rgba(15, 23, 42, 0.12) 0 10px 25px -5px, rgba(15, 23, 42, 0.06) 0 4px 6px -2px;
+
+  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+
+  font: 16px/150% var(--sans);
+  color-scheme: light dark;
+  color: var(--text);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #a8b3c2;
+    --text-h: #eef2f7;
+    --border: #223247;
+    --card-bg: #131b2c;
+    --accent: #5aa9ff;
+    --accent-hover: #7dbcff;
+    --accent-bg: rgba(90, 169, 255, 0.15);
+    --shell-gradient: linear-gradient(160deg, #0b1220 0%, #10233b 45%, #123152 100%);
+    --shadow:
+      rgba(0, 0, 0, 0.45) 0 10px 25px -5px, rgba(0, 0, 0, 0.3) 0 4px 6px -2px;
+  }
+}
+
+body {
+  margin: 0;
+}
+
+#root {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--shell-gradient);
+}
+
+h1,
+h2 {
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+/* Reskin Bootstrap's primary button/link tokens to the weather accent color. */
+.btn-primary {
+  --bs-btn-bg: var(--accent);
+  --bs-btn-border-color: var(--accent);
+  --bs-btn-hover-bg: var(--accent-hover);
+  --bs-btn-hover-border-color: var(--accent-hover);
+  --bs-btn-active-bg: var(--accent-hover);
+  --bs-btn-active-border-color: var(--accent-hover);
+  --bs-btn-focus-shadow-rgb: 47, 134, 235;
+}
+
+a {
+  color: var(--accent);
+}
+a:hover {
+  color: var(--accent-hover);
+}
+
+.card {
+  background: var(--card-bg);
+  color: var(--text);
+  border-color: var(--border);
+  box-shadow: var(--shadow);
+}
+
+/* Bootstrap forces its own gray with !important; only an !important override beats it. */
+.text-muted {
+  color: var(--text) !important;
+}
