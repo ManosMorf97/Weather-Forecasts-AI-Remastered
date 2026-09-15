@@ -5,7 +5,7 @@ forecasting APIs, rates each partner's accuracy, surfaces the best-rated forecas
 proactively warns subscribers about life-threatening conditions — built as two independently
 deployable backend services sharing one SQL Server database, plus a React frontend.
 
-[![Backend CI](https://github.com/ManosMorf97/Weather-Forecasts-AI-Remastered/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/ManosMorf97/Weather-Forecasts-AI-Remastered/actions/workflows/backend-ci.yml)
+[![CI](https://github.com/ManosMorf97/Weather-Forecasts-AI-Remastered/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/ManosMorf97/Weather-Forecasts-AI-Remastered/actions/workflows/backend-ci.yml)
 ![.NET 10](https://img.shields.io/badge/.NET-10-512BD4)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6)
 ![React](https://img.shields.io/badge/React-19-61DAFB)
@@ -88,11 +88,12 @@ rather than trusting a client-decoded JWT.
 - **Async work doesn't block requests.** Analytics report generation (DB query → statistics →
   charts → PDF → email) can take tens of seconds, so the controller returns `202 Accepted`
   immediately and a background worker (`AnalyticsReportWorker`) drives the job to completion.
-- **~180 automated tests** across both services (150 xUnit tests in `WeatherUserActions.Tests`,
-  33 Vitest tests in `PredictionUpdater`), run in CI on every push/PR.
+- **~195 automated tests** across all three parts (150 xUnit tests in `WeatherUserActions.Tests`,
+  33 Vitest tests in `PredictionUpdater`, 16 Vitest + React Testing Library tests in
+  `WeatherAppUserInterface`), run in CI on every push/PR.
 - **CI only builds what changed** — a path-filtered GitHub Actions pipeline
-  ([`backend-ci.yml`](.github/workflows/backend-ci.yml)) runs each service's build/test job only
-  when files under that service actually changed.
+  ([`backend-ci.yml`](.github/workflows/backend-ci.yml)) runs each part's lint/build/test job only
+  when files under that part actually changed.
 
 ## Data model
 
@@ -111,6 +112,7 @@ backend/
     test/                       Vitest: provider unit tests + Testcontainers repository tests
 frontend/
   WeatherAppUserInterface/  React + Vite frontend — auth screens, routing guards, profile sync
+    src/auth/                   Auth context/hooks/components, plus their Vitest + RTL tests
 requirements/              Use-case analysis, ER diagram, sequence/activity diagrams, system design
 .github/workflows/         CI
 ```
@@ -122,7 +124,7 @@ Each part is self-contained and has its own setup instructions:
 - [`backend/WeatherUserActions/README.md`](backend/WeatherUserActions/README.md) *(ASP.NET Core API)*
 - [`backend/PredictionUpdater/README.md`](backend/PredictionUpdater/README.md) *(scheduler job)*
 - [`frontend/WeatherAppUserInterface`](frontend/WeatherAppUserInterface) *(React + Vite app)* —
-  `npm install && npm run dev`
+  `npm install && npm run dev` (or `npm test` for the Vitest + React Testing Library suite)
 
 All three expect the same machine-level environment variables for the shared SQL Server connection
 and Appwrite project (`YOUR_SERVER` / `YOUR_USER` / `YOUR_PASSWORD`, `YOUR_APPWRITE_*`) — see either

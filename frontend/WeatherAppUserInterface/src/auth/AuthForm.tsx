@@ -20,7 +20,11 @@ export function AuthForm({
 }: AuthFormProps) {
   return (
     <form onSubmit={onSubmit}>
-      {error && <div className="alert alert-danger py-2">{error}</div>}
+      {error && (
+        <div className="alert alert-danger py-2" role="alert">
+          {error}
+        </div>
+      )}
 
       {children}
 

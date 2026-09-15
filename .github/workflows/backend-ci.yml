@@ -1,4 +1,4 @@
-name: Backend CI
+name: CI
 
 on:
   push:
@@ -13,6 +13,7 @@ jobs:
     outputs:
       weatheruseractions: ${{ steps.filter.outputs.weatheruseractions }}
       predictionupdater: ${{ steps.filter.outputs.predictionupdater }}
+      weatherappuserinterface: ${{ steps.filter.outputs.weatherappuserinterface }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,6 +28,9 @@ jobs:
               - '.github/workflows/backend-ci.yml'
             predictionupdater:
               - 'backend/PredictionUpdater/**'
+              - '.github/workflows/backend-ci.yml'
+            weatherappuserinterface:
+              - 'frontend/WeatherAppUserInterface/**'
               - '.github/workflows/backend-ci.yml'
 
   weatheruseractions:
@@ -88,3 +92,34 @@ jobs:
 
       - name: Test
         run: npm test
+
+  weatherappuserinterface:
+    needs: changes
+    if: ${{ needs.changes.outputs.weatherappuserinterface == 'true' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend/WeatherAppUserInterface
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/WeatherAppUserInterface/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build

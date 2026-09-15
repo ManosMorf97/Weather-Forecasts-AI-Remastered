@@ -45,7 +45,7 @@ export function RegisterPage() {
           id="register-name"
           label="Username"
           type="text"
-          autoComplete="userName"
+          autoComplete="username"
           value={userName}
           onChange={setUserName}
         />
