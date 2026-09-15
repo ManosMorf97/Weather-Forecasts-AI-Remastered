@@ -43,9 +43,9 @@ export function RegisterPage() {
       >
         <AuthField
           id="register-name"
-          label="Name"
+          label="Username"
           type="text"
-          autoComplete="name"
+          autoComplete="userName"
           value={userName}
           onChange={setUserName}
         />
