@@ -70,8 +70,13 @@ namespace WeatherUserActions.Tests
             var citySiteId = await SeedCitySiteAsync(cityId, serviceId);
             var forecastId = await SeedForecastAsync(citySiteId);
 
-            await using var dbA = _fixture.CreateDbContext();
-            await using var dbB = _fixture.CreateDbContext();
+            // Task.WhenAll alone doesn't guarantee the two SaveChangesAsync calls actually collide -
+            // one full check-then-insert sequence can finish before the other's check even runs, which
+            // just becomes a normal update instead of a race. This barrier forces both contexts to reach
+            // their INSERT at the same instant, so the DB's unique index is the one deciding the winner.
+            var barrier = new ConcurrentSaveBarrier(participantCount: 2);
+            await using var dbA = _fixture.CreateDbContext(barrier);
+            await using var dbB = _fixture.CreateDbContext(barrier);
             var repositoryA = new RatingsRepository(dbA, NullLogger<RatingsRepository>.Instance);
             var repositoryB = new RatingsRepository(dbB, NullLogger<RatingsRepository>.Instance);
 

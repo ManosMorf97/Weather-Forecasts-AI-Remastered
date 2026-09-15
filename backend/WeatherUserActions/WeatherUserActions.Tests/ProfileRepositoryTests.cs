@@ -28,8 +28,12 @@ namespace WeatherUserActions.Tests
         {
             var uid = UniqueUid();
 
-            await using var dbA = _fixture.CreateDbContext();
-            await using var dbB = _fixture.CreateDbContext();
+            // Forces both inserts to actually collide at the DB, so this test exercises the
+            // "someone else already inserted it" DbUpdateException recovery path (ProfileRepository.cs)
+            // every run, instead of only when the two calls happen to overlap on their own.
+            var barrier = new ConcurrentSaveBarrier(participantCount: 2);
+            await using var dbA = _fixture.CreateDbContext(barrier);
+            await using var dbB = _fixture.CreateDbContext(barrier);
             var repositoryA = new ProfileRepository(dbA, NullLogger<ProfileRepository>.Instance);
             var repositoryB = new ProfileRepository(dbB, NullLogger<ProfileRepository>.Instance);
 

@@ -34,8 +34,12 @@ namespace WeatherUserActions.Tests
 
             var athens = new CityDto("Athens", "Greece", 37.98m, 23.72m);
 
-            await using var dbA = _fixture.CreateDbContext();
-            await using var dbB = _fixture.CreateDbContext();
+            // Only the first SaveChangesAsync per context is synchronized (the city insert) - the
+            // rest of ReplaceUserSelectionAsync's multi-save transaction is left to resolve on its
+            // own, so the loser's real DB lock wait can't deadlock against this thread-level barrier.
+            var barrier = new ConcurrentSaveBarrier(participantCount: 2);
+            await using var dbA = _fixture.CreateDbContext(barrier);
+            await using var dbB = _fixture.CreateDbContext(barrier);
             var repositoryA = new SelectionsRepository(dbA, NullLogger<SelectionsRepository>.Instance);
             var repositoryB = new SelectionsRepository(dbB, NullLogger<SelectionsRepository>.Instance);
 

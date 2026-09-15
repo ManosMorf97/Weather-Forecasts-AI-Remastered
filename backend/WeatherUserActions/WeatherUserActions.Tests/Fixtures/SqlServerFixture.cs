@@ -1,5 +1,6 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Respawn;
 using Testcontainers.MsSql;
 using WeatherUserActions.Data;
@@ -46,13 +47,17 @@ namespace WeatherUserActions.Tests.Fixtures
             await _respawner.ResetAsync(connection);
         }
 
-        public WeatherUserActionsDbContext CreateDbContext()
+        public WeatherUserActionsDbContext CreateDbContext(params IInterceptor[] interceptors)
         {
-            var options = new DbContextOptionsBuilder<WeatherUserActionsDbContext>()
-                .UseSqlServer(ConnectionString)
-                .Options;
+            var builder = new DbContextOptionsBuilder<WeatherUserActionsDbContext>()
+                .UseSqlServer(ConnectionString);
 
-            return new WeatherUserActionsDbContext(options);
+            if (interceptors.Length > 0)
+            {
+                builder.AddInterceptors(interceptors);
+            }
+
+            return new WeatherUserActionsDbContext(builder.Options);
         }
     }
 
