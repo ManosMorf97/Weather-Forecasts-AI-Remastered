@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import type { FormEvent } from 'react';
+import type { SubmitEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AppwriteException } from 'appwrite';
 import { useAuth } from '../auth/useAuth';
 import { AuthLayout } from '../auth/AuthLayout';
+import { AuthForm } from '../auth/AuthForm';
+import { AuthField } from '../auth/AuthField';
 
 export function LoginPage() {
   const { login } = useAuth();
@@ -13,7 +15,7 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  async function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
     setError(null);
     setSubmitting(true);
@@ -28,43 +30,30 @@ export function LoginPage() {
 
   return (
     <AuthLayout title="Welcome back" subtitle="Log in to see your weather forecasts">
-      <form onSubmit={handleSubmit}>
-        {error && <div className="alert alert-danger py-2">{error}</div>}
-
-        <div className="mb-3">
-          <label htmlFor="login-email" className="form-label">
-            Email
-          </label>
-          <input
-            id="login-email"
-            type="email"
-            className="form-control"
-            autoComplete="email"
-            required
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-          />
-        </div>
-
-        <div className="mb-3">
-          <label htmlFor="login-password" className="form-label">
-            Password
-          </label>
-          <input
-            id="login-password"
-            type="password"
-            className="form-control"
-            autoComplete="current-password"
-            required
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-          />
-        </div>
-
-        <button className="btn btn-primary w-100" type="submit" disabled={submitting}>
-          {submitting ? 'Logging in…' : 'Log in'}
-        </button>
-      </form>
+      <AuthForm
+        onSubmit={handleSubmit}
+        error={error}
+        submitting={submitting}
+        submitLabel="Log in"
+        submittingLabel="Logging in…"
+      >
+        <AuthField
+          id="login-email"
+          label="Email"
+          type="email"
+          autoComplete="email"
+          value={email}
+          onChange={setEmail}
+        />
+        <AuthField
+          id="login-password"
+          label="Password"
+          type="password"
+          autoComplete="current-password"
+          value={password}
+          onChange={setPassword}
+        />
+      </AuthForm>
 
       <p className="text-center mt-3 mb-0">
         Don&apos;t have an account? <Link to="/register">Create one</Link>

@@ -1,25 +1,27 @@
 import { useState } from 'react';
-import type { FormEvent } from 'react';
+import type { SubmitEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AppwriteException } from 'appwrite';
 import { useAuth } from '../auth/useAuth';
 import { AuthLayout } from '../auth/AuthLayout';
+import { AuthForm } from '../auth/AuthForm';
+import { AuthField } from '../auth/AuthField';
 
 export function RegisterPage() {
   const { register } = useAuth();
   const navigate = useNavigate();
-  const [name, setName] = useState('');
+  const [userName, setUserName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  async function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
     setError(null);
     setSubmitting(true);
     try {
-      await register(name, email, password);
+      await register(userName, email, password);
       navigate('/', { replace: true });
     } catch (err) {
       setError(registerErrorMessage(err));
@@ -32,59 +34,39 @@ export function RegisterPage() {
       title="Create your account"
       subtitle="Track weather forecasts for the cities you care about"
     >
-      <form onSubmit={handleSubmit}>
-        {error && <div className="alert alert-danger py-2">{error}</div>}
-
-        <div className="mb-3">
-          <label htmlFor="register-name" className="form-label">
-            Name
-          </label>
-          <input
-            id="register-name"
-            type="text"
-            className="form-control"
-            autoComplete="name"
-            required
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-          />
-        </div>
-
-        <div className="mb-3">
-          <label htmlFor="register-email" className="form-label">
-            Email
-          </label>
-          <input
-            id="register-email"
-            type="email"
-            className="form-control"
-            autoComplete="email"
-            required
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-          />
-        </div>
-
-        <div className="mb-3">
-          <label htmlFor="register-password" className="form-label">
-            Password
-          </label>
-          <input
-            id="register-password"
-            type="password"
-            className="form-control"
-            autoComplete="new-password"
-            required
-            minLength={8}
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-          />
-        </div>
-
-        <button className="btn btn-primary w-100" type="submit" disabled={submitting}>
-          {submitting ? 'Creating account…' : 'Create account'}
-        </button>
-      </form>
+      <AuthForm
+        onSubmit={handleSubmit}
+        error={error}
+        submitting={submitting}
+        submitLabel="Create account"
+        submittingLabel="Creating account…"
+      >
+        <AuthField
+          id="register-name"
+          label="Name"
+          type="text"
+          autoComplete="name"
+          value={userName}
+          onChange={setUserName}
+        />
+        <AuthField
+          id="register-email"
+          label="Email"
+          type="email"
+          autoComplete="email"
+          value={email}
+          onChange={setEmail}
+        />
+        <AuthField
+          id="register-password"
+          label="Password"
+          type="password"
+          autoComplete="new-password"
+          minLength={8}
+          value={password}
+          onChange={setPassword}
+        />
+      </AuthForm>
 
       <p className="text-center mt-3 mb-0">
         Already have an account? <Link to="/login">Log in</Link>
