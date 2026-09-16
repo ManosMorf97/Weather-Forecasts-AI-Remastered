@@ -91,9 +91,15 @@ describe('SetupPage - city search (UC4)', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Add' }));
 
-    // Appears in both the search-results row (now "Added") and the selected-cities row.
-    expect(screen.getAllByText('Athens, Greece')).toHaveLength(2);
+    // Search-results row: now shows a disabled "Added" button next to Athens.
+    const searchResultRow = screen.getByRole('button', { name: 'Added' }).closest('li');
+    expect(searchResultRow).toHaveTextContent('Athens, Greece');
     expect(screen.getByRole('button', { name: 'Added' })).toBeDisabled();
+
+    // Selected-cities row: Athens now has its own "Remove" button.
+    const selectedCityRow = screen.getByRole('button', { name: 'Remove' }).closest('li');
+    expect(selectedCityRow).toHaveTextContent('Athens, Greece');
+
     expect(screen.queryByText('No cities selected yet.')).not.toBeInTheDocument();
   });
 
@@ -144,6 +150,9 @@ describe('SetupPage - confirm (UC4 + UC5)', () => {
     await user.click(await screen.findByRole('button', { name: 'Add' }));
 
     expect(confirmButton).toBeEnabled();
+
+    await user.click(screen.getByRole('button', { name: 'Remove' }));
+    expect(confirmButton).toBeDisabled();
   });
 
   it('saves the selection, refreshes the profile, and navigates home', async () => {
