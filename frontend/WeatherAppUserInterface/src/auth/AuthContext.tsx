@@ -86,9 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login,
     register,
     logout,
-    retryProfileSync: () => {
-      void syncProfile();
-    },
+    retryProfileSync: syncProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

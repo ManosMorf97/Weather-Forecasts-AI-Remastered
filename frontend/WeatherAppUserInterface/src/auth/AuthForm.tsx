@@ -29,6 +29,7 @@ export function AuthForm({
       {children}
 
       <button className="btn btn-primary w-100" type="submit" disabled={submitting}>
+        {submitting && <span className="spinner-border spinner-border-sm me-2" aria-hidden="true" />}
         {submitting ? submittingLabel : submitLabel}
       </button>
     </form>
