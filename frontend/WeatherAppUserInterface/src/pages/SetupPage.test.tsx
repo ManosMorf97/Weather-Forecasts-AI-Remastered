@@ -89,15 +89,15 @@ describe('SetupPage - city search (UC4)', () => {
     await user.type(screen.getByLabelText('Search for a city'), 'Athens');
     await user.click(screen.getByRole('button', { name: 'Search' }));
 
-    await user.click(await screen.findByRole('button', { name: 'Add' }));
+    const picker = await screen.findByRole('combobox', { name: 'Add a city from the search results' });
+    await user.selectOptions(picker, 'Athens, Greece');
 
-    // Search-results row: now shows a disabled "Added" button next to Athens.
-    const searchResultRow = screen.getByRole('button', { name: 'Added' }).closest('li');
-    expect(searchResultRow).toHaveTextContent('Athens, Greece');
-    expect(screen.getByRole('button', { name: 'Added' })).toBeDisabled();
+    // Already-added result disappears from the picker, and now only the placeholder remains.
+    expect(picker).toHaveTextContent('Choose a city to add…');
+    expect(screen.getByText('All results are already added.')).toBeInTheDocument();
 
     // Selected-cities row: Athens now has its own "Remove" button.
-    const selectedCityRow = screen.getByRole('button', { name: 'Remove' }).closest('li');
+    const selectedCityRow = screen.getByRole('button', { name: 'Remove Athens, Greece' }).closest('li');
     expect(selectedCityRow).toHaveTextContent('Athens, Greece');
 
     expect(screen.queryByText('No cities selected yet.')).not.toBeInTheDocument();
@@ -124,7 +124,7 @@ describe('SetupPage - city search (UC4)', () => {
     renderSetupPage();
 
     await screen.findByText('Athens, Greece');
-    await user.click(screen.getByRole('button', { name: 'Remove' }));
+    await user.click(screen.getByRole('button', { name: 'Remove Athens, Greece' }));
 
     expect(screen.getByText('No cities selected yet.')).toBeInTheDocument();
   });
@@ -147,11 +147,12 @@ describe('SetupPage - confirm (UC4 + UC5)', () => {
 
     await user.type(screen.getByLabelText('Search for a city'), 'Athens');
     await user.click(screen.getByRole('button', { name: 'Search' }));
-    await user.click(await screen.findByRole('button', { name: 'Add' }));
+    const picker = await screen.findByRole('combobox', { name: 'Add a city from the search results' });
+    await user.selectOptions(picker, 'Athens, Greece');
 
     expect(confirmButton).toBeEnabled();
 
-    await user.click(screen.getByRole('button', { name: 'Remove' }));
+    await user.click(screen.getByRole('button', { name: 'Remove Athens, Greece' }));
     expect(confirmButton).toBeDisabled();
   });
 

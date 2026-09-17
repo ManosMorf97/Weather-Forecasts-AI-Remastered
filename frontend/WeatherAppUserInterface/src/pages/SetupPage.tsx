@@ -24,9 +24,9 @@ export function SetupPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
+  // services carries its own `selected` flag per entry - toggled in place, filtered at submit.
   const [services, setServices] = useState<ServiceSelectionDto[]>([]);
-  // Dictionaries keyed by id/signature - presence in the dictionary means "selected".
-  const [selectedServiceIds, setSelectedServiceIds] = useState<Record<number, true>>({});
+  // Dictionary keyed by signature - presence means "selected".
   const [selectedCities, setSelectedCities] = useState<Record<string, CityDto>>({});
 
   const [query, setQuery] = useState('');
@@ -62,11 +62,6 @@ export function SetupPage() {
           return;
         }
         setServices(selections.services);
-        setSelectedServiceIds(
-          Object.fromEntries(
-            selections.services.filter((service) => service.selected).map((service) => [service.serviceId, true]),
-          ),
-        );
         setSelectedCities(Object.fromEntries(selections.cities.map((city) => [citySignature(city), city])));
       } catch (err) {
         if (cancelled) {
@@ -122,19 +117,16 @@ export function SetupPage() {
   }
 
   function toggleService(serviceId: number) {
-    setSelectedServiceIds((current) => {
-      const next = { ...current };
-      if (next[serviceId]) {
-        delete next[serviceId];
-      } else {
-        next[serviceId] = true;
-      }
-      return next;
-    });
+    setServices((current) =>
+      current.map((service) =>
+        service.serviceId === serviceId ? { ...service, selected: !service.selected } : service,
+      ),
+    );
   }
 
   const selectedCityList = Object.values(selectedCities);
-  const selectedServiceIdList = Object.keys(selectedServiceIds).map(Number);
+  const selectedServiceIdList = services.filter((service) => service.selected).map((service) => service.serviceId);
+  const availableSearchResults = searchResults.filter((city) => !selectedCities[citySignature(city)]);
 
   // A3/A2: at least one city and one service must remain selected to confirm.
   const canConfirm = selectedCityList.length > 0 && selectedServiceIdList.length > 0;
@@ -209,31 +201,34 @@ export function SetupPage() {
                 <p className="text-muted small">No results. Try a different search.</p>
               )}
 
-              {searchResults.length > 0 && (
-                <ul className="list-group mb-3">
-                  {searchResults.map((city) => {
-                    const alreadyAdded = Boolean(selectedCities[citySignature(city)]);
-                    return (
-                      <li
-                        key={citySignature(city)}
-                        className="list-group-item d-flex justify-content-between align-items-center flex-wrap gap-2"
-                      >
-                        <span>
-                          {city.name}, {city.country}
-                        </span>
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-outline-primary"
-                          disabled={alreadyAdded}
-                          onClick={() => addCity(city)}
-                        >
-                          {alreadyAdded ? 'Added' : 'Add'}
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
+              {searchResults.length > 0 &&
+                (availableSearchResults.length > 0 ? (
+                  <select
+                    className="form-select mb-3"
+                    aria-label="Add a city from the search results"
+                    value=""
+                    onChange={(event) => {
+                      const city = availableSearchResults.find(
+                        (result) => citySignature(result) === event.target.value,
+                      );
+                      if (city) {
+                        addCity(city);
+                      }
+                    }}
+                  >
+                    <option value="" disabled>
+                      Choose a city to add…
+                    </option>
+                    {availableSearchResults.map((city) => (
+                      <option key={citySignature(city)} value={citySignature(city)}>
+                        {city.name}, {city.country}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <p className="text-muted small mb-3">All results are already added.</p>
+                ))
+              }
 
               <h3 className="h6 mb-2">Selected cities</h3>
               {selectedCityList.length === 0 ? (
@@ -250,10 +245,12 @@ export function SetupPage() {
                       </span>
                       <button
                         type="button"
-                        className="btn btn-sm btn-outline-danger"
+                        className="btn btn-sm btn-outline-danger rounded-circle d-flex align-items-center justify-content-center p-0"
+                        style={{ width: '1.75rem', height: '1.75rem' }}
+                        aria-label={`Remove ${city.name}, ${city.country}`}
                         onClick={() => removeCity(city)}
                       >
-                        Remove
+                        <span aria-hidden="true">×</span>
                       </button>
                     </li>
                   ))}
@@ -273,7 +270,7 @@ export function SetupPage() {
                         className="form-check-input"
                         type="checkbox"
                         id={`service-${service.serviceId}`}
-                        checked={Boolean(selectedServiceIds[service.serviceId])}
+                        checked={service.selected}
                         onChange={() => toggleService(service.serviceId)}
                       />
                       <label className="form-check-label" htmlFor={`service-${service.serviceId}`}>

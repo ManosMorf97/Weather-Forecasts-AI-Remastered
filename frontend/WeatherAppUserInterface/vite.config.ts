@@ -1,5 +1,6 @@
 import react, { reactCompilerPreset } from '@vitejs/plugin-react'
 import babel from '@rolldown/plugin-babel'
+import basicSsl from '@vitejs/plugin-basic-ssl'
 import { defineConfig } from 'vitest/config'
 
 // https://vite.dev/config/
@@ -9,7 +10,10 @@ export default defineConfig({
   envPrefix: ['VITE_', 'YOUR_'],
   plugins: [
     react(),
-    babel({ presets: [reactCompilerPreset()] })
+    babel({ presets: [reactCompilerPreset()] }),
+    // Dev-only: serves the Vite dev server itself over https with an auto-generated,
+    // self-signed cert (separate from the backend's ASP.NET Core dev cert).
+    basicSsl(),
   ],
   server: {
     proxy: {
@@ -18,7 +22,7 @@ export default defineConfig({
       '/api': {
         target: 'https://localhost:7237',
         changeOrigin: true,
-        secure: false,
+        secure: true,
       },
     },
   },
