@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { SubmitEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/useAuth';
 import { account } from '../auth/appwriteClient';
@@ -14,6 +13,9 @@ import type { CityDto, ServiceSelectionDto } from '../api/selectionsApi';
 function citySignature(city: CityDto | GeocodedCity): string {
   return `${city.name}|${city.country}|${city.latitude}|${city.longitude}`;
 }
+
+const SEARCH_DEBOUNCE_MS = 2000;
+const MIN_QUERY_LENGTH = 2;
 
 // UC4 (Select Cities) + UC5 (Select Forecasting Services): initial setup landing spot for a
 // user with no CitySite selection yet (UC2 step 6).
@@ -82,27 +84,49 @@ export function SetupPage() {
     };
   }, [handleAuthFailure]);
 
-  async function handleSearch(event: SubmitEvent) {
-    event.preventDefault();
+  // UC4 step 3: searches as the user types, debounced so we don't fire a request per keystroke.
+  useEffect(() => {
     const trimmed = query.trim();
-    if (!trimmed) {
-      return;
-    }
+    let cancelled = false;
 
-    setSearching(true);
-    setSearchError(null);
-    setSearchResults([]);
-    try {
-      const results = await searchCities(trimmed);
-      setSearchResults(results);
-      setSearched(true);
-    } catch {
-      // E1: searchCities already retried once internally.
-      setSearchError('Could not search cities right now. Please try again.');
-    } finally {
-      setSearching(false);
-    }
-  }
+    const timeoutId = window.setTimeout(() => {
+      if (trimmed.length < MIN_QUERY_LENGTH) {
+        setSearchResults([]);
+        setSearched(false);
+        setSearchError(null);
+        setSearching(false);
+        return;
+      }
+
+      setSearching(true);
+      setSearchError(null);
+
+      (async () => {
+        try {
+          const results = await searchCities(trimmed);
+          if (cancelled) {
+            return;
+          }
+          setSearchResults(results);
+          setSearched(true);
+        } catch {
+          // E1: searchCities already retried once internally.
+          if (!cancelled) {
+            setSearchError('Could not search cities right now. Please try again.');
+          }
+        } finally {
+          if (!cancelled) {
+            setSearching(false);
+          }
+        }
+      })();
+    }, SEARCH_DEBOUNCE_MS);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+    };
+  }, [query]);
 
   function addCity(city: GeocodedCity) {
     setSelectedCities((current) => ({ ...current, [citySignature(city)]: city }));
@@ -176,20 +200,16 @@ export function SetupPage() {
             <section className="mb-4">
               <h2 className="h5 mb-3">Cities</h2>
 
-              <form className="d-flex flex-wrap gap-2 mb-3" onSubmit={(event) => void handleSearch(event)}>
-                <input
-                  type="text"
-                  className="form-control flex-grow-1"
-                  style={{ minWidth: '12rem' }}
-                  placeholder="Search for a city…"
-                  aria-label="Search for a city"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                />
-                <button className="btn btn-primary" type="submit" disabled={searching || !query.trim()}>
-                  {searching ? 'Searching…' : 'Search'}
-                </button>
-              </form>
+              <input
+                type="text"
+                className="form-control mb-2"
+                placeholder="Search for a city…"
+                aria-label="Search for a city"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+              />
+
+              {searching && <p className="text-muted small">Searching…</p>}
 
               {searchError && (
                 <div className="alert alert-danger py-2" role="alert">

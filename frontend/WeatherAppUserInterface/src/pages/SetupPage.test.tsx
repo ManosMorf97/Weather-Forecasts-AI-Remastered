@@ -87,9 +87,13 @@ describe('SetupPage - city search (UC4)', () => {
     await screen.findByText('Open-Meteo');
 
     await user.type(screen.getByLabelText('Search for a city'), 'Athens');
-    await user.click(screen.getByRole('button', { name: 'Search' }));
 
-    const picker = await screen.findByRole('combobox', { name: 'Add a city from the search results' });
+    // 2s search debounce - wait past it rather than the default 1s findBy timeout.
+    const picker = await screen.findByRole(
+      'combobox',
+      { name: 'Add a city from the search results' },
+      { timeout: 3000 },
+    );
     await user.selectOptions(picker, 'Athens, Greece');
 
     // Already-added result disappears from the picker, and now only the placeholder remains.
@@ -110,9 +114,11 @@ describe('SetupPage - city search (UC4)', () => {
     await screen.findByText('Open-Meteo');
 
     await user.type(screen.getByLabelText('Search for a city'), 'zzzzz');
-    await user.click(screen.getByRole('button', { name: 'Search' }));
 
-    expect(await screen.findByText('No results. Try a different search.')).toBeInTheDocument();
+    // 2s search debounce - wait past it rather than the default 1s findBy timeout.
+    expect(
+      await screen.findByText('No results. Try a different search.', {}, { timeout: 3000 }),
+    ).toBeInTheDocument();
   });
 
   it('removes a selected city', async () => {
@@ -146,8 +152,12 @@ describe('SetupPage - confirm (UC4 + UC5)', () => {
     expect(confirmButton).toBeDisabled();
 
     await user.type(screen.getByLabelText('Search for a city'), 'Athens');
-    await user.click(screen.getByRole('button', { name: 'Search' }));
-    const picker = await screen.findByRole('combobox', { name: 'Add a city from the search results' });
+    // 2s search debounce - wait past it rather than the default 1s findBy timeout.
+    const picker = await screen.findByRole(
+      'combobox',
+      { name: 'Add a city from the search results' },
+      { timeout: 3000 },
+    );
     await user.selectOptions(picker, 'Athens, Greece');
 
     expect(confirmButton).toBeEnabled();
