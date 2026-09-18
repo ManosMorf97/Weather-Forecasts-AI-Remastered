@@ -71,7 +71,7 @@ describe('VisualCrossingProvider', () => {
     const requestedUrl = vi.mocked(fetch).mock.calls[0]?.[0] as URL;
     // NOW is 2026-09-04T12:00:00Z: yesterday UTC through 4 days ahead UTC.
     expect(requestedUrl.pathname).toBe(
-      '/VisualCrossing/rest/services/timeline/37.9838,23.7275/2026-09-03/2026-09-08',
+      '/VisualCrossingWebServices/rest/services/timeline/37.9838,23.7275/2026-09-03/2026-09-08',
     );
   });
 
