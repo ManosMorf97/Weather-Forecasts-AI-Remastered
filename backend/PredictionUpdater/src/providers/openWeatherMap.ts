@@ -95,7 +95,7 @@ export function toForecasts(data: OpenWeatherMapResponse, now: number): Normaliz
 
 function toPoints(list: OpenWeatherMapResponse['list'], offsetMinutes: number): Point[] {
   return list.map((item) => {
-    const utc = new Date(item.dt * 1000);
+    const utc = new Date(item.dt * 1000);//to find the milliseconds
     const local: LocalWallTime = utcToLocalWallTime(utc.getTime(), offsetMinutes);
     return {
       utc,

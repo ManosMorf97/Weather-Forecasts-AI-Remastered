@@ -62,6 +62,19 @@ describe('VisualCrossingProvider', () => {
     vi.unstubAllGlobals();
   });
 
+  it('requests a UTC date range wide enough to cover any local "next 3 days", not the Timeline API default', async () => {
+    stubFetch(buildResponse());
+    const provider = new VisualCrossingProvider('key', new Set(['extreme']), 15_000);
+
+    await provider.fetchForCity(ATHENS);
+
+    const requestedUrl = vi.mocked(fetch).mock.calls[0]?.[0] as URL;
+    // NOW is 2026-09-04T12:00:00Z: yesterday UTC through 4 days ahead UTC.
+    expect(requestedUrl.pathname).toBe(
+      '/VisualCrossing/rest/services/timeline/37.9838,23.7275/2026-09-03/2026-09-08',
+    );
+  });
+
   it('returns one CURRENT reading with normalized units', async () => {
     stubFetch(buildResponse());
     const provider = new VisualCrossingProvider('key', new Set(['extreme']), 15_000);

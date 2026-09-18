@@ -7,7 +7,7 @@ export const DAILY_DAYS = 3;
 export const DAILY_SLOT_HOURS = [8, 15, 21] as const;
 
 const MS_PER_MINUTE = 60_000;
-const MS_PER_DAY = 86_400_000;
+export const MS_PER_DAY = 86_400_000;
 
 export interface LocalWallTime {
   year: number;

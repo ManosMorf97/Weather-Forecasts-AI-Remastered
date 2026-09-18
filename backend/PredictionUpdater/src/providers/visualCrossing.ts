@@ -2,18 +2,20 @@ import { z } from 'zod';
 import {
   DAILY_SLOT_HOURS,
   HOURLY_COUNT,
+  MS_PER_DAY,
   getNext3DateDays,
   localDateKey,
   utcToLocalWallTime,
 } from './timeSlots.js';
 import type { CityInput, NormalizedForecast, WeatherProvider } from './types.js';
 
-const DEFAULT_BASE_URL = 'https://weather.visualcrossing.com/VisualCrossing/rest/services/timeline';
+const DEFAULT_BASE_URL = 'https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline';
 
 // Timeline API with include=current,hours,alerts. `tzoffset` is hours from UTC and may be
-// fractional (e.g. +5.5) - converted to minutes once and stamped on every row. The default
-// (no date-range) query returns more days than we need, so - like Open-Meteo - we self-filter
-// DAILY down to the next 3 local days rather than trusting the response's day count.
+// fractional (e.g. +5.5) - converted to minutes once and stamped on every row. The request's
+// date range (see fetchForCity) already narrows the response down close to what we need, but
+// we still self-filter DAILY down to the exact next 3 local days rather than trusting it, since
+// the requested range is a safety margin, not an exact match to the city's local calendar.
 const responseSchema = z.object({
   tzoffset: z.number(),
   currentConditions: z.object({
@@ -72,7 +74,15 @@ export class VisualCrossingProvider implements WeatherProvider {
   // IO only: build the request, fetch, validate, then hand the parsed body to the pure
   // selection helpers below. Everything testable lives in those helpers.
   async fetchForCity(city: CityInput, signal?: AbortSignal): Promise<NormalizedForecast[]> {
-    const url = new URL(`${this.baseUrl}/${city.latitude},${city.longitude}`);
+    const now = Date.now();
+    // We don't know the city's local "today" until tzoffset comes back in the response, so the
+    // range must be wide enough to bracket "next 3 local days" for any real-world UTC offset
+    // (-12..+14): from yesterday UTC through 4 days ahead UTC. Still far less than the Timeline
+    // API's default (~15 days) when no range is given.
+    const rangeStart = isoDateUtc(now - MS_PER_DAY);
+    const rangeEnd = isoDateUtc(now + 4 * MS_PER_DAY);
+
+    const url = new URL(`${this.baseUrl}/${city.latitude},${city.longitude}/${rangeStart}/${rangeEnd}`);
     url.search = new URLSearchParams({
       unitGroup: 'metric',
       include: 'current,hours,alerts',
@@ -81,11 +91,12 @@ export class VisualCrossingProvider implements WeatherProvider {
 
     const res = await fetch(url, { signal: signal ?? AbortSignal.timeout(this.timeoutMs) });
     if (!res.ok) {
+      console.log(url);
       throw new Error(`Visual Crossing responded ${res.status} for city ${city.cityId}`);
     }
 
     const data = responseSchema.parse(await res.json());
-    return toForecasts(data, Date.now(), this.dangerSeverities);
+    return toForecasts(data, now, this.dangerSeverities);
   }
 }
 
@@ -155,6 +166,12 @@ function dangerAt(alerts: NonNullable<VisualCrossingResponse['alerts']>, dangerS
       const ends = a.ends ? new Date(a.ends).getTime() : Infinity;
       return instant.getTime() >= onset && instant.getTime() <= ends;
     });
+}
+
+// UTC calendar date as YYYY-MM-DD, the format Visual Crossing's Timeline API date-range path
+// segments expect.
+function isoDateUtc(ms: number): string {
+  return new Date(ms).toISOString().slice(0, 10);
 }
 
 function pointValues(p: Point) {
