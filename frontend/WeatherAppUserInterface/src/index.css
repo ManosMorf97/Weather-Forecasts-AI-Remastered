@@ -6,6 +6,7 @@
   --accent: #2f86eb;
   --accent-hover: #1f6fd1;
   --accent-bg: rgba(47, 134, 235, 0.1);
+  --heading-blue: #1f6fd1;
   --shell-gradient: linear-gradient(160deg, #eaf6ff 0%, #cfe9ff 45%, #9fd0ff 100%);
   --shadow:
     rgba(15, 23, 42, 0.12) 0 10px 25px -5px, rgba(15, 23, 42, 0.06) 0 4px 6px -2px;
@@ -30,6 +31,7 @@
     --accent: #5aa9ff;
     --accent-hover: #7dbcff;
     --accent-bg: rgba(90, 169, 255, 0.15);
+    --heading-blue: #9fd0ff;
     --shell-gradient: linear-gradient(160deg, #0b1220 0%, #10233b 45%, #123152 100%);
     --shadow:
       rgba(0, 0, 0, 0.45) 0 10px 25px -5px, rgba(0, 0, 0, 0.3) 0 4px 6px -2px;
@@ -51,6 +53,11 @@ h1,
 h2 {
   font-weight: 600;
   color: var(--text-h);
+}
+
+/* Light blue on the dark card, a deeper blue on the white card (light blue would be unreadable there). */
+.heading-blue {
+  color: var(--heading-blue);
 }
 
 /* Reskin Bootstrap's primary button/link tokens to the weather accent color. */

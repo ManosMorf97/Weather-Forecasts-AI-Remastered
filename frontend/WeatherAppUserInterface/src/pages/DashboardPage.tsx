@@ -111,49 +111,31 @@ export function DashboardPage() {
     });
   }
 
-  async function handleRate(forecastId: number, value: number) {
+  // UC7: a number rates the forecast, null clears the rating. Marks the row pending while the
+  // request runs, then mirrors the new rating locally.
+  async function updateRating(forecastId: number, newRating: number | null) {
     setPendingRatingIds((current) => new Set(current).add(forecastId));
     clearRowError(forecastId);
     try {
       const { jwt } = await account.createJWT();
-      await rateForecast(jwt, forecastId, value);
-      setForecasts((current) =>
-        current.map((forecast) =>
-          forecast.forecastId === forecastId ? { ...forecast, userRating: value } : forecast,
-        ),
-      );
-    } catch (err) {
-      if (!handleAuthFailure(err)) {
-        setRowErrors((current) => ({
-          ...current,
-          [forecastId]: err instanceof Error ? err.message : 'Could not save your rating. Please retry.',
-        }));
+      if (newRating === null) {
+        await removeRating(jwt, forecastId);
+      } else {
+        await rateForecast(jwt, forecastId, newRating);
       }
-    } finally {
-      setPendingRatingIds((current) => {
-        const next = new Set(current);
-        next.delete(forecastId);
-        return next;
-      });
-    }
-  }
-
-  async function handleClearRating(forecastId: number) {
-    setPendingRatingIds((current) => new Set(current).add(forecastId));
-    clearRowError(forecastId);
-    try {
-      const { jwt } = await account.createJWT();
-      await removeRating(jwt, forecastId);
       setForecasts((current) =>
         current.map((forecast) =>
-          forecast.forecastId === forecastId ? { ...forecast, userRating: null } : forecast,
+          forecast.forecastId === forecastId ? { ...forecast, userRating: newRating } : forecast,
         ),
       );
     } catch (err) {
       if (!handleAuthFailure(err)) {
         setRowErrors((current) => ({
           ...current,
-          [forecastId]: err instanceof Error ? err.message : 'Could not remove your rating. Please retry.',
+          [forecastId]:
+            err instanceof Error
+              ? err.message
+              : `Could not ${newRating === null ? 'remove' : 'save'} your rating. Please retry.`,
         }));
       }
     } finally {
@@ -179,7 +161,7 @@ export function DashboardPage() {
         <div className="card border-0 w-100" style={{ maxWidth: '56rem' }}>
           <div className="card-body p-4 p-sm-5">
             <div className="mb-4">
-              <h1 className="h3 mb-1">Your forecasts</h1>
+              <h1 className="h3 mb-1 heading-blue">Your forecasts</h1>
               <p className="text-muted mb-0">Current and upcoming forecasts for your saved cities and services.</p>
             </div>
 
@@ -195,7 +177,7 @@ export function DashboardPage() {
 
             {groups.map((serviceGroup) => (
               <section key={serviceGroup.service} className="mb-4">
-                <h2 className="h5 mb-3">{serviceGroup.service}</h2>
+                <h2 className="h5 mb-3 heading-blue">{serviceGroup.service}</h2>
                 {serviceGroup.cities.map((cityGroup) => (
                   <div key={`${cityGroup.city}|${cityGroup.country}`} className="mb-3">
                     <h3 className="h6 mb-2">
@@ -224,8 +206,8 @@ export function DashboardPage() {
                           <StarRating
                             value={forecast.userRating}
                             disabled={pendingRatingIds.has(forecast.forecastId)}
-                            onRate={(value) => void handleRate(forecast.forecastId, value)}
-                            onClear={() => void handleClearRating(forecast.forecastId)}
+                            onRate={(value) => void updateRating(forecast.forecastId, value)}
+                            onClear={() => void updateRating(forecast.forecastId, null)}
                           />
                         </li>
                       ))}
