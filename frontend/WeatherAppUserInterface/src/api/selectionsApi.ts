@@ -1,4 +1,5 @@
 import { UnauthorizedError } from './profileApi';
+import { invalidateCache, readCache, writeCache } from './apiCache';
 
 export interface CityDto {
   name: string;
@@ -26,6 +27,11 @@ const apiBaseUrl = import.meta.env.YOUR_API_URL ?? '';
 // UC3: current city/service selections - every forecasting service flagged selected/not,
 // plus the user's currently selected cities.
 export async function getSelections(jwt: string): Promise<Selections> {
+  const cached = readCache<Selections>('selections');
+  if (cached) {
+    return cached;
+  }
+
   const response = await fetch(`${apiBaseUrl}/api/Selections`, {
     headers: { Authorization: `Bearer ${jwt}` },
   });
@@ -37,7 +43,9 @@ export async function getSelections(jwt: string): Promise<Selections> {
     throw new Error(`Failed to load selections (status ${response.status})`);
   }
 
-  return (await response.json()) as Selections;
+  const selections = (await response.json()) as Selections;
+  writeCache('selections', selections);
+  return selections;
 }
 
 // UC3/UC4/UC5: replaces the user's full city/service selection with exactly this set.
@@ -61,6 +69,9 @@ export async function saveSelections(
   if (!response.ok) {
     throw new Error(await problemDetailFrom(response));
   }
+
+  // The user's CitySite selection drives both what they see as selected and which forecasts they get.
+  invalidateCache('selections', 'forecasts');
 }
 
 export async function problemDetailFrom(

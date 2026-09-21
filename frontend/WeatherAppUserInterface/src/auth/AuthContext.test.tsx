@@ -5,6 +5,7 @@ import { AuthProvider } from './AuthContext';
 import { useAuth } from './useAuth';
 import { account } from './appwriteClient';
 import { createProfile, UnauthorizedError } from '../api/profileApi';
+import { readCache, writeCache } from '../api/apiCache';
 
 vi.mock('./appwriteClient', () => ({
   account: {
@@ -50,6 +51,7 @@ beforeEach(() => {
   vi.mocked(account.create).mockReset().mockResolvedValue({} as never);
   vi.mocked(account.deleteSession).mockReset().mockResolvedValue({} as never);
   vi.mocked(createProfile).mockReset();
+  localStorage.clear();
 });
 
 describe('AuthProvider - initial mount (UC1 restore session)', () => {
@@ -160,5 +162,86 @@ describe('AuthProvider - logout (UC14)', () => {
     expect(screen.getByTestId('hasCitySiteSelection')).toHaveTextContent('null');
     expect(account.createEmailPasswordSession).not.toHaveBeenCalled();
     expect(account.create).not.toHaveBeenCalled();
+  });
+});
+
+describe('AuthProvider - API cache is cleared so one user never sees another user\'s data', () => {
+  function seedCache() {
+    writeCache('selections', { services: [], cities: [] });
+    writeCache('forecasts', []);
+  }
+
+  function expectCacheEmpty() {
+    expect(readCache('selections')).toBeNull();
+    expect(readCache('forecasts')).toBeNull();
+  }
+
+  it('on mount when there is no existing session', async () => {
+    seedCache();
+
+    renderAuth();
+
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('unauthenticated'));
+    expectCacheEmpty();
+  });
+
+  it('keeps the cache on mount when the session is restored', async () => {
+    seedCache();
+    vi.mocked(account.get).mockResolvedValue({} as never);
+    vi.mocked(createProfile).mockResolvedValue({ hasCitySiteSelection: true });
+
+    renderAuth();
+
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('authenticated'));
+    expect(readCache('selections')).toEqual({ services: [], cities: [] });
+    expect(readCache('forecasts')).toEqual([]);
+  });
+
+  it('on login', async () => {
+    vi.mocked(createProfile).mockResolvedValue({ hasCitySiteSelection: false });
+    renderAuth();
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('unauthenticated'));
+    seedCache();
+
+    await act(() => userEvent.click(screen.getByText('login')));
+
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('authenticated'));
+    expectCacheEmpty();
+  });
+
+  it('on register', async () => {
+    vi.mocked(createProfile).mockResolvedValue({ hasCitySiteSelection: false });
+    renderAuth();
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('unauthenticated'));
+    seedCache();
+
+    await act(() => userEvent.click(screen.getByText('register')));
+
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('authenticated'));
+    expectCacheEmpty();
+  });
+
+  it('on logout', async () => {
+    vi.mocked(account.get).mockResolvedValue({} as never);
+    vi.mocked(createProfile).mockResolvedValue({ hasCitySiteSelection: true });
+    renderAuth();
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('authenticated'));
+    seedCache();
+
+    await act(() => userEvent.click(screen.getByText('logout')));
+
+    expect(screen.getByTestId('status')).toHaveTextContent('unauthenticated');
+    expectCacheEmpty();
+  });
+
+  it('when the backend rejects the JWT', async () => {
+    vi.mocked(account.get).mockResolvedValue({} as never);
+    vi.mocked(createProfile).mockRejectedValue(new UnauthorizedError());
+    seedCache();
+
+    renderAuth();
+
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('unauthenticated'));
+    expectCacheEmpty();
   });
 });

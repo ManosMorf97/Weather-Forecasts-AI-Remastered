@@ -1,4 +1,5 @@
 import { UnauthorizedError } from './profileApi';
+import { readCache, writeCache } from './apiCache';
 
 export interface ForecastItemDto {
   forecastId: number;
@@ -27,6 +28,11 @@ const apiBaseUrl = import.meta.env.YOUR_API_URL ?? '';
 // UC6 main flow: every current/upcoming forecast for the user's saved cities and selected
 // services, ordered by Service name, City name, then Timestamp.
 export async function getForecasts(jwt: string): Promise<ForecastItemDto[]> {
+  const cached = readCache<ForecastItemDto[]>('forecasts');
+  if (cached) {
+    return cached;
+  }
+
   const response = await fetch(`${apiBaseUrl}/api/Forecasts`, {
     headers: { Authorization: `Bearer ${jwt}` },
   });
@@ -39,7 +45,20 @@ export async function getForecasts(jwt: string): Promise<ForecastItemDto[]> {
   }
 
   const body = (await response.json()) as GetForecastsResponse;
+  writeCache('forecasts', body.forecasts);
   return body.forecasts;
+}
+
+// A rating only changes one forecast's userRating, so patch the cached list instead of refetching it.
+function updateCachedRating(forecastId: number, userRating: number | null): void {
+  const cached = readCache<ForecastItemDto[]>('forecasts');
+  if (!cached) {
+    return;
+  }
+  writeCache(
+    'forecasts',
+    cached.map((forecast) => (forecast.forecastId === forecastId ? { ...forecast, userRating } : forecast)),
+  );
 }
 
 // UC7 main flow / A1: creates or updates the user's rating for this forecast.
@@ -59,6 +78,8 @@ export async function rateForecast(jwt: string, forecastId: number, value: numbe
   if (!response.ok) {
     throw new Error(await problemDetailFrom(response, 'save'));
   }
+
+  updateCachedRating(forecastId, value);
 }
 
 // UC7 A2: removes the user's rating for this forecast, if any (idempotent).
@@ -74,6 +95,8 @@ export async function removeRating(jwt: string, forecastId: number): Promise<voi
   if (!response.ok) {
     throw new Error(await problemDetailFrom(response, 'remove'));
   }
+
+  updateCachedRating(forecastId, null);
 }
 
 async function problemDetailFrom(response: Response, action: 'save' | 'remove'): Promise<string> {

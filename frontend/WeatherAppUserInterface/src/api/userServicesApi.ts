@@ -1,5 +1,6 @@
 import { UnauthorizedError } from './profileApi';
 import { problemDetailFrom } from './selectionsApi';
+import { invalidateCache } from './apiCache';
 
 // Same base URL rules as selectionsApi (Vite proxy in dev, YOUR_API_URL in prod).
 const apiBaseUrl = import.meta.env.YOUR_API_URL ?? '';
@@ -22,4 +23,7 @@ export async function saveServices(jwt: string, serviceIds: number[]): Promise<v
   if (!response.ok) {
     throw new Error(await problemDetailFrom(response, 'Failed to save services'));
   }
+
+  // The saved pending services change what GET /api/Selections reports.
+  invalidateCache('selections', 'forecasts');
 }

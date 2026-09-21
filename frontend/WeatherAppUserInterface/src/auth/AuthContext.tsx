@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { ID } from 'appwrite';
 import { account } from './appwriteClient';
 import { createProfile, UnauthorizedError } from '../api/profileApi';
+import { clearApiCache } from '../api/apiCache';
 import { AuthContext } from './authContextValue';
 import type { AuthContextValue, AuthStatus } from './authContextValue';
 
@@ -23,6 +24,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       if (err instanceof UnauthorizedError) {
         // E2: token verification failed - treat the user as logged out.
+        clearApiCache();
         setStatus('unauthenticated');
         setHasCitySiteSelection(null);
         return;
@@ -46,6 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } catch {
         if (!cancelled) {
+          clearApiCache();
           setStatus('unauthenticated');
         }
       }
@@ -58,6 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(
     async (email: string, password: string) => {
+      clearApiCache();
       await account.createEmailPasswordSession({ email, password });
       await syncProfile();
     },
@@ -66,6 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = useCallback(
     async (name: string, email: string, password: string) => {
+      clearApiCache();
       await account.create({ userId: ID.unique(), email, password, name });
       await account.createEmailPasswordSession({ email, password });
       await syncProfile();
@@ -75,6 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     await account.deleteSession({ sessionId: 'current' });
+    clearApiCache();
     setStatus('unauthenticated');
     setHasCitySiteSelection(null);
   }, []);
