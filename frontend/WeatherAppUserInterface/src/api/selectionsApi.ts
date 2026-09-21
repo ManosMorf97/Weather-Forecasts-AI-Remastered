@@ -63,7 +63,10 @@ export async function saveSelections(
   }
 }
 
-async function problemDetailFrom(response: Response): Promise<string> {
+export async function problemDetailFrom(
+  response: Response,
+  fallback = 'Failed to save selections',
+): Promise<string> {
   try {
     const problem = (await response.json()) as { detail?: string };
     if (problem.detail) {
@@ -72,5 +75,5 @@ async function problemDetailFrom(response: Response): Promise<string> {
   } catch {
     // Body wasn't JSON - fall through to the generic message below.
   }
-  return `Failed to save selections (status ${response.status})`;
+  return `${fallback} (status ${response.status})`;
 }

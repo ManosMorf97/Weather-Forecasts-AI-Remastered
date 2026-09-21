@@ -8,6 +8,7 @@ import { UnauthorizedError } from '../api/profileApi';
 import { searchCities } from '../api/cityApi';
 import type { GeocodedCity } from '../api/cityApi';
 import { getSelections, saveSelections } from '../api/selectionsApi';
+import { saveServices } from '../api/userServicesApi';
 import type { CityDto, ServiceSelectionDto } from '../api/selectionsApi';
 
 function citySignature(city: CityDto | GeocodedCity): string {
@@ -38,6 +39,7 @@ export function SetupPage() {
   const [searchError, setSearchError] = useState<string | null>(null);
 
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [servicesSavedNotice, setServicesSavedNotice] = useState(false);
 
   // Session expired mid-setup - treat like any other UC1 E2 by logging out; returns true if handled.
   const handleAuthFailure = useCallback(
@@ -152,8 +154,13 @@ export function SetupPage() {
   const selectedServiceIdList = services.filter((service) => service.selected).map((service) => service.serviceId);
   const availableSearchResults = searchResults.filter((city) => !selectedCities[citySignature(city)]);
 
-  // A3/A2: at least one city and one service must remain selected to confirm.
-  const canConfirm = selectedCityList.length > 0 && selectedServiceIdList.length > 0;
+  // UC4 E1: the City API is down and the user has no city to fall back on, so only the
+  // services can be saved for now.
+  const servicesOnly = selectedCityList.length === 0 && searchError !== null;
+
+  // A3/A2: at least one service must remain selected, plus at least one city - unless the
+  // City API is down and the user has no cities (servicesOnly).
+  const canConfirm = selectedServiceIdList.length > 0 && (selectedCityList.length > 0 || servicesOnly);
 
   async function handleConfirm() {
     if (!canConfirm) {
@@ -162,8 +169,17 @@ export function SetupPage() {
 
     setLoading(true);
     setSaveError(null);
+    setServicesSavedNotice(false);
     try {
       const { jwt } = await account.createJWT();
+      if (servicesOnly) {
+        // No city yet, so the profile still has no CitySite selection - stay here rather than
+        // navigating, or "/" would just redirect back to this page.
+        await saveServices(jwt, selectedServiceIdList);
+        setServicesSavedNotice(true);
+        setLoading(false);
+        return;
+      }
       await saveSelections(jwt, selectedCityList, selectedServiceIdList);
       await retryProfileSync();
       navigate('/', { replace: true });
@@ -308,8 +324,25 @@ export function SetupPage() {
               </div>
             )}
 
+            {servicesSavedNotice && (
+              <div className="alert alert-success py-2" role="status">
+                Your services are saved. Please come back later to choose your cities.
+              </div>
+            )}
+
+            {servicesOnly && !servicesSavedNotice && (
+              <div className="alert alert-warning py-2" role="alert">
+                There is a problem with loading cities right now. You can save your services and come back
+                later to choose your cities.
+              </div>
+            )}
+
             {!canConfirm && (
-              <p className="text-muted small">Select at least one city and one service to continue.</p>
+              <p className="text-muted small">
+                {servicesOnly
+                  ? 'Select at least one service to continue.'
+                  : 'Select at least one city and one service to continue.'}
+              </p>
             )}
 
             <button

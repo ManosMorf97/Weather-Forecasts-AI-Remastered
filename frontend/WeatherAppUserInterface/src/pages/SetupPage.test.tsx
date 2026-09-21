@@ -8,11 +8,17 @@ import { account } from '../auth/appwriteClient';
 import { getSelections, saveSelections } from '../api/selectionsApi';
 import { searchCities } from '../api/cityApi';
 import { UnauthorizedError } from '../api/profileApi';
+// NEW TICKET start
+import { saveServices } from '../api/userServicesApi';
+// NEW TICKET end
 
 vi.mock('../auth/useAuth', () => ({ useAuth: vi.fn() }));
 vi.mock('../auth/appwriteClient', () => ({ account: { createJWT: vi.fn() } }));
 vi.mock('../api/selectionsApi');
 vi.mock('../api/cityApi');
+// NEW TICKET start
+vi.mock('../api/userServicesApi');
+// NEW TICKET end
 
 const navigateMock = vi.fn();
 vi.mock('react-router-dom', async (importOriginal) => {
@@ -53,6 +59,9 @@ beforeEach(() => {
     });
   vi.mocked(saveSelections).mockReset().mockResolvedValue(undefined);
   vi.mocked(searchCities).mockReset();
+  // NEW TICKET start
+  vi.mocked(saveServices).mockReset().mockResolvedValue(undefined);
+  // NEW TICKET end
   logoutMock.mockReset();
   retryProfileSyncMock.mockReset().mockResolvedValue(undefined);
   navigateMock.mockReset();
@@ -201,5 +210,98 @@ describe('SetupPage - confirm (UC4 + UC5)', () => {
 
     expect(await screen.findByText('Could not persist the city/service selection.')).toBeInTheDocument();
     expect(navigateMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('SetupPage - City API down with no cities selected (services only)', () => {
+  // 2s search debounce - wait past it rather than the default 1s findBy timeout.
+  async function triggerCitySearchFailure(user: ReturnType<typeof userEvent.setup>) {
+    vi.mocked(searchCities).mockRejectedValue(new Error('City search failed'));
+    await user.type(screen.getByLabelText('Search for a city'), 'Athens');
+    await screen.findByText('Could not search cities right now. Please try again.', {}, { timeout: 3000 });
+  }
+
+  it('enables confirm with only a service selected and saves it through saveServices', async () => {
+    const user = userEvent.setup();
+    renderSetupPage();
+    await screen.findByText('Open-Meteo');
+    const confirmButton = screen.getByRole('button', { name: 'Confirm selection' });
+
+    await triggerCitySearchFailure(user);
+    expect(confirmButton).toBeDisabled();
+    expect(screen.getByText('Select at least one service to continue.')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'There is a problem with loading cities right now. You can save your services and come back later to choose your cities.',
+      ),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole('checkbox', { name: 'Open-Meteo' }));
+    expect(confirmButton).toBeEnabled();
+
+    await act(() => user.click(confirmButton));
+
+    expect(saveServices).toHaveBeenCalledWith('jwt-token', [1]);
+    expect(saveSelections).not.toHaveBeenCalled();
+    expect(
+      await screen.findByText('Your services are saved. Please come back later to choose your cities.'),
+    ).toBeInTheDocument();
+    // The "problem with cities" warning is replaced by the saved notice.
+    expect(screen.queryByText(/There is a problem with loading cities/)).not.toBeInTheDocument();
+    // No CitySite selection yet, so navigating home would only bounce back to /setup.
+    expect(retryProfileSyncMock).not.toHaveBeenCalled();
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  it('shows an error and no success notice when saving the services fails', async () => {
+    vi.mocked(saveServices).mockRejectedValue(new Error('Could not persist the pending service selection.'));
+    const user = userEvent.setup();
+    renderSetupPage();
+    await screen.findByText('Open-Meteo');
+    await triggerCitySearchFailure(user);
+    await user.click(screen.getByRole('checkbox', { name: 'Open-Meteo' }));
+
+    await act(() => user.click(screen.getByRole('button', { name: 'Confirm selection' })));
+
+    expect(await screen.findByText('Could not persist the pending service selection.')).toBeInTheDocument();
+    expect(screen.queryByText(/Your services are saved/)).not.toBeInTheDocument();
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  it('E2: logs out when saving the services is unauthorized', async () => {
+    vi.mocked(saveServices).mockRejectedValue(new UnauthorizedError());
+    const user = userEvent.setup();
+    renderSetupPage();
+    await screen.findByText('Open-Meteo');
+    await triggerCitySearchFailure(user);
+    await user.click(screen.getByRole('checkbox', { name: 'Open-Meteo' }));
+
+    await act(() => user.click(screen.getByRole('button', { name: 'Confirm selection' })));
+
+    await waitFor(() => expect(logoutMock).toHaveBeenCalled());
+  });
+
+  it('still saves through saveSelections when a city is already selected', async () => {
+    vi.mocked(getSelections).mockResolvedValue({
+      services: [{ serviceId: 1, name: 'Open-Meteo', selected: true }],
+      cities: [{ name: 'Athens', country: 'Greece', latitude: 37.98, longitude: 23.73 }],
+    });
+    const user = userEvent.setup();
+    renderSetupPage();
+    await screen.findByText('Athens, Greece');
+    await triggerCitySearchFailure(user);
+
+    // A city is already selected, so the "come back later" warning must not appear.
+    expect(screen.queryByText(/There is a problem with loading cities/)).not.toBeInTheDocument();
+
+    await act(() => user.click(screen.getByRole('button', { name: 'Confirm selection' })));
+
+    expect(saveSelections).toHaveBeenCalledWith(
+      'jwt-token',
+      [{ name: 'Athens', country: 'Greece', latitude: 37.98, longitude: 23.73 }],
+      [1],
+    );
+    expect(saveServices).not.toHaveBeenCalled();
+    await waitFor(() => expect(navigateMock).toHaveBeenCalledWith('/', { replace: true }));
   });
 });
