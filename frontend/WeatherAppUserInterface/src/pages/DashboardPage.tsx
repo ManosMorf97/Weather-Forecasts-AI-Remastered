@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../auth/useAuth';
 import { account } from '../auth/appwriteClient';
 import { LoadingScreen } from '../auth/LoadingScreen';
-import { LogoutBar } from '../auth/LogoutBar';
+import { Navbar } from '../components/Navbar';
 import { UnauthorizedError } from '../api/profileApi';
 import { getForecasts, rateForecast, removeRating } from '../api/forecastsApi';
 import type { ForecastItemDto } from '../api/forecastsApi';
@@ -155,7 +155,7 @@ export function DashboardPage() {
 
   return (
     <div className="d-flex flex-column flex-grow-1">
-      <LogoutBar />
+      <Navbar />
 
       <div className="d-flex justify-content-center flex-grow-1 px-3 pb-4 pb-sm-5">
         <div className="card border-0 w-100" style={{ maxWidth: '56rem' }}>

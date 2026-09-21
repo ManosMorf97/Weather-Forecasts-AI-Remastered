@@ -77,6 +77,32 @@ describe('SetupPage - initial load', () => {
     expect(screen.getByRole('button', { name: 'Confirm selection' })).toBeDisabled();
   });
 
+  it('hides the navbar links when the user has no CitySite selection yet', async () => {
+    renderSetupPage();
+    await screen.findByText('Open-Meteo');
+
+    expect(screen.queryByRole('link', { name: 'Current predictions' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Set Selections' })).not.toBeInTheDocument();
+  });
+
+  it('shows the navbar links when the user already has a CitySite selection', async () => {
+    vi.mocked(useAuth).mockReturnValue({
+      status: 'authenticated',
+      hasCitySiteSelection: true,
+      profileError: null,
+      login: vi.fn(),
+      register: vi.fn(),
+      logout: logoutMock,
+      retryProfileSync: retryProfileSyncMock,
+    });
+
+    renderSetupPage();
+    await screen.findByText('Open-Meteo');
+
+    expect(screen.getByRole('link', { name: 'Current predictions' })).toHaveAttribute('href', '/dashboard');
+    expect(screen.getByRole('link', { name: 'Set Selections' })).toHaveAttribute('href', '/setup');
+  });
+
   it('E2: logs out when loading selections is unauthorized', async () => {
     vi.mocked(getSelections).mockRejectedValue(new UnauthorizedError());
 

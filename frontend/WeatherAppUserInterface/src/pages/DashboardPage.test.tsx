@@ -11,6 +11,9 @@ import { UnauthorizedError } from '../api/profileApi';
 vi.mock('../auth/useAuth', () => ({ useAuth: vi.fn() }));
 vi.mock('../auth/appwriteClient', () => ({ account: { createJWT: vi.fn() } }));
 vi.mock('../api/forecastsApi');
+// The real Navbar needs a Router; its own behaviour is covered in Navbar.test.tsx.
+vi.mock('../components/Navbar', () => ({ Navbar: () => <nav data-testid="navbar" /> }));
+
 
 const logoutMock = vi.fn();
 
@@ -76,6 +79,14 @@ describe('DashboardPage - initial load (UC6)', () => {
     const weatherApiSection = screen.getByRole('heading', { name: 'WeatherAPI' }).closest('section');
     expect(weatherApiSection).toHaveTextContent('Athens, Greece');
   });
+
+  // NEW TICKET start
+  it('shows the navbar', async () => {
+    render(<DashboardPage />);
+
+    expect(await screen.findByTestId('navbar')).toBeInTheDocument();
+  });
+  // NEW TICKET end
 
   it('A2: shows an empty-state message when there are no forecasts', async () => {
     vi.mocked(getForecasts).mockResolvedValue([]);
