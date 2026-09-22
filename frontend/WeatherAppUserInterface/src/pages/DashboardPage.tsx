@@ -7,6 +7,7 @@ import { UnauthorizedError } from '../api/profileApi';
 import { getForecasts, rateForecast, removeRating } from '../api/forecastsApi';
 import type { ForecastItemDto } from '../api/forecastsApi';
 import { StarRating } from '../components/StarRating';
+import { formatLocalTime } from '../utils/formatLocalTime';
 
 interface CityGroup {
   city: string;
@@ -37,15 +38,6 @@ function groupForecasts(forecasts: ForecastItemDto[]): ServiceGroup[] {
     cityGroup.forecasts.push(forecast);
   }
   return groups;
-}
-
-// Formats a UTC timestamp as that city's own local wall-clock time (via its offsetMinutes),
-// not the browser's local timezone.
-function formatLocalTime(timestamp: string, offsetMinutes: number): string {
-  const local = new Date(new Date(timestamp).getTime() + offsetMinutes * 60_000);
-  const date = local.toLocaleDateString(undefined, { timeZone: 'UTC', month: 'short', day: 'numeric' });
-  const time = local.toLocaleTimeString(undefined, { timeZone: 'UTC', hour: '2-digit', minute: '2-digit' });
-  return `${date}, ${time}`;
 }
 
 // UC2 step 7: landing spot for an already-configured user. UC6 (View Forecasts) + UC7 (Rate).
@@ -187,7 +179,7 @@ export function DashboardPage() {
                       {cityGroup.forecasts.map((forecast) => (
                         <li
                           key={forecast.forecastId}
-                          className="list-group-item d-flex flex-wrap align-items-center justify-content-between gap-2"
+                          className="bg-info-subtle text-dark list-group-item d-flex flex-wrap align-items-center justify-content-between gap-2"
                         >
                           <div>
                             <div className="d-flex align-items-center gap-2 flex-wrap">

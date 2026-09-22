@@ -35,10 +35,11 @@ beforeEach(() => {
 });
 
 describe('Navbar - user with a CitySite selection', () => {
-  it('shows the Current predictions and Set Selections links', () => {
+  it('shows the Current predictions, Suggested Forecasts and Set Selections links', () => {
     renderNavbar();
 
     expect(screen.getByRole('link', { name: 'Current predictions' })).toHaveAttribute('href', '/dashboard');
+    expect(screen.getByRole('link', { name: 'Suggested Forecasts' })).toHaveAttribute('href', '/aggregated');
     expect(screen.getByRole('link', { name: 'Set Selections' })).toHaveAttribute('href', '/setup');
   });
 
@@ -49,6 +50,14 @@ describe('Navbar - user with a CitySite selection', () => {
     expect(screen.getByRole('link', { name: 'Set Selections' })).toHaveAttribute('href', '/setup');
     expect(screen.getByRole('link', { name: 'Set Selections' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('link', { name: 'Current predictions' })).not.toHaveAttribute('aria-current');
+  });
+
+  it('marks Suggested Forecasts as active on its own page', () => {
+    renderNavbar('/aggregated');
+
+    expect(screen.getByRole('link', { name: 'Suggested Forecasts' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'Current predictions' })).not.toHaveAttribute('aria-current');
+    expect(screen.getByRole('link', { name: 'Set Selections' })).not.toHaveAttribute('aria-current');
   });
 
   it('still shows Log out', async () => {
@@ -68,6 +77,7 @@ describe('Navbar - user without a CitySite selection', () => {
 
     expect(screen.queryByRole('navigation', { name: 'Main' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Current predictions' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Suggested Forecasts' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Set Selections' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Log out' })).toBeInTheDocument();
   });

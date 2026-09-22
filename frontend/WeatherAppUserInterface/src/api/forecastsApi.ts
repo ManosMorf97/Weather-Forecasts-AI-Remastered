@@ -1,5 +1,5 @@
 import { UnauthorizedError } from './profileApi';
-import { readCache, writeCache } from './apiCache';
+import { invalidateCache, readCache, writeCache } from './apiCache';
 
 export interface ForecastItemDto {
   forecastId: number;
@@ -80,6 +80,9 @@ export async function rateForecast(jwt: string, forecastId: number, value: numbe
   }
 
   updateCachedRating(forecastId, value);
+  // A new rating can change which service has the highest average for a city (UC12), so the
+  // aggregated view can't be patched in place like the plain forecast list above.
+  invalidateCache('aggregatedForecasts');
 }
 
 // UC7 A2: removes the user's rating for this forecast, if any (idempotent).
@@ -97,6 +100,7 @@ export async function removeRating(jwt: string, forecastId: number): Promise<voi
   }
 
   updateCachedRating(forecastId, null);
+  invalidateCache('aggregatedForecasts');
 }
 
 async function problemDetailFrom(response: Response, action: 'save' | 'remove'): Promise<string> {

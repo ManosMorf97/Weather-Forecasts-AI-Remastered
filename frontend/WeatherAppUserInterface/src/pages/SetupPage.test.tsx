@@ -81,6 +81,7 @@ describe('SetupPage - initial load', () => {
     await screen.findByText('Open-Meteo');
 
     expect(screen.queryByRole('link', { name: 'Current predictions' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Suggested Forecasts' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Set Selections' })).not.toBeInTheDocument();
   });
 
@@ -99,6 +100,7 @@ describe('SetupPage - initial load', () => {
     await screen.findByText('Open-Meteo');
 
     expect(screen.getByRole('link', { name: 'Current predictions' })).toHaveAttribute('href', '/dashboard');
+    expect(screen.getByRole('link', { name: 'Suggested Forecasts' })).toHaveAttribute('href', '/aggregated');
     expect(screen.getByRole('link', { name: 'Set Selections' })).toHaveAttribute('href', '/setup');
   });
 

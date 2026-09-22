@@ -6,6 +6,7 @@
   --accent: #2f86eb;
   --accent-hover: #1f6fd1;
   --accent-bg: rgba(47, 134, 235, 0.1);
+  --accent-bg-hover: rgba(47, 134, 235, 0.3);
   --heading-blue: #1f6fd1;
   --accent-contrast: #ffffff;
   --shell-gradient: linear-gradient(160deg, #eaf6ff 0%, #cfe9ff 45%, #9fd0ff 100%);
@@ -32,6 +33,7 @@
     --accent: #5aa9ff;
     --accent-hover: #7dbcff;
     --accent-bg: rgba(90, 169, 255, 0.15);
+    --accent-bg-hover: rgba(90, 169, 255, 0.35);
     --heading-blue: #9fd0ff;
     --accent-contrast: #0b1220;
     --shell-gradient: linear-gradient(160deg, #0b1220 0%, #10233b 45%, #123152 100%);
@@ -65,9 +67,19 @@ h2 {
 /* Navbar pills: high-contrast text on the page gradient, filled accent pill for the current page. */
 .app-nav {
   --bs-nav-link-color: var(--text-h);
-  --bs-nav-link-hover-color: var(--accent-hover);
+  --bs-nav-link-hover-color: var(--text-h);
   --bs-nav-pills-link-active-bg: var(--accent-hover);
   --bs-nav-pills-link-active-color: var(--accent-contrast);
+}
+
+/* Tinted fill on each pill so inactive tabs read as tabs, not just links. */
+.app-nav .nav-link {
+  background-color: var(--accent-bg);
+}
+
+/* Hover deepens the tint (alpha +0.2); the active pill keeps its solid fill instead. */
+.app-nav .nav-link:hover:not(.active) {
+  background-color: var(--accent-bg-hover);
 }
 
 /* Reskin Bootstrap's primary button/link tokens to the weather accent color. */

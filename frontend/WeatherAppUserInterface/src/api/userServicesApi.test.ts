@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { UnauthorizedError } from './profileApi';
 import { saveServices } from './userServicesApi';
+// NEW TICKET start
+import { readCache, writeCache } from './apiCache';
+// NEW TICKET end
 
 function jsonResponse(body: unknown, ok = true, status = 200): Response {
   return {
@@ -12,6 +15,9 @@ function jsonResponse(body: unknown, ok = true, status = 200): Response {
 
 beforeEach(() => {
   vi.stubGlobal('fetch', vi.fn());
+  // NEW TICKET start
+  localStorage.clear();
+  // NEW TICKET end
 });
 
 describe('saveServices', () => {
@@ -55,4 +61,32 @@ describe('saveServices', () => {
       'Failed to save services (status 500)',
     );
   });
+
+  // NEW TICKET start
+  it('invalidates the cached selections, forecasts and aggregated forecasts after a successful save', async () => {
+    writeCache('selections', { services: [], cities: [] });
+    writeCache('forecasts', []);
+    writeCache('aggregatedForecasts', { forecasts: [], serviceMetadata: [] });
+    vi.mocked(fetch).mockResolvedValue(jsonResponse(null));
+
+    await saveServices('jwt-token', serviceIds);
+
+    expect(readCache('selections')).toBeNull();
+    expect(readCache('forecasts')).toBeNull();
+    expect(readCache('aggregatedForecasts')).toBeNull();
+  });
+
+  it('keeps the cache when the save fails', async () => {
+    writeCache('selections', { services: [], cities: [] });
+    writeCache('forecasts', []);
+    writeCache('aggregatedForecasts', { forecasts: [], serviceMetadata: [] });
+    vi.mocked(fetch).mockResolvedValue(jsonResponse(null, false, 500));
+
+    await expect(saveServices('jwt-token', serviceIds)).rejects.toThrow();
+
+    expect(readCache('selections')).toEqual({ services: [], cities: [] });
+    expect(readCache('forecasts')).toEqual([]);
+    expect(readCache('aggregatedForecasts')).toEqual({ forecasts: [], serviceMetadata: [] });
+  });
+  // NEW TICKET end
 });

@@ -25,5 +25,5 @@ export async function saveServices(jwt: string, serviceIds: number[]): Promise<v
   }
 
   // The saved pending services change what GET /api/Selections reports.
-  invalidateCache('selections', 'forecasts');
+  invalidateCache('selections', 'forecasts', 'aggregatedForecasts');
 }

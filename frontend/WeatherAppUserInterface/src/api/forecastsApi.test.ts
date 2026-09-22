@@ -178,6 +178,37 @@ describe('rating - cached forecasts', () => {
     expect(readCache('forecasts')).toEqual([forecastItem(1, null), forecastItem(2, 3)]);
   });
 
+
+  // A rating can change which service has the highest average for a city (UC12), so the
+  // aggregated view is dropped entirely rather than patched.
+  it('rateForecast invalidates the cached aggregated forecasts', async () => {
+    writeCache('aggregatedForecasts', { forecasts: [], serviceMetadata: [] });
+    vi.mocked(fetch).mockResolvedValue(jsonResponse(null));
+
+    await rateForecast('jwt-token', 1, 5);
+
+    expect(readCache('aggregatedForecasts')).toBeNull();
+  });
+
+  it('removeRating invalidates the cached aggregated forecasts', async () => {
+    writeCache('aggregatedForecasts', { forecasts: [], serviceMetadata: [] });
+    vi.mocked(fetch).mockResolvedValue(jsonResponse(null));
+
+    await removeRating('jwt-token', 1);
+
+    expect(readCache('aggregatedForecasts')).toBeNull();
+  });
+
+  it('leaves the cached aggregated forecasts untouched when rating fails', async () => {
+    writeCache('aggregatedForecasts', { forecasts: [], serviceMetadata: [] });
+    vi.mocked(fetch).mockResolvedValue(jsonResponse(null, false, 500));
+
+    await expect(rateForecast('jwt-token', 1, 5)).rejects.toThrow();
+
+    expect(readCache('aggregatedForecasts')).toEqual({ forecasts: [], serviceMetadata: [] });
+  });
+
+
   it('leaves the cache untouched when rating fails', async () => {
     writeCache('forecasts', [forecastItem(1, null)]);
     vi.mocked(fetch).mockResolvedValue(jsonResponse(null, false, 500));

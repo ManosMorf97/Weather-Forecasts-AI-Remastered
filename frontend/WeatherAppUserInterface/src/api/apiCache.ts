@@ -1,7 +1,7 @@
 // localStorage cache for GET responses from WeatherUserActions, so pages that need the same
 // data don't hit the backend again. An entry stays until the user changes the underlying data
 // (save selections/services, rate a forecast) or the session ends (see clearApiCache).
-export type CacheKey = 'selections' | 'forecasts';
+export type CacheKey = 'selections' | 'forecasts' | 'aggregatedForecasts';
 
 // Bump the version if a cached DTO's shape changes, so old entries are ignored.
 const KEY_PREFIX = 'weatherApp.cache.v1.';

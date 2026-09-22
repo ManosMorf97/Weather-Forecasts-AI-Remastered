@@ -116,22 +116,26 @@ describe('saveSelections', () => {
   it('invalidates the cached selections and forecasts after a successful save', async () => {
     writeCache('selections', { services: [], cities: [] });
     writeCache('forecasts', []);
+    writeCache('aggregatedForecasts', { forecasts: [], serviceMetadata: [] });
     vi.mocked(fetch).mockResolvedValue(jsonResponse(null));
 
     await saveSelections('jwt-token', cities, serviceIds);
 
     expect(readCache('selections')).toBeNull();
     expect(readCache('forecasts')).toBeNull();
+    expect(readCache('aggregatedForecasts')).toBeNull();
   });
 
   it('keeps the cache when the save fails', async () => {
     writeCache('selections', { services: [], cities: [] });
     writeCache('forecasts', []);
+    writeCache('aggregatedForecasts', { forecasts: [], serviceMetadata: [] });
     vi.mocked(fetch).mockResolvedValue(jsonResponse(null, false, 500));
 
     await expect(saveSelections('jwt-token', cities, serviceIds)).rejects.toThrow();
 
     expect(readCache('selections')).toEqual({ services: [], cities: [] });
     expect(readCache('forecasts')).toEqual([]);
+    expect(readCache('aggregatedForecasts')).toEqual({ forecasts: [], serviceMetadata: [] });
   });
 });

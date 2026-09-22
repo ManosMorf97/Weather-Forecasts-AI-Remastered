@@ -71,7 +71,7 @@ export async function saveSelections(
   }
 
   // The user's CitySite selection drives both what they see as selected and which forecasts they get.
-  invalidateCache('selections', 'forecasts');
+  invalidateCache('selections', 'forecasts', 'aggregatedForecasts');
 }
 
 export async function problemDetailFrom(
