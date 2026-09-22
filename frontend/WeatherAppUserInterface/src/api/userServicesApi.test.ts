@@ -1,4 +1,3 @@
-// NEW TICKET start
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { UnauthorizedError } from './profileApi';
 import { saveServices } from './userServicesApi';

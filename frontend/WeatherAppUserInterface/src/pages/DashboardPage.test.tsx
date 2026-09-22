@@ -35,7 +35,7 @@ function athensCurrent(overrides: Partial<ForecastItemDto> = {}): ForecastItemDt
   };
 }
 
-// NEW TICKET start
+
 // Stars 1..filledCount must show ★ and the rest ☆.
 function expectFilledStars(filledCount: number) {
   [1, 2, 3, 4, 5].forEach((star) => {
@@ -43,7 +43,7 @@ function expectFilledStars(filledCount: number) {
     expect(screen.getByRole('button', { name })).toHaveTextContent(star <= filledCount ? '★' : '☆');
   });
 }
-// NEW TICKET end
+
 
 beforeEach(() => {
   vi.mocked(useAuth).mockReturnValue({
@@ -80,13 +80,13 @@ describe('DashboardPage - initial load (UC6)', () => {
     expect(weatherApiSection).toHaveTextContent('Athens, Greece');
   });
 
-  // NEW TICKET start
+
   it('shows the navbar', async () => {
     render(<DashboardPage />);
 
     expect(await screen.findByTestId('navbar')).toBeInTheDocument();
   });
-  // NEW TICKET end
+
 
   it('A2: shows an empty-state message when there are no forecasts', async () => {
     vi.mocked(getForecasts).mockResolvedValue([]);
@@ -115,16 +115,16 @@ describe('DashboardPage - rating (UC7)', () => {
     await screen.findByRole('heading', { name: 'Athens, Greece' });
 
     expect(screen.queryByRole('button', { name: 'Remove rating' })).not.toBeInTheDocument();
-    // NEW TICKET start
+
     expectFilledStars(0);
-    // NEW TICKET end
+
     await user.click(screen.getByRole('button', { name: 'Rate 4 stars' }));
 
     await waitFor(() => expect(rateForecast).toHaveBeenCalledWith('jwt-token', 1, 4));
     expect(await screen.findByRole('button', { name: 'Remove rating' })).toBeInTheDocument();
-    // NEW TICKET start
+
     expectFilledStars(4);
-    // NEW TICKET end
+
   });
 
   it('A2: clears a rating', async () => {
@@ -132,17 +132,17 @@ describe('DashboardPage - rating (UC7)', () => {
     const user = userEvent.setup();
     render(<DashboardPage />);
     const clearButton = await screen.findByRole('button', { name: 'Remove rating' });
-    // NEW TICKET start
+
     expectFilledStars(3);
-    // NEW TICKET end
+
     await user.click(clearButton);
-    // NEW TICKET start
+
     expectFilledStars(0);
-    // NEW TICKET end
+
     await waitFor(() => expect(removeRating).toHaveBeenCalledWith('jwt-token', 1));
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Remove rating' })).not.toBeInTheDocument());
   });
-  // NEW TICKET start
+
   it('changes an existing rating from 4 stars to 2 stars', async () => {
     vi.mocked(getForecasts).mockResolvedValue([athensCurrent()]);
     const user = userEvent.setup();
@@ -165,7 +165,7 @@ describe('DashboardPage - rating (UC7)', () => {
     expect(rateForecast).toHaveBeenCalledTimes(2);
     expect(screen.getByRole('button', { name: 'Remove rating' })).toBeInTheDocument();
   });
-  // NEW TICKET end
+
 
   it('shows an inline error next to the row when saving a rating fails', async () => {
     vi.mocked(getForecasts).mockResolvedValue([athensCurrent()]);

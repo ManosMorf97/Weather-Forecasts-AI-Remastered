@@ -8,17 +8,16 @@ import { account } from '../auth/appwriteClient';
 import { getSelections, saveSelections } from '../api/selectionsApi';
 import { searchCities } from '../api/cityApi';
 import { UnauthorizedError } from '../api/profileApi';
-// NEW TICKET start
 import { saveServices } from '../api/userServicesApi';
-// NEW TICKET end
+
 
 vi.mock('../auth/useAuth', () => ({ useAuth: vi.fn() }));
 vi.mock('../auth/appwriteClient', () => ({ account: { createJWT: vi.fn() } }));
 vi.mock('../api/selectionsApi');
 vi.mock('../api/cityApi');
-// NEW TICKET start
+
 vi.mock('../api/userServicesApi');
-// NEW TICKET end
+
 
 const navigateMock = vi.fn();
 vi.mock('react-router-dom', async (importOriginal) => {
@@ -59,9 +58,9 @@ beforeEach(() => {
     });
   vi.mocked(saveSelections).mockReset().mockResolvedValue(undefined);
   vi.mocked(searchCities).mockReset();
-  // NEW TICKET start
+
   vi.mocked(saveServices).mockReset().mockResolvedValue(undefined);
-  // NEW TICKET end
+
   logoutMock.mockReset();
   retryProfileSyncMock.mockReset().mockResolvedValue(undefined);
   navigateMock.mockReset();

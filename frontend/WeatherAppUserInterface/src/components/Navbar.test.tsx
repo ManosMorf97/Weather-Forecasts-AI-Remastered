@@ -1,4 +1,3 @@
-// NEW TICKET start
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -81,4 +80,4 @@ describe('Navbar - user without a CitySite selection', () => {
     expect(screen.queryByRole('navigation', { name: 'Main' })).not.toBeInTheDocument();
   });
 });
-// NEW TICKET end
+
