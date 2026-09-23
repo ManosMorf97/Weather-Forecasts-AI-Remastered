@@ -20,7 +20,7 @@ namespace WeatherUserActions.Repositories
         // Returns every ForecastingService flagged with whether the user has selected it (via a
         // real city selection or a pending no-city-yet pick), plus the cities from the user's
         // real selections. Returns (false, ..., ...) if the read could not be performed.
-        Task<(bool Succeeded, List<ServiceSelectionDto> Services, List<CityDto> Cities)> TryGetUserSelectionsAsync(
+        Task<(bool Succeeded, List<ServiceSelectionDto> Services, List<SelectedCityDto> Cities)> TryGetUserSelectionsAsync(
             string userId, CancellationToken cancellationToken = default);
     }
 }

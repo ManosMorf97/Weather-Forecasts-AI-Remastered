@@ -14,9 +14,15 @@ export interface ServiceSelectionDto {
   selected: boolean;
 }
 
+// Same shape as CityDto, plus the cityId - UC8 (Request Analytics) needs it to build
+// RequestAnalyticsRequest.cityIds.
+export interface SelectedCityDto extends CityDto {
+  cityId: number;
+}
+
 export interface Selections {
   services: ServiceSelectionDto[];
-  cities: CityDto[];
+  cities: SelectedCityDto[];
 }
 
 // Empty in dev, where the Vite proxy forwards /api to WeatherUserActions (see vite.config.ts).

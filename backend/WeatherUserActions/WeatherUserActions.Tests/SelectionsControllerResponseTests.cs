@@ -107,7 +107,7 @@ namespace WeatherUserActions.Tests
         public async Task GetSelections_Succeeds_ReturnsOkWithServicesAndCities()
         {
             var services = new List<ServiceSelectionDto> { new(1, "OpenWeather", true) };
-            var cities = new List<CityDto> { new("Athens", "Greece", 37.98m, 23.72m) };
+            var cities = new List<SelectedCityDto> { new(1, "Athens", "Greece", 37.98m, 23.72m) };
             var controller = CreateController(
                 FakeAppwriteAuthService.ReturningUid("uid-1"), FakeSelectionsRepository.ReturningSelections(services, cities));
 

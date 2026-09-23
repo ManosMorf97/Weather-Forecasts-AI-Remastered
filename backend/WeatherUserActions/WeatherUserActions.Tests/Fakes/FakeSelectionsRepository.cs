@@ -10,7 +10,7 @@ namespace WeatherUserActions.Tests.Fakes
         private readonly bool _replaceSucceeds;
         private readonly bool _getSelectionsSucceeds;
         private readonly List<ServiceSelectionDto> _services;
-        private readonly List<CityDto> _cities;
+        private readonly List<SelectedCityDto> _cities;
 
         private FakeSelectionsRepository(
             bool validationSucceeds,
@@ -18,7 +18,7 @@ namespace WeatherUserActions.Tests.Fakes
             bool replaceSucceeds,
             bool getSelectionsSucceeds = true,
             List<ServiceSelectionDto>? services = null,
-            List<CityDto>? cities = null)
+            List<SelectedCityDto>? cities = null)
         {
             _validationSucceeds = validationSucceeds;
             _allServiceIdsExist = allServiceIdsExist;
@@ -40,7 +40,7 @@ namespace WeatherUserActions.Tests.Fakes
         public static FakeSelectionsRepository FailingToReplaceSelection() =>
             new(validationSucceeds: true, allServiceIdsExist: true, replaceSucceeds: false);
 
-        public static FakeSelectionsRepository ReturningSelections(List<ServiceSelectionDto> services, List<CityDto> cities) =>
+        public static FakeSelectionsRepository ReturningSelections(List<ServiceSelectionDto> services, List<SelectedCityDto> cities) =>
             new(validationSucceeds: true, allServiceIdsExist: true, replaceSucceeds: true, services: services, cities: cities);
 
         public static FakeSelectionsRepository FailingToLoadSelections() =>
@@ -57,7 +57,7 @@ namespace WeatherUserActions.Tests.Fakes
             CancellationToken cancellationToken = default) =>
             Task.FromResult(_replaceSucceeds);
 
-        public Task<(bool Succeeded, List<ServiceSelectionDto> Services, List<CityDto> Cities)> TryGetUserSelectionsAsync(
+        public Task<(bool Succeeded, List<ServiceSelectionDto> Services, List<SelectedCityDto> Cities)> TryGetUserSelectionsAsync(
             string userId, CancellationToken cancellationToken = default) =>
             Task.FromResult((_getSelectionsSucceeds, _services, _cities));
     }

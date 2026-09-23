@@ -35,11 +35,12 @@ beforeEach(() => {
 });
 
 describe('Navbar - user with a CitySite selection', () => {
-  it('shows the Current predictions, Suggested Forecasts and Set Selections links', () => {
+  it('shows the Current predictions, Suggested Forecasts, Request Analytics and Set Selections links', () => {
     renderNavbar();
 
     expect(screen.getByRole('link', { name: 'Current predictions' })).toHaveAttribute('href', '/dashboard');
     expect(screen.getByRole('link', { name: 'Suggested Forecasts' })).toHaveAttribute('href', '/aggregated');
+    expect(screen.getByRole('link', { name: 'Request Analytics' })).toHaveAttribute('href', '/analytics');
     expect(screen.getByRole('link', { name: 'Set Selections' })).toHaveAttribute('href', '/setup');
   });
 
@@ -78,6 +79,7 @@ describe('Navbar - user without a CitySite selection', () => {
     expect(screen.queryByRole('navigation', { name: 'Main' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Current predictions' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Suggested Forecasts' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Request Analytics' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Set Selections' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Log out' })).toBeInTheDocument();
   });

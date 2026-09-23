@@ -10,6 +10,7 @@ import { RegisterPage } from './pages/RegisterPage';
 import { SetupPage } from './pages/SetupPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { AggregatedForecastsPage } from './pages/AggregatedForecastsPage';
+import { AnalyticsPage } from './pages/AnalyticsPage';
 
 // Resolves "/" to wherever the current session should actually land (UC1/UC2).
 function HomeRedirect() {
@@ -35,6 +36,7 @@ function AppRoutes() {
         <Route path="/setup" element={<SetupPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/aggregated" element={<AggregatedForecastsPage />} />
+        <Route path="/analytics" element={<AnalyticsPage />} />
       </Route>
       <Route path="/" element={<HomeRedirect />} />
       <Route path="*" element={<HomeRedirect />} />

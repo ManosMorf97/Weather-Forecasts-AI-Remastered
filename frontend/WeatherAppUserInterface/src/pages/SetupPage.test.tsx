@@ -160,7 +160,7 @@ describe('SetupPage - city search (UC4)', () => {
   it('removes a selected city', async () => {
     vi.mocked(getSelections).mockResolvedValue({
       services: [{ serviceId: 1, name: 'Open-Meteo', selected: true }],
-      cities: [{ name: 'Athens', country: 'Greece', latitude: 37.98, longitude: 23.73 }],
+      cities: [{ cityId: 1, name: 'Athens', country: 'Greece', latitude: 37.98, longitude: 23.73 }],
     });
     const user = userEvent.setup();
     renderSetupPage();
@@ -205,7 +205,7 @@ describe('SetupPage - confirm (UC4 + UC5)', () => {
   it('saves the selection, refreshes the profile, and navigates home', async () => {
     vi.mocked(getSelections).mockResolvedValue({
       services: [{ serviceId: 1, name: 'Open-Meteo', selected: false }],
-      cities: [{ name: 'Athens', country: 'Greece', latitude: 37.98, longitude: 23.73 }],
+      cities: [{ cityId: 1, name: 'Athens', country: 'Greece', latitude: 37.98, longitude: 23.73 }],
     });
     const user = userEvent.setup();
     renderSetupPage();
@@ -226,7 +226,7 @@ describe('SetupPage - confirm (UC4 + UC5)', () => {
   it('shows an error and does not navigate when saving fails', async () => {
     vi.mocked(getSelections).mockResolvedValue({
       services: [{ serviceId: 1, name: 'Open-Meteo', selected: true }],
-      cities: [{ name: 'Athens', country: 'Greece', latitude: 37.98, longitude: 23.73 }],
+      cities: [{ cityId: 1, name: 'Athens', country: 'Greece', latitude: 37.98, longitude: 23.73 }],
     });
     vi.mocked(saveSelections).mockRejectedValue(new Error('Could not persist the city/service selection.'));
     const user = userEvent.setup();
@@ -311,7 +311,7 @@ describe('SetupPage - City API down with no cities selected (services only)', ()
   it('still saves through saveSelections when a city is already selected', async () => {
     vi.mocked(getSelections).mockResolvedValue({
       services: [{ serviceId: 1, name: 'Open-Meteo', selected: true }],
-      cities: [{ name: 'Athens', country: 'Greece', latitude: 37.98, longitude: 23.73 }],
+      cities: [{ cityId: 1, name: 'Athens', country: 'Greece', latitude: 37.98, longitude: 23.73 }],
     });
     const user = userEvent.setup();
     renderSetupPage();

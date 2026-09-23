@@ -5,6 +5,7 @@ import { LogoutBar } from '../auth/LogoutBar';
 const NAV_LINKS = [
   { to: '/dashboard', label: 'Current predictions' },
   { to: '/aggregated', label: 'Suggested Forecasts' },
+  { to: '/analytics', label: 'Request Analytics' },
   { to: '/setup', label: 'Set Selections' },
 ];
 

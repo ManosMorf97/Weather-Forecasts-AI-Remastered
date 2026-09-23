@@ -150,7 +150,11 @@ export function SetupPage() {
     );
   }
 
-  const selectedCityList = Object.values(selectedCities);
+  // Loaded cities carry a cityId (SelectedCityDto); newly searched ones don't (GeocodedCity).
+  // Save only the CityDto shape the backend's SaveSelectionsRequest expects.
+  const selectedCityList: CityDto[] = Object.values(selectedCities).map(
+    ({ name, country, latitude, longitude }) => ({ name, country, latitude, longitude }),
+  );
   const selectedServiceIdList = services.filter((service) => service.selected).map((service) => service.serviceId);
   const availableSearchResults = searchResults.filter((city) => !selectedCities[citySignature(city)]);
 

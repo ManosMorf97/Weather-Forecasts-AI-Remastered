@@ -207,7 +207,7 @@ namespace WeatherUserActions.Repositories
                 .ExecuteDeleteAsync(cancellationToken);
         }
 
-        public async Task<(bool Succeeded, List<ServiceSelectionDto> Services, List<CityDto> Cities)> TryGetUserSelectionsAsync(
+        public async Task<(bool Succeeded, List<ServiceSelectionDto> Services, List<SelectedCityDto> Cities)> TryGetUserSelectionsAsync(
             string userId, CancellationToken cancellationToken = default)
         {
             try
@@ -238,7 +238,7 @@ namespace WeatherUserActions.Repositories
                 var cities = userCitySites
                     .Select(userCitySite => userCitySite.CitySite.City)
                     .DistinctBy(city => city.CityId)
-                    .Select(city => new CityDto(city.Name, city.Country, city.Latitude, city.Longitude))
+                    .Select(city => new SelectedCityDto(city.CityId, city.Name, city.Country, city.Latitude, city.Longitude))
                     .ToList();
 
                 return (true, services, cities);

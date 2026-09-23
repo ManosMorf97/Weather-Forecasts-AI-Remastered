@@ -785,6 +785,7 @@ namespace WeatherUserActions.Tests
             Assert.Equal("OpenWeather", service.Name);
             Assert.True(service.Selected);
             var city = Assert.Single(body.Cities);
+            Assert.True(city.CityId > 0);
             Assert.Equal(Athens.Name, city.Name);
             Assert.Equal(Athens.Country, city.Country);
         }
@@ -841,6 +842,7 @@ namespace WeatherUserActions.Tests
                 Assert.False(weatherApiForA.Selected);
 
                 var cityForA = Assert.Single(bodyA.Cities);
+                Assert.True(cityForA.CityId > 0);
                 Assert.Equal(Athens.Name, cityForA.Name);
             }
 
