@@ -27,7 +27,7 @@ const schema = z.object({
   SMTP_PORT: z.coerce.number().int().positive().default(587),
   SMTP_USER: z.string().min(1).optional(),
   SMTP_PASSWORD: z.string().min(1).optional(),
-  EMAIL_FROM: z.string().min(1).optional(),
+  EMAIL_FROM: z.string().default(''),
 
   HTTP_TIMEOUT_MS: z.coerce.number().int().positive().default(15_000),
   LOG_LEVEL: z.string().default('info'),
