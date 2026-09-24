@@ -81,8 +81,8 @@ describe('AnalyticsPage - submitting (UC8 step 4-6)', () => {
   async function fillValidForm() {
     await userEvent.click(await screen.findByLabelText('Athens, Greece'));
     await userEvent.click(screen.getByLabelText('Open-Meteo'));
-    await userEvent.type(screen.getByLabelText('Start'), '2026-01-01');
-    await userEvent.type(screen.getByLabelText('End'), '2026-01-31');
+    await userEvent.type(screen.getByLabelText('Start date'), '2026-01-01');
+    await userEvent.type(screen.getByLabelText('End date'), '2026-01-31');
   }
 
   it('disables submit until a city, a service, and both dates are picked', async () => {
@@ -99,8 +99,8 @@ describe('AnalyticsPage - submitting (UC8 step 4-6)', () => {
     render(<AnalyticsPage />);
     await userEvent.click(await screen.findByLabelText('Athens, Greece'));
     await userEvent.click(screen.getByLabelText('Open-Meteo'));
-    await userEvent.type(screen.getByLabelText('Start'), '2026-02-01');
-    await userEvent.type(screen.getByLabelText('End'), '2026-01-01');
+    await userEvent.type(screen.getByLabelText('Start date'), '2026-02-01');
+    await userEvent.type(screen.getByLabelText('End date'), '2026-01-01');
 
     expect(screen.getByText('Start date must be on or before the end date.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Request analytics' })).toBeDisabled();
@@ -110,8 +110,8 @@ describe('AnalyticsPage - submitting (UC8 step 4-6)', () => {
     render(<AnalyticsPage />);
     await userEvent.click(await screen.findByLabelText('Athens, Greece'));
     await userEvent.click(screen.getByLabelText('Open-Meteo'));
-    await userEvent.type(screen.getByLabelText('Start'), '2025-01-01');
-    await userEvent.type(screen.getByLabelText('End'), '2026-01-03');
+    await userEvent.type(screen.getByLabelText('Start date'), '2025-01-01');
+    await userEvent.type(screen.getByLabelText('End date'), '2026-01-03');
 
     expect(screen.getByText('The date range must not exceed 366 days.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Request analytics' })).toBeDisabled();

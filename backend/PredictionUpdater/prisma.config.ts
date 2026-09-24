@@ -7,16 +7,16 @@ import { buildSqlServerUrl } from './src/db/connectionUrl.js';
 // the driver adapter (see src/db/client.ts).
 //
 // DATABASE_URL wins when set (tests point it at a throwaway container); otherwise the URL is
-// assembled from the ambient YOUR_SERVER / YOUR_USER / YOUR_PASSWORD parts, same as the .NET
+// assembled from the ambient YOUR_DATABASE_SERVER / YOUR_USER / YOUR_PASSWORD parts, same as the .NET
 // side. With none of those present we still hand back a placeholder so `generate` (which does
 // not connect) works on a fresh checkout.
 function resolveUrl(): string {
   if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
 
-  const { YOUR_SERVER, YOUR_USER, YOUR_PASSWORD, DB_NAME } = process.env;
-  if (YOUR_SERVER && YOUR_USER && YOUR_PASSWORD) {
+  const { YOUR_DATABASE_SERVER, YOUR_USER, YOUR_PASSWORD, DB_NAME } = process.env;
+  if (YOUR_DATABASE_SERVER && YOUR_USER && YOUR_PASSWORD) {
     return buildSqlServerUrl({
-      server: YOUR_SERVER,
+      server: YOUR_DATABASE_SERVER,
       user: YOUR_USER,
       password: YOUR_PASSWORD,
       database: DB_NAME ?? 'weather_forecasts_ai',

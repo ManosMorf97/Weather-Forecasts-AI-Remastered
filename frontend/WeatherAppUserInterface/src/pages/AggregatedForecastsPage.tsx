@@ -121,7 +121,7 @@ export function AggregatedForecastsPage() {
         <div className="card border-0 w-100" style={{ maxWidth: '56rem' }}>
           <div className="card-body p-4 p-sm-5">
             <div className="mb-4">
-              <h1 className="h3 mb-1 heading-blue">Suggested Forecasts</h1>
+              <h1 className="h3 mb-1 heading-green">Suggested Forecasts</h1>
               <p className="text-muted mb-0">
                 For each of your cities, the forecast from your highest-rated selected service.
               </p>
@@ -141,7 +141,7 @@ export function AggregatedForecastsPage() {
 
             {groups.map((group) => (
               <section key={`${group.city}|${group.country}`} className="mb-4">
-                <h2 className="h5 mb-1 heading-blue">
+                <h2 className="h5 mb-1 heading-green">
                   {group.city}, {group.country}
                 </h2>
                 {group.metadata && <p className="text-muted small mb-2">{winningServiceNote(group.metadata)}</p>}
@@ -149,7 +149,7 @@ export function AggregatedForecastsPage() {
                   {group.forecasts.map((forecast) => (
                     <li
                       key={forecast.forecastId}
-                      className="bg-success-subtle text-dark list-group-item d-flex flex-wrap align-items-center gap-2"
+                       style={{ backgroundColor:'#C3D3B7' }} className=" text-dark list-group-item d-flex flex-wrap align-items-center gap-2"
                     >
                       <div>
                         <div className="d-flex align-items-center gap-2 flex-wrap">
@@ -157,7 +157,7 @@ export function AggregatedForecastsPage() {
                           <span>{formatLocalTime(forecast.timestamp, forecast.offsetMinutes)}</span>
                           {forecast.dangerFlag && <span className="badge text-bg-danger">Danger</span>}
                         </div>
-                        <div className="text-muted small mt-1">
+                        <div className="small mt-1">
                           {forecast.temperature.toFixed(1)}°C · {forecast.humidity.toFixed(0)}% humidity ·{' '}
                           {forecast.windSpeed.toFixed(1)} km/h wind
                         </div>

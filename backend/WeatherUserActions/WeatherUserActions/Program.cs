@@ -50,7 +50,7 @@ builder.Services.AddHostedService<AnalyticsReportWorker>();
 var databaseSection = builder.Configuration.GetSection("Database");
 var connectionString = new SqlConnectionStringBuilder
 {
-    DataSource = Environment.GetEnvironmentVariable("YOUR_SERVER") ?? databaseSection["Server"],
+    DataSource = Environment.GetEnvironmentVariable("YOUR_DATABASE_SERVER") ?? databaseSection["Server"],
     InitialCatalog = databaseSection["Name"],
     UserID = Environment.GetEnvironmentVariable("YOUR_USER") ?? databaseSection["User"],
     Password = Environment.GetEnvironmentVariable("YOUR_PASSWORD") ?? databaseSection["Password"],

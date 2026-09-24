@@ -179,7 +179,7 @@ export function DashboardPage() {
                       {cityGroup.forecasts.map((forecast) => (
                         <li
                           key={forecast.forecastId}
-                          className="bg-info-subtle text-dark list-group-item d-flex flex-wrap align-items-center justify-content-between gap-2"
+                          style={{ backgroundColor:'#B0D1D8' }} className=" text-dark list-group-item d-flex flex-wrap align-items-center justify-content-between gap-2"
                         >
                           <div>
                             <div className="d-flex align-items-center gap-2 flex-wrap">
@@ -187,7 +187,7 @@ export function DashboardPage() {
                               <span>{formatLocalTime(forecast.timestamp, forecast.offsetMinutes)}</span>
                               {forecast.dangerFlag && <span className="badge text-bg-danger">Danger</span>}
                             </div>
-                            <div className="text-muted small mt-1">
+                            <div className=" small mt-1">
                               {forecast.temperature.toFixed(1)}°C · {forecast.humidity.toFixed(0)}% humidity ·{' '}
                               {forecast.windSpeed.toFixed(1)} km/h wind
                             </div>

@@ -25,7 +25,7 @@ export async function startTestDb(): Promise<TestDb> {
   const container = await new MSSQLServerContainer(MSSQL_IMAGE).acceptLicense().start();
 
   // The CLI still speaks Prisma's `sqlserver://` URL; prisma.config.ts picks DATABASE_URL up
-  // ahead of the ambient YOUR_SERVER parts.
+  // ahead of the ambient YOUR_DATABASE_SERVER parts.
   const databaseUrl = buildSqlServerUrl({
     server: `${container.getHost()},${container.getPort()}`,
     user: container.getUsername(),

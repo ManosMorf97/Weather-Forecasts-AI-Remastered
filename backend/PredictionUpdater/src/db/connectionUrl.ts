@@ -1,5 +1,5 @@
 export interface SqlServerParts {
-  /** host, "host,port", or "host\INSTANCE" - the .NET `Server=` form (YOUR_SERVER). */
+  /** host, "host,port", or "host\INSTANCE" - the .NET `Server=` form (YOUR_DATABASE_SERVER). */
   server: string;
   user: string;
   password: string;
@@ -66,7 +66,7 @@ function quote(value: string): string {
 }
 
 // Build a Prisma SQL Server connection URL from the same parts WeatherUserActions' Program.cs
-// uses (YOUR_SERVER / YOUR_USER / YOUR_PASSWORD). Only the Prisma CLI (`db pull`) uses this;
+// uses (YOUR_DATABASE_SERVER / YOUR_USER / YOUR_PASSWORD). Only the Prisma CLI (`db pull`) uses this;
 // the runtime client connects through buildMssqlConfig + the driver adapter.
 export function buildSqlServerUrl(parts: SqlServerParts): string {
   const { host, port, instanceName } = parseServer(parts.server);

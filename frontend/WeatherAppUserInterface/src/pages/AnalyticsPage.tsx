@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import type { MouseEvent } from 'react';
 import { useAuth } from '../auth/useAuth';
 import { account } from '../auth/appwriteClient';
 import { LoadingScreen } from '../auth/LoadingScreen';
@@ -11,6 +12,15 @@ import { requestAnalytics } from '../api/analyticsApi';
 // UC8 A1: the backend rejects a range over 366 days - mirrored here so the user finds out
 // before submitting rather than from the 400 response.
 const MAX_DATE_RANGE_DAYS = 366;
+
+// Browsers only open the calendar from the tiny icon by default; open it on any click in the box.
+function openDatePicker(event: MouseEvent<HTMLInputElement>) {
+  try {
+    event.currentTarget.showPicker?.();
+  } catch {
+    // showPicker can throw when the browser refuses (e.g. already open) - the native controls still work.
+  }
+}
 
 function dateRangeErrorFor(start: string, end: string): string | null {
   if (!start || !end) {
@@ -165,7 +175,7 @@ export function AnalyticsPage() {
         <div className="card border-0 w-100" style={{ maxWidth: '48rem' }}>
           <div className="card-body p-4 p-sm-5">
             <div className="mb-4">
-              <h1 className="h3 mb-1 heading-blue">Request Analytics</h1>
+              <h1 className="h3 mb-1 heading-orange">Request Analytics</h1>
               <p className="text-muted mb-0">
                 Pick cities, services and a date range. The finished report is emailed to you as a PDF.
               </p>
@@ -226,29 +236,32 @@ export function AnalyticsPage() {
             </section>
 
             <section className="mb-4">
-              <h2 className="h5 mb-3">Date range</h2>
+              <h2 className="h5 mb-1">Date range</h2>
+              <p className="text-muted small mb-3">Click a date box to open the calendar and pick the first and last day to include.</p>
               <div className="row g-2">
                 <div className="col-sm-6">
-                  <label className="form-label small" htmlFor="analytics-date-start">
-                    Start
+                  <label className="form-label fw-semibold" htmlFor="analytics-date-start">
+                    Start date
                   </label>
                   <input
                     id="analytics-date-start"
                     type="date"
-                    className="form-control"
+                    className="form-control form-control-lg"
                     value={dateRangeStart}
+                    onClick={openDatePicker}
                     onChange={(event) => setDateRangeStart(event.target.value)}
                   />
                 </div>
                 <div className="col-sm-6">
-                  <label className="form-label small" htmlFor="analytics-date-end">
-                    End
+                  <label className="form-label fw-semibold" htmlFor="analytics-date-end">
+                    End date
                   </label>
                   <input
                     id="analytics-date-end"
                     type="date"
-                    className="form-control"
+                    className="form-control form-control-lg"
                     value={dateRangeEnd}
+                    onClick={openDatePicker}
                     onChange={(event) => setDateRangeEnd(event.target.value)}
                   />
                 </div>
@@ -273,7 +286,7 @@ export function AnalyticsPage() {
             )}
 
             <button
-              className="btn btn-primary w-100"
+              className="btn btn-info w-100"
               type="button"
               disabled={!canSubmit || submitting}
               onClick={() => void handleSubmit()}

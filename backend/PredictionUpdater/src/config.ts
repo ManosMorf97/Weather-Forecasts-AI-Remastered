@@ -2,11 +2,11 @@ import { z } from 'zod';
 import type { SqlServerParts } from './db/connectionUrl.js';
 
 // All runtime configuration comes from the environment. The YOUR_* names are ambient machine
-// env vars shared with WeatherUserActions (its Program.cs reads the same YOUR_SERVER / YOUR_USER
+// env vars shared with WeatherUserActions (its Program.cs reads the same YOUR_DATABASE_SERVER / YOUR_USER
 // / YOUR_PASSWORD / YOUR_APPWRITE_*). Everything else lives in .env for local runs.
 const schema = z.object({
   // Database connection parts (same convention as the .NET side). Assembled into a Prisma URL below.
-  YOUR_SERVER: z.string().min(1),
+  YOUR_DATABASE_SERVER: z.string().min(1),
   YOUR_USER: z.string().min(1),
   YOUR_PASSWORD: z.string().min(1),
   DB_NAME: z.string().min(1).default('weather_forecasts_ai'),
@@ -34,7 +34,7 @@ const schema = z.object({
 });
 
 export type Config = z.infer<typeof schema> & {
-  /** DB connection parts from YOUR_SERVER / YOUR_USER / YOUR_PASSWORD / DB_NAME. */
+  /** DB connection parts from YOUR_DATABASE_SERVER / YOUR_USER / YOUR_PASSWORD / DB_NAME. */
   readonly sqlServer: SqlServerParts;
   /** CAP severities normalised to a lower-case set for matching. */
   readonly dangerSeverities: ReadonlySet<string>;
@@ -49,7 +49,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   cached = {
     ...parsed,
     sqlServer: {
-      server: parsed.YOUR_SERVER,
+      server: parsed.YOUR_DATABASE_SERVER,
       user: parsed.YOUR_USER,
       password: parsed.YOUR_PASSWORD,
       database: "weather_forecasts_AI",

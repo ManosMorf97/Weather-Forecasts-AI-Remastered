@@ -350,7 +350,7 @@ export function SetupPage() {
             )}
 
             <button
-              className="btn btn-primary w-100"
+              className="btn btn-info w-100"
               type="button"
               disabled={!canConfirm}
               onClick={() => void handleConfirm()}

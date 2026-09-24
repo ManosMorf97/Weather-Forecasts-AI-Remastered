@@ -8,6 +8,8 @@
   --accent-bg: rgba(47, 134, 235, 0.1);
   --accent-bg-hover: rgba(47, 134, 235, 0.3);
   --heading-blue: #1f6fd1;
+  --heading-green: #198754;
+  --heading-orange: #b8621b;
   --accent-contrast: #ffffff;
   --shell-gradient: linear-gradient(160deg, #eaf6ff 0%, #cfe9ff 45%, #9fd0ff 100%);
   --shadow:
@@ -35,6 +37,8 @@
     --accent-bg: rgba(90, 169, 255, 0.15);
     --accent-bg-hover: rgba(90, 169, 255, 0.35);
     --heading-blue: #9fd0ff;
+    --heading-green: #8fdcae;
+    --heading-orange: #f0b27a;
     --accent-contrast: #0b1220;
     --shell-gradient: linear-gradient(160deg, #0b1220 0%, #10233b 45%, #123152 100%);
     --shadow:
@@ -62,6 +66,16 @@ h2 {
 /* Light blue on the dark card, a deeper blue on the white card (light blue would be unreadable there). */
 .heading-blue {
   color: var(--heading-blue);
+}
+
+/* Same idea as .heading-blue: light green on the dark card, a deeper green on the white card. */
+.heading-green {
+  color: var(--heading-green);
+}
+
+/* Between light brown and orange: a deeper tone on the white card, a lighter one on the dark card. */
+.heading-orange {
+  color: var(--heading-orange);
 }
 
 /* Navbar pills: high-contrast text on the page gradient, filled accent pill for the current page. */

@@ -45,7 +45,7 @@ honestly.
 npm install
 
 # These machine env vars must be set (same ones WeatherUserActions uses):
-#   YOUR_SERVER  YOUR_USER  YOUR_PASSWORD          -> DB connection (db: weather_forecasts_ai)
+#   YOUR_DATABASE_SERVER  YOUR_USER  YOUR_PASSWORD          -> DB connection (db: weather_forecasts_ai)
 #   YOUR_APPWRITE_ENDPOINT / _PROJECT_ID / _API_KEY -> danger-notification email lookup
 cp .env.example .env            # this service's own API keys / SMTP - all optional
 
@@ -60,7 +60,7 @@ npm run dev                     # one cycle against the assembled connection
 ```
 
 `prisma.config.ts` (Prisma 7) resolves the CLI's connection URL: `DATABASE_URL` if set,
-otherwise assembled from `YOUR_SERVER` / `YOUR_USER` / `YOUR_PASSWORD` / `DB_NAME`. The runtime
+otherwise assembled from `YOUR_DATABASE_SERVER` / `YOUR_USER` / `YOUR_PASSWORD` / `DB_NAME`. The runtime
 client does not use a URL - it connects through `@prisma/adapter-mssql` with the same parts
 (see `src/db/client.ts`).
 
