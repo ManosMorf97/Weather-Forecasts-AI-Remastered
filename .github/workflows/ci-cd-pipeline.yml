@@ -26,6 +26,7 @@ jobs:
           filters: |
             weatheruseractions:
               - 'backend/WeatherUserActions/**'
+              - 'Deployment/weatheruseractions/**'
               - '.github/workflows/ci-cd-pipeline.yml'
             predictionupdater:
               - 'backend/PredictionUpdater/**'
@@ -63,6 +64,93 @@ jobs:
 
       - name: Test
         run: dotnet test WeatherUserActions.slnx --no-build --configuration Release
+
+  # CD: build the image, push it to Docker Hub, deploy to DigitalOcean Kubernetes.
+  # Only on push to main, and only after the CI job above passed.
+  deploy-weatheruseractions:
+    needs: weatheruseractions
+    if: ${{ github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    concurrency: deploy-weatheruseractions
+    env:
+      # One private Docker Hub repo holds every app; the tag says which app + which commit.
+      IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/weather-forecasts:weatheruseractions-${{ github.sha }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # The GitHub Actions cache keeps unchanged layers (e.g. NuGet restore) between runs.
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: backend/WeatherUserActions
+          push: true
+          tags: ${{ env.IMAGE }}
+          cache-from: type=gha,scope=weatheruseractions
+          cache-to: type=gha,mode=max,scope=weatheruseractions
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Connect kubectl to the cluster
+        run: doctl kubernetes cluster kubeconfig save --expiry-seconds 600 ${{ secrets.DOKS_CLUSTER_NAME }}
+
+      # The image is private, so the cluster needs a Docker Hub login to pull it.
+      - name: Create Docker Hub pull Secret
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          kubectl create secret docker-registry dockerhub-secret \
+            --namespace weather \
+            --docker-server=https://index.docker.io/v1/ \
+            --docker-username="$DOCKERHUB_USERNAME" \
+            --docker-password="$DOCKERHUB_TOKEN" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Create app Secret
+        env:
+          APPWRITE_ENDPOINT: ${{ secrets.APPWRITE_ENDPOINT }}
+          APPWRITE_PROJECT_ID: ${{ secrets.APPWRITE_PROJECT_ID }}
+          APPWRITE_API_KEY: ${{ secrets.APPWRITE_API_KEY }}
+          EMAIL_HOST: ${{ secrets.EMAIL_HOST }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          EMAIL_USERNAME: ${{ secrets.EMAIL_USERNAME }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+        run: |
+          kubectl create secret generic weatheruseractions-secret \
+            --namespace weather \
+            --from-literal=APPWRITE_ENDPOINT="$APPWRITE_ENDPOINT" \
+            --from-literal=APPWRITE_PROJECT_ID="$APPWRITE_PROJECT_ID" \
+            --from-literal=APPWRITE_API_KEY="$APPWRITE_API_KEY" \
+            --from-literal=EMAIL_HOST="$EMAIL_HOST" \
+            --from-literal=EMAIL_FROM="$EMAIL_FROM" \
+            --from-literal=EMAIL_USERNAME="$EMAIL_USERNAME" \
+            --from-literal=EMAIL_PASSWORD="$EMAIL_PASSWORD" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      # Swap IMAGE_PLACEHOLDER for the tag just pushed, then apply.
+      - name: Apply manifests
+        run: |
+          sed "s|IMAGE_PLACEHOLDER|$IMAGE|g" Deployment/weatheruseractions/weatheruseractions-deployment.yaml \
+            | kubectl apply -f -
+          kubectl apply -f Deployment/weatheruseractions/weatheruseractions-service.yaml
+
+      # Covers the migrate init container too: a failed migration fails this step.
+      - name: Wait for rollout
+        run: kubectl rollout status deployment/weatheruseractions --namespace weather --timeout=10m
 
   predictionupdater:
     needs: changes

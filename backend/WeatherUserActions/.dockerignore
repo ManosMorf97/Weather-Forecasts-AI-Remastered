@@ -1,0 +1,21 @@
+# Files Docker must never send into the build (build context: backend/WeatherUserActions).
+
+# Secrets - otherwise `dotnet publish` copies secrets.json into the image
+**/secrets.json
+
+# Build output - rebuilt inside the container
+**/bin/
+**/obj/
+
+# Local logs and IDE files
+**/logs/
+**/*.log
+**/.vs/
+**/*.user
+
+# Not needed to build the app
+WeatherUserActions.Tests/
+docs/
+README.md
+Dockerfile
+.dockerignore

@@ -1,0 +1,16 @@
+# ClusterIP: reachable only inside the cluster. The frontend's Ingress will route /api here later.
+# Until then, test from your PC with:
+#   kubectl port-forward -n weather svc/weatheruseractions 8080:80   ->  http://localhost:8080
+apiVersion: v1
+kind: Service
+metadata:
+  name: weatheruseractions
+  namespace: weather
+spec:
+  type: ClusterIP
+  selector:
+    app: weatheruseractions
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

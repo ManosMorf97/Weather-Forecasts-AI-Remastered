@@ -71,4 +71,5 @@ Notes.txt
 
 # Local dev helper scripts (contain credentials / are machine-specific)
 scripts/get_jwt.py
+test_gmail_smtp.py
 scripts/bruno-guide.md

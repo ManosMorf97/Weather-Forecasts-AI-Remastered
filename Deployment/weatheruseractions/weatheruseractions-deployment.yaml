@@ -1,0 +1,115 @@
+# WeatherUserActions (ASP.NET Core API). The image is set by the pipeline: it replaces
+# IMAGE_PLACEHOLDER with the Docker Hub tag it just pushed (weather-forecasts:weatheruseractions-<sha>).
+#
+# Secrets used (created by the pipeline from GitHub secrets):
+#   mssql-secret               - SA password, shared with the mssql StatefulSet
+#   weatheruseractions-secret  - Appwrite + SMTP settings
+#   dockerhub-secret           - login to pull the private image
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: weatheruseractions
+  namespace: weather
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: weatheruseractions
+  template:
+    metadata:
+      labels:
+        app: weatheruseractions
+    spec:
+      imagePullSecrets:
+        - name: dockerhub-secret
+
+      # Runs before the app starts: applies pending EF Core migrations (creates the database on
+      # the first run). If it fails, the app container never starts and the old pod keeps serving.
+      initContainers:
+        - name: migrate
+          image: IMAGE_PLACEHOLDER
+          command: ["./efbundle"]
+          env:
+            - name: YOUR_DATABASE_SERVER
+              value: "mssql,1433"
+            - name: YOUR_USER
+              value: "sa"
+            - name: YOUR_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mssql-secret
+                  key: MSSQL_SA_PASSWORD
+
+      containers:
+        - name: weatheruseractions
+          image: IMAGE_PLACEHOLDER
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            # Database - same values as the migrate init container
+            - name: YOUR_DATABASE_SERVER
+              value: "mssql,1433"
+            - name: YOUR_USER
+              value: "sa"
+            - name: YOUR_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mssql-secret
+                  key: MSSQL_SA_PASSWORD
+
+            # Appwrite
+            - name: YOUR_APPWRITE_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: weatheruseractions-secret
+                  key: APPWRITE_ENDPOINT
+            - name: YOUR_APPWRITE_PROJECT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: weatheruseractions-secret
+                  key: APPWRITE_PROJECT_ID
+            - name: YOUR_APPWRITE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: weatheruseractions-secret
+                  key: APPWRITE_API_KEY
+
+            # SMTP - "__" maps to ":" in .NET config (Email__Host -> Email:Host).
+            # If Email__Host is empty, Program.cs falls back to LoggingEmailSender (no real mail).
+            - name: Email__Host
+              valueFrom:
+                secretKeyRef:
+                  name: weatheruseractions-secret
+                  key: EMAIL_HOST
+            - name: Email__From
+              valueFrom:
+                secretKeyRef:
+                  name: weatheruseractions-secret
+                  key: EMAIL_FROM
+            - name: Email__UserName
+              valueFrom:
+                secretKeyRef:
+                  name: weatheruseractions-secret
+                  key: EMAIL_USERNAME
+            - name: Email__Password
+              valueFrom:
+                secretKeyRef:
+                  name: weatheruseractions-secret
+                  key: EMAIL_PASSWORD
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 512Mi # PDF/chart rendering needs headroom
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 20
