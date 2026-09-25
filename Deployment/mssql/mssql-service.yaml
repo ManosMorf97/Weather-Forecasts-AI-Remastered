@@ -1,0 +1,16 @@
+# ClusterIP: reachable only inside the cluster (e.g. WeatherUserActions / PredictionUpdater
+# connect to mssql.weather.svc.cluster.local:1433). Outside access goes through the ingress
+# controller's TCP passthrough - see ingress-nginx-values.yaml.
+apiVersion: v1
+kind: Service
+metadata:
+  name: mssql
+  namespace: weather
+spec:
+  type: ClusterIP
+  selector:
+    app: mssql
+  ports:
+    - name: sql
+      port: 1433
+      targetPort: sql

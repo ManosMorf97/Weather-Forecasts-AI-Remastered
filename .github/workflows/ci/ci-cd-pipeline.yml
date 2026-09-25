@@ -1,4 +1,4 @@
-name: CI
+name: CI/CD
 
 on:
   push:
@@ -14,6 +14,7 @@ jobs:
       weatheruseractions: ${{ steps.filter.outputs.weatheruseractions }}
       predictionupdater: ${{ steps.filter.outputs.predictionupdater }}
       weatherappuserinterface: ${{ steps.filter.outputs.weatherappuserinterface }}
+      mssql: ${{ steps.filter.outputs.mssql }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -25,13 +26,17 @@ jobs:
           filters: |
             weatheruseractions:
               - 'backend/WeatherUserActions/**'
-              - '.github/workflows/backend-ci.yml'
+              - '.github/workflows/ci-cd-pipeline.yml'
             predictionupdater:
               - 'backend/PredictionUpdater/**'
-              - '.github/workflows/backend-ci.yml'
+              - '.github/workflows/ci-cd-pipeline.yml'
             weatherappuserinterface:
               - 'frontend/WeatherAppUserInterface/**'
-              - '.github/workflows/backend-ci.yml'
+              - '.github/workflows/ci-cd-pipeline.yml'
+            mssql:
+              - 'Deployment/namespace.yaml'
+              - 'Deployment/mssql/**'
+              - '.github/workflows/ci-cd-pipeline.yml'
 
   weatheruseractions:
     needs: changes
@@ -123,3 +128,48 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  # CD: deploys SQL Server to DigitalOcean Kubernetes. Only on push to main (PRs never deploy).
+  # Internal-only: reachable by pods in the cluster via the ClusterIP Service; ingress-nginx
+  # (public 1433) is not installed here.
+  deploy-mssql:
+    needs: changes
+    if: ${{ github.event_name == 'push' && needs.changes.outputs.mssql == 'true' }}
+    runs-on: ubuntu-latest
+    # Never run two mssql deploys at once; a newer push waits for the running one to finish.
+    concurrency: deploy-mssql
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Connect kubectl to the cluster
+        run: doctl kubernetes cluster kubeconfig save --expiry-seconds 600 ${{ secrets.DOKS_CLUSTER_NAME }}
+
+      - name: Create namespace
+        run: kubectl apply -f Deployment/namespace.yaml
+
+      # mssql-secret.yaml is git-ignored, so the Secret is built from a GitHub secret instead.
+      # `--dry-run=client -o yaml | kubectl apply` creates it the first time and updates it after.
+      - name: Create SA password Secret
+        env:
+          MSSQL_SA_PASSWORD: ${{ secrets.MSSQL_SA_PASSWORD }}
+        run: |
+          kubectl create secret generic mssql-secret \
+            --namespace weather \
+            --from-literal=MSSQL_SA_PASSWORD="$MSSQL_SA_PASSWORD" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Apply SQL Server manifests
+        run: |
+          kubectl apply -f Deployment/mssql/mssql-pvc.yaml
+          kubectl apply -f Deployment/mssql/mssql-service.yaml
+          kubectl apply -f Deployment/mssql/mssql-statefulset.yaml
+
+      - name: Wait for SQL Server to be ready
+        run: kubectl rollout status statefulset/mssql --namespace weather --timeout=5m

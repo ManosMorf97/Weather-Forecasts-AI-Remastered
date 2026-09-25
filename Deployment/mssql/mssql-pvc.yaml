@@ -1,0 +1,18 @@
+# DigitalOcean (DOKS) storage: the cluster's CSI driver creates a Block Storage volume
+# automatically when this claim is created, so no hand-written PersistentVolume is needed.
+#
+# `do-block-storage-retain` is DOKS's built-in StorageClass that KEEPS the DO volume (and your
+# database) if the claim is deleted. The plain `do-block-storage` class would delete it.
+# Note: DO volumes are billed separately, minimum 1Gi, and can be grown but never shrunk.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mssql-data-pvc
+  namespace: weather
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: do-block-storage-retain
+  resources:
+    requests:
+      storage: 50Gi

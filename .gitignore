@@ -52,6 +52,8 @@ SQLsecret.sql
 *.key
 # Machine-local secrets loaded by Program.cs (keep secrets.example.json tracked)
 backend/**/secrets.json
+# Kubernetes Secret holding the SQL Server SA password
+Deployment/mssql/mssql-secret.yaml
 
 # OS
 Thumbs.db

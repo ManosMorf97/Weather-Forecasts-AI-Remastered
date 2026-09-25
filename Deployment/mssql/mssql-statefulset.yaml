@@ -1,0 +1,62 @@
+# StatefulSet (not Deployment): SQL Server keeps state on disk, so the pod needs a stable
+# identity. Its data lives on the PersistentVolumeClaim from mssql-storage.yaml.
+# Single replica only: the claim is ReadWriteOnce, so it cannot be shared between pods.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mssql
+  namespace: weather
+spec:
+  serviceName: mssql
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mssql
+  template:
+    metadata:
+      labels:
+        app: mssql
+    spec:
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        # The mssql process runs as uid 10001; fsGroup makes the mounted volume writable by it.
+        fsGroup: 10001
+      containers:
+        - name: mssql
+          image: mcr.microsoft.com/mssql/server:2022-latest
+          ports:
+            - name: sql
+              containerPort: 1433
+          env:
+            - name: ACCEPT_EULA
+              value: "Y"
+            - name: MSSQL_PID
+              value: Express
+            - name: MSSQL_SA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mssql-secret
+                  key: MSSQL_SA_PASSWORD
+          resources:
+            requests:
+              cpu: 500m
+              memory: 2Gi # SQL Server refuses to start with less than 2 GB - use a node with 4 GB+ RAM
+            limits:
+              memory: 4Gi
+          readinessProbe:
+            tcpSocket:
+              port: sql
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: sql
+            initialDelaySeconds: 60
+            periodSeconds: 20
+          volumeMounts:
+            - name: mssql-data
+              mountPath: /var/opt/mssql
+      volumes:
+        - name: mssql-data
+          persistentVolumeClaim:
+            claimName: mssql-data-pvc # defined in mssql-storage.yaml
