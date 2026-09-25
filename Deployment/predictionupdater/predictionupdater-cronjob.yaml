@@ -1,0 +1,58 @@
+# PredictionUpdater (UC11) - a run-once job, so a CronJob starts a new pod on each schedule tick;
+# the pod runs one poll -> store -> notify cycle and exits. The image is set by the pipeline:
+# it replaces IMAGE_PLACEHOLDER with the Docker Hub tag it just pushed.
+#
+# Secrets used (created by the pipeline from GitHub secrets):
+#   mssql-secret               - SA password, shared with the mssql StatefulSet
+#   predictionupdater-secret   - Appwrite, SMTP and provider API keys. A GitHub secret that isn't
+#                                set is left out of it, so that provider/feature is simply skipped.
+#   dockerhub-secret           - login to pull the private image
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: predictionupdater
+  namespace: weather
+spec:
+  schedule: "0 0,8,16 * * *" # 00:00, 08:00, 16:00
+  timeZone: Etc/UTC
+  # Never start a new cycle while the previous one is still running.
+  concurrencyPolicy: Forbid
+  # If the cluster misses a tick (e.g. node restart), still start it within 10 minutes; later, skip it.
+  startingDeadlineSeconds: 600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      # Exit code 1 = every provider failed. Retry twice; already-notified forecasts are skipped,
+      # so a retry never sends the same email again.
+      backoffLimit: 2
+      activeDeadlineSeconds: 1800 # kill a stuck cycle after 30 minutes
+      template:
+        spec:
+          restartPolicy: Never
+          imagePullSecrets:
+            - name: dockerhub-secret
+          containers:
+            - name: predictionupdater
+              image: IMAGE_PLACEHOLDER
+              env:
+                - name: YOUR_DATABASE_SERVER
+                  value: "mssql,1433"
+                - name: YOUR_USER
+                  value: "sa"
+                - name: YOUR_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: mssql-secret
+                      key: MSSQL_SA_PASSWORD
+              # Every key in the Secret becomes an env var with the same name
+              # (YOUR_APPWRITE_*, SMTP_*, EMAIL_FROM, *_API_KEY).
+              envFrom:
+                - secretRef:
+                    name: predictionupdater-secret
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  memory: 256Mi

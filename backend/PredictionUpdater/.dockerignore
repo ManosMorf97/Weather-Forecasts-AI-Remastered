@@ -1,0 +1,23 @@
+# Files Docker must never send into the build (build context: backend/PredictionUpdater).
+
+# Secrets - API keys / SMTP password for local runs
+.env
+.env.*
+!.env.example
+
+# Installed / generated / compiled - rebuilt inside the container
+node_modules/
+dist/
+src/generated/
+
+# Local helpers and notes
+fix-schema-after-pull.py
+ReadingCode.txt
+**/*.log
+
+# Not needed to build the app
+test/
+vitest.config.ts
+README.md
+Dockerfile
+.dockerignore

@@ -30,6 +30,7 @@ jobs:
               - '.github/workflows/ci-cd-pipeline.yml'
             predictionupdater:
               - 'backend/PredictionUpdater/**'
+              - 'Deployment/predictionupdater/**'
               - '.github/workflows/ci-cd-pipeline.yml'
             weatherappuserinterface:
               - 'frontend/WeatherAppUserInterface/**'
@@ -185,6 +186,98 @@ jobs:
 
       - name: Test
         run: npm test
+
+  # CD: build the image, push it to Docker Hub, update the CronJob on DigitalOcean Kubernetes.
+  # Only on push to main, and only after the CI job above passed. Nothing runs right away:
+  # the next schedule tick starts a pod with the new image.
+  deploy-predictionupdater:
+    needs: predictionupdater
+    if: ${{ github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    concurrency: deploy-predictionupdater
+    env:
+      # One private Docker Hub repo holds every app; the tag says which app + which commit.
+      IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/weather-forecasts:predictionupdater-${{ github.sha }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: backend/PredictionUpdater
+          push: true
+          tags: ${{ env.IMAGE }}
+          cache-from: type=gha,scope=predictionupdater
+          cache-to: type=gha,mode=max,scope=predictionupdater
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Connect kubectl to the cluster
+        run: doctl kubernetes cluster kubeconfig save --expiry-seconds 600 ${{ secrets.DOKS_CLUSTER_NAME }}
+
+      # The image is private, so the cluster needs a Docker Hub login to pull it.
+      - name: Create Docker Hub pull Secret
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          kubectl create secret docker-registry dockerhub-secret \
+            --namespace weather \
+            --docker-server=https://index.docker.io/v1/ \
+            --docker-username="$DOCKERHUB_USERNAME" \
+            --docker-password="$DOCKERHUB_TOKEN" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      # Keys are named after the env vars the job reads (the CronJob loads them with envFrom).
+      # A GitHub secret that isn't set is left out: the job's config treats a missing key as
+      # "feature off", but an empty string as invalid.
+      - name: Create app Secret
+        env:
+          YOUR_APPWRITE_ENDPOINT: ${{ secrets.APPWRITE_ENDPOINT }}
+          YOUR_APPWRITE_PROJECT_ID: ${{ secrets.APPWRITE_PROJECT_ID }}
+          YOUR_APPWRITE_API_KEY: ${{ secrets.APPWRITE_API_KEY }}
+          SMTP_HOST: ${{ secrets.EMAIL_HOST }}
+          SMTP_USER: ${{ secrets.EMAIL_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          OPENWEATHERMAP_API_KEY: ${{ secrets.OPENWEATHERMAP_API_KEY }}
+          WEATHERAPI_API_KEY: ${{ secrets.WEATHERAPI_API_KEY }}
+          VISUALCROSSING_API_KEY: ${{ secrets.VISUALCROSSING_API_KEY }}
+        run: |
+          args=()
+          for name in YOUR_APPWRITE_ENDPOINT YOUR_APPWRITE_PROJECT_ID YOUR_APPWRITE_API_KEY \
+                      SMTP_HOST SMTP_USER SMTP_PASSWORD EMAIL_FROM \
+                      OPENWEATHERMAP_API_KEY WEATHERAPI_API_KEY VISUALCROSSING_API_KEY; do
+            if [ -n "${!name}" ]; then
+              args+=(--from-literal="$name=${!name}")
+            else
+              echo "Skipping $name (GitHub secret not set)"
+            fi
+          done
+          kubectl create secret generic predictionupdater-secret \
+            --namespace weather \
+            "${args[@]}" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      # Swap IMAGE_PLACEHOLDER for the tag just pushed, then apply.
+      - name: Apply CronJob
+        run: |
+          sed "s|IMAGE_PLACEHOLDER|$IMAGE|g" Deployment/predictionupdater/predictionupdater-cronjob.yaml \
+            | kubectl apply -f -
 
   weatherappuserinterface:
     needs: changes
