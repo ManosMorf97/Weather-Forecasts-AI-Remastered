@@ -1,0 +1,13 @@
+# Helm values for the ingress-nginx controller (HTTP only).
+#
+# The controller's Service is type LoadBalancer, so DigitalOcean creates a Load Balancer with a
+# public IP (billed monthly). Every Ingress resource in the cluster is served through it.
+#
+# No `tcp:` section on purpose: SQL Server (1433) stays internal-only.
+controller:
+  ingressClassResource:
+    name: nginx
+  service:
+    annotations:
+      # Human-readable name for the load balancer in the DigitalOcean dashboard.
+      service.beta.kubernetes.io/do-loadbalancer-name: "weather-ingress"

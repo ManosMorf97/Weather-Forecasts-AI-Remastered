@@ -1,0 +1,32 @@
+# One public address for the whole app, split by path:
+#   http://<LB-IP>/api/...  -> WeatherUserActions (every controller route starts with /api)
+#   http://<LB-IP>/...      -> frontend (React app)
+# Same origin for both, so the browser never makes a cross-origin call: no CORS needed,
+# YOUR_FRONTEND_URL and the frontend's YOUR_API_URL both stay empty.
+#
+# HTTP only for now. For HTTPS later: add a `host:` (your domain) and a `tls:` section.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: weather-ingress
+  namespace: weather
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          # More specific path first for readability; nginx matches the longest prefix anyway.
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: weatheruseractions
+                port:
+                  name: http
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: weatherappuserinterface
+                port:
+                  name: http

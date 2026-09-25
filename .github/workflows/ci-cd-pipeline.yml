@@ -15,6 +15,7 @@ jobs:
       predictionupdater: ${{ steps.filter.outputs.predictionupdater }}
       weatherappuserinterface: ${{ steps.filter.outputs.weatherappuserinterface }}
       mssql: ${{ steps.filter.outputs.mssql }}
+      ingress: ${{ steps.filter.outputs.ingress }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -34,10 +35,14 @@ jobs:
               - '.github/workflows/ci-cd-pipeline.yml'
             weatherappuserinterface:
               - 'frontend/WeatherAppUserInterface/**'
+              - 'Deployment/weatherappuserinterface/**'
               - '.github/workflows/ci-cd-pipeline.yml'
             mssql:
               - 'Deployment/namespace.yaml'
               - 'Deployment/mssql/**'
+              - '.github/workflows/ci-cd-pipeline.yml'
+            ingress:
+              - 'Deployment/ingress/**'
               - '.github/workflows/ci-cd-pipeline.yml'
 
   weatheruseractions:
@@ -310,9 +315,78 @@ jobs:
       - name: Build
         run: npm run build
 
+  # CD: build the image, push it to Docker Hub, deploy to DigitalOcean Kubernetes.
+  # Only on push to main, and only after the CI job above passed.
+  deploy-weatherappuserinterface:
+    needs: weatherappuserinterface
+    if: ${{ github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    concurrency: deploy-weatherappuserinterface
+    env:
+      # One private Docker Hub repo holds every app; the tag says which app + which commit.
+      IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/weather-forecasts:weatherappuserinterface-${{ github.sha }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Vite bakes these into the JS at build time. They are public (every browser sees them),
+      # so passing them as build args is fine.
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: frontend/WeatherAppUserInterface
+          push: true
+          tags: ${{ env.IMAGE }}
+          build-args: |
+            YOUR_APPWRITE_ENDPOINT=${{ secrets.APPWRITE_ENDPOINT }}
+            YOUR_APPWRITE_PROJECT_ID=${{ secrets.APPWRITE_PROJECT_ID }}
+          cache-from: type=gha,scope=weatherappuserinterface
+          cache-to: type=gha,mode=max,scope=weatherappuserinterface
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Connect kubectl to the cluster
+        run: doctl kubernetes cluster kubeconfig save --expiry-seconds 600 ${{ secrets.DOKS_CLUSTER_NAME }}
+
+      # The image is private, so the cluster needs a Docker Hub login to pull it.
+      - name: Create Docker Hub pull Secret
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          kubectl create secret docker-registry dockerhub-secret \
+            --namespace weather \
+            --docker-server=https://index.docker.io/v1/ \
+            --docker-username="$DOCKERHUB_USERNAME" \
+            --docker-password="$DOCKERHUB_TOKEN" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      # Swap IMAGE_PLACEHOLDER for the tag just pushed, then apply.
+      - name: Apply manifests
+        run: |
+          sed "s|IMAGE_PLACEHOLDER|$IMAGE|g" Deployment/weatherappuserinterface/weatherappuserinterface-deployment.yaml \
+            | kubectl apply -f -
+          kubectl apply -f Deployment/weatherappuserinterface/weatherappuserinterface-service.yaml
+
+      - name: Wait for rollout
+        run: kubectl rollout status deployment/weatherappuserinterface --namespace weather --timeout=5m
+
   # CD: deploys SQL Server to DigitalOcean Kubernetes. Only on push to main (PRs never deploy).
-  # Internal-only: reachable by pods in the cluster via the ClusterIP Service; ingress-nginx
-  # (public 1433) is not installed here.
+  # Internal-only: reachable by pods in the cluster via the ClusterIP Service. Port 1433 is never
+  # exposed (the ingress-nginx controller in deploy-ingress is HTTP only).
   deploy-mssql:
     needs: changes
     if: ${{ github.event_name == 'push' && needs.changes.outputs.mssql == 'true' }}
@@ -354,3 +428,44 @@ jobs:
 
       - name: Wait for SQL Server to be ready
         run: kubectl rollout status statefulset/mssql --namespace weather --timeout=5m
+
+  # CD: the public entry point. Installs/upgrades the ingress-nginx controller (creates the
+  # DigitalOcean Load Balancer on first install) and applies the routing rules
+  # (/api -> WeatherUserActions, / -> frontend). HTTP only; SQL Server stays internal.
+  deploy-ingress:
+    needs: changes
+    if: ${{ github.event_name == 'push' && needs.changes.outputs.ingress == 'true' }}
+    runs-on: ubuntu-latest
+    concurrency: deploy-ingress
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Connect kubectl to the cluster
+        run: doctl kubernetes cluster kubeconfig save --expiry-seconds 600 ${{ secrets.DOKS_CLUSTER_NAME }}
+
+      # --wait: the controller must be ready before the Ingress below is applied (its admission
+      # webhook validates every Ingress).
+      - name: Install/upgrade ingress-nginx controller
+        run: |
+          helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+          helm repo update
+          helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
+            --namespace ingress-nginx --create-namespace \
+            -f Deployment/ingress/ingress-nginx-values.yaml \
+            --wait --timeout 10m
+
+      - name: Create namespace
+        run: kubectl apply -f Deployment/namespace.yaml
+
+      - name: Apply Ingress
+        run: kubectl apply -f Deployment/ingress/weather-ingress.yaml
+
+      - name: Show public address
+        run: kubectl get service ingress-nginx-controller --namespace ingress-nginx

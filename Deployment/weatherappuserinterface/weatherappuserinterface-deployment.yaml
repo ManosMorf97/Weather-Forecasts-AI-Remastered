@@ -1,0 +1,43 @@
+# Frontend (React app served by nginx). The image is set by the pipeline: it replaces
+# IMAGE_PLACEHOLDER with the Docker Hub tag it just pushed.
+# No env vars: Vite baked the Appwrite settings into the JS at build time (see the Dockerfile).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: weatherappuserinterface
+  namespace: weather
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: weatherappuserinterface
+  template:
+    metadata:
+      labels:
+        app: weatherappuserinterface
+    spec:
+      imagePullSecrets:
+        - name: dockerhub-secret
+      containers:
+        - name: weatherappuserinterface
+          image: IMAGE_PLACEHOLDER
+          ports:
+            - name: http
+              containerPort: 8080
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20

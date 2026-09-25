@@ -1,14 +1,14 @@
 # ClusterIP: reachable only inside the cluster. The public entry point is the Ingress
-# (Deployment/ingress/weather-ingress.yaml), which routes /api here.
+# (Deployment/ingress/weather-ingress.yaml), which routes / here.
 apiVersion: v1
 kind: Service
 metadata:
-  name: weatheruseractions
+  name: weatherappuserinterface
   namespace: weather
 spec:
   type: ClusterIP
   selector:
-    app: weatheruseractions
+    app: weatherappuserinterface
   ports:
     - name: http
       port: 80

@@ -1,6 +1,6 @@
 # ClusterIP: reachable only inside the cluster (e.g. WeatherUserActions / PredictionUpdater
-# connect to mssql.weather.svc.cluster.local:1433). Outside access goes through the ingress
-# controller's TCP passthrough - see ingress-nginx-values.yaml.
+# connect to mssql,1433). Not exposed to the internet. From your PC, use a temporary tunnel:
+#   kubectl port-forward -n weather svc/mssql 1433:1433   ->  localhost,1433
 apiVersion: v1
 kind: Service
 metadata:

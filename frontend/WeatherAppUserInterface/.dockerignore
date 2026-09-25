@@ -1,0 +1,19 @@
+# Files Docker must never send into the build (build context: frontend/WeatherAppUserInterface).
+
+# Local env files - may hold machine-specific values
+.env
+.env.*
+
+# Installed / built - rebuilt inside the container
+node_modules/
+dist/
+
+# Local logs and IDE files
+**/*.log
+.vscode/
+.idea/
+
+# Not needed to build the app
+README.md
+Dockerfile
+.dockerignore
