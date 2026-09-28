@@ -3,14 +3,19 @@
 A weather-aggregation platform that lets users track multiple cities across several partner
 forecasting APIs, rates each partner's accuracy, surfaces the best-rated forecast per city, and
 proactively warns subscribers about life-threatening conditions — built as two independently
-deployable backend services sharing one SQL Server database, plus a React frontend.
+deployable backend services sharing one SQL Server database, plus a React frontend — all running
+on Kubernetes (DigitalOcean) behind HTTPS.
 
-[![CI](https://github.com/ManosMorf97/Weather-Forecasts-AI-Remastered/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/ManosMorf97/Weather-Forecasts-AI-Remastered/actions/workflows/backend-ci.yml)
+**Live:** https://weatherappmorf.duckdns.org
+
+[![CI/CD](https://github.com/ManosMorf97/Weather-Forecasts-AI-Remastered/actions/workflows/ci-cd-pipeline.yml/badge.svg)](https://github.com/ManosMorf97/Weather-Forecasts-AI-Remastered/actions/workflows/ci-cd-pipeline.yml)
 ![.NET 10](https://img.shields.io/badge/.NET-10-512BD4)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6)
 ![React](https://img.shields.io/badge/React-19-61DAFB)
 ![SQL Server](https://img.shields.io/badge/SQL_Server-EF_Core%20%2B%20Prisma-CC2927)
 ![Appwrite](https://img.shields.io/badge/Auth-Appwrite-FD366E)
+![Kubernetes](https://img.shields.io/badge/Kubernetes-DigitalOcean-326CE5)
+![Built with Claude Code](https://img.shields.io/badge/Built_with-Claude_Code-D97757)
 
 ---
 
@@ -41,7 +46,7 @@ to `WeatherUserActions` over HTTP.
 |---|---|---|
 | [`WeatherUserActions`](backend/WeatherUserActions) | User-facing REST API: profiles, city/service selection, forecast search, ratings, aggregated forecasts, analytics reports | ASP.NET Core (.NET 10), EF Core, MailKit, QuestPDF, ScottPlot |
 | [`PredictionUpdater`](backend/PredictionUpdater) | Run-once scheduler job (UC11): one process start = one poll → store → notify cycle, then exit; an external scheduler owns the interval | Node.js + TypeScript, Prisma, Zod |
-| [`WeatherAppUserInterface`](frontend/WeatherAppUserInterface) | React frontend: auth screens, routing/guards, profile provisioning (UC2) | React 19, TypeScript, Vite, Bootstrap |
+| [`WeatherAppUserInterface`](frontend/WeatherAppUserInterface) | React frontend: auth screens, profile setup, dashboard (forecast search + ratings), aggregated forecasts, analytics requests | React 19, TypeScript, Vite, Bootstrap |
 
 All three connect to the same **Appwrite** project for authentication — the frontend talks to
 Appwrite directly for sign-up/login/token refresh (UC1, UC13, UC14), and `WeatherUserActions`'s
@@ -88,12 +93,13 @@ rather than trusting a client-decoded JWT.
 - **Async work doesn't block requests.** Analytics report generation (DB query → statistics →
   charts → PDF → email) can take tens of seconds, so the controller returns `202 Accepted`
   immediately and a background worker (`AnalyticsReportWorker`) drives the job to completion.
-- **~195 automated tests** across all three parts (150 xUnit tests in `WeatherUserActions.Tests`,
-  33 Vitest tests in `PredictionUpdater`, 16 Vitest + React Testing Library tests in
+- **~320 automated tests** across all three parts (~150 xUnit tests in `WeatherUserActions.Tests`,
+  ~35 Vitest tests in `PredictionUpdater`, ~135 Vitest + React Testing Library tests in
   `WeatherAppUserInterface`), run in CI on every push/PR.
-- **CI only builds what changed** — a path-filtered GitHub Actions pipeline
-  ([`backend-ci.yml`](.github/workflows/backend-ci.yml)) runs each part's lint/build/test job only
-  when files under that part actually changed.
+- **CI/CD only builds and deploys what changed** — a path-filtered GitHub Actions pipeline
+  ([`ci-cd-pipeline.yml`](.github/workflows/ci-cd-pipeline.yml)) runs each part's
+  lint/build/test job only when files under that part changed, and on `main` deploys only that
+  part to Kubernetes.
 
 ## Data model
 
@@ -113,9 +119,38 @@ backend/
 frontend/
   WeatherAppUserInterface/  React + Vite frontend — auth screens, routing guards, profile sync
     src/auth/                   Auth context/hooks/components, plus their Vitest + RTL tests
+Deployment/                Kubernetes manifests — one folder per part, plus mssql and ingress
 requirements/              Use-case analysis, ER diagram, sequence/activity diagrams, system design
-.github/workflows/         CI
+.github/workflows/         CI/CD
 ```
+
+## Deployment
+
+Everything runs on **DigitalOcean Kubernetes** in the `weather` namespace, deployed by the
+[CI/CD pipeline](.github/workflows/ci-cd-pipeline.yml) on every push to `main`.
+
+```
+Browser ──HTTPS──▶ DigitalOcean Load Balancer ──▶ ingress-nginx
+                                                     ├─ /api/* ──▶ WeatherUserActions ─┐
+                                                     └─ /*     ──▶ Frontend             ├──▶ SQL Server
+                   PredictionUpdater (CronJob, 00:00/08:00/16:00 UTC) ─────────────────┘   (internal only)
+```
+
+| Part | Kubernetes resource | Notes |
+|---|---|---|
+| SQL Server | StatefulSet + PVC + ClusterIP Service | Never exposed publicly |
+| `WeatherUserActions` | Deployment + ClusterIP Service | EF Core migrations run as an init container (`efbundle`) before the API starts |
+| `WeatherAppUserInterface` | Deployment + ClusterIP Service | |
+| `PredictionUpdater` | CronJob | Run-once job; `concurrencyPolicy: Forbid`, retried at most twice |
+| Ingress | ingress-nginx + cert-manager | One public address; frontend and API share an origin, so no CORS. Free Let's Encrypt certificate, renewed automatically |
+
+- **Images** are pushed to a private Docker Hub repository, tagged `<part>-<commit sha>`.
+- **Secrets** (DB password, Appwrite, SMTP, API keys) come from GitHub secrets and are created
+  in the cluster by the pipeline — none are committed.
+- **Domain:** a free [DuckDNS](https://www.duckdns.org) subdomain pointing at the load balancer
+  IP, also registered as a Web app in Appwrite.
+
+See [`Deployment/`](Deployment) for the manifests; each one explains its choices in comments.
 
 ## Getting started
 
@@ -140,3 +175,14 @@ backend README for the full list. Two more matter specifically for local fronten
 
 Full requirements analysis, per-use-case specs, sequence/activity diagrams and the system design
 source live in [`requirements/`](requirements).
+
+## Built with Claude Code
+
+This project was developed with the help of [Claude Code](https://claude.com/claude-code),
+Anthropic's AI coding assistant. I used it as a pair programmer across the whole project:
+turning the use cases in [`requirements/`](requirements) into code, writing and reviewing tests,
+explaining concepts along the way (dependency injection, testing against a real database,
+Kubernetes networking), and debugging the CI/CD pipeline and the Kubernetes deployment.
+Project-specific guidance for it lives in [`CLAUDE.md`](CLAUDE.md).
+
+Design decisions, reviews and every commit are my own.
