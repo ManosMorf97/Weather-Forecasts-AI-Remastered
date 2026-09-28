@@ -11,6 +11,6 @@ controller:
     annotations:
       # Human-readable name for the load balancer in the DigitalOcean dashboard.
       service.beta.kubernetes.io/do-loadbalancer-name: "weather-ingress"
-      # DigitalOcean quirk: without this, pods can't reach the load balancer's own public IP, so
-      # cert-manager's self-check of the Let's Encrypt challenge fails and the cert stays pending.
-      service.beta.kubernetes.io/do-loadbalancer-hostname: "weatherappmorf.duckdns.org"
+      # No `do-loadbalancer-hostname` on purpose: it replaces the LB IP in the Service status with
+      # a hostname, so Cilium stops accepting traffic for that IP and the site times out. It's only
+      # needed with PROXY protocol, which this load balancer doesn't use.
