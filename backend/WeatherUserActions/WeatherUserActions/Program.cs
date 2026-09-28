@@ -87,6 +87,17 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// Production only: seed ForecastingServices so the 4 providers PredictionUpdater
+// polls exist without a manual sqlcmd step. Safe to run on every startup - the script's own
+// IF NOT EXISTS guards make it a no-op once the rows are there.
+if (app.Environment.IsProduction())
+{
+    using var seedScope = app.Services.CreateScope();
+    var db = seedScope.ServiceProvider.GetRequiredService<WeatherUserActionsDbContext>();
+    var seedSql = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Data", "Seed", "seed-forecasting-services.sql"));
+    await db.Database.ExecuteSqlRawAsync(seedSql);
+}
+
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
