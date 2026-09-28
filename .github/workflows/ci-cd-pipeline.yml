@@ -430,8 +430,9 @@ jobs:
         run: kubectl rollout status statefulset/mssql --namespace weather --timeout=5m
 
   # CD: the public entry point. Installs/upgrades the ingress-nginx controller (creates the
-  # DigitalOcean Load Balancer on first install) and applies the routing rules
-  # (/api -> WeatherUserActions, / -> frontend). HTTP only; SQL Server stays internal.
+  # DigitalOcean Load Balancer on first install), cert-manager (HTTPS certificates from
+  # Let's Encrypt) and applies the routing rules (/api -> WeatherUserActions, / -> frontend).
+  # SQL Server stays internal.
   deploy-ingress:
     needs: changes
     if: ${{ github.event_name == 'push' && needs.changes.outputs.ingress == 'true' }}
@@ -460,6 +461,20 @@ jobs:
             --namespace ingress-nginx --create-namespace \
             -f Deployment/ingress/ingress-nginx-values.yaml \
             --wait --timeout 10m
+
+      # crds.enabled installs cert-manager's resource types (ClusterIssuer, Certificate, ...).
+      # --wait: its webhook must be ready before the ClusterIssuer below is applied.
+      - name: Install/upgrade cert-manager
+        run: |
+          helm repo add jetstack https://charts.jetstack.io
+          helm repo update
+          helm upgrade --install cert-manager jetstack/cert-manager \
+            --namespace cert-manager --create-namespace \
+            --set crds.enabled=true \
+            --wait --timeout 10m
+
+      - name: Apply Let's Encrypt issuer
+        run: kubectl apply -f Deployment/ingress/letsencrypt-issuer.yaml
 
       - name: Create namespace
         run: kubectl apply -f Deployment/namespace.yaml
