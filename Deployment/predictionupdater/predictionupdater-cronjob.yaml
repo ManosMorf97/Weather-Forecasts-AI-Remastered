@@ -47,6 +47,7 @@ spec:
                       key: MSSQL_SA_PASSWORD
               # Every key in the Secret becomes an env var with the same name
               # (YOUR_APPWRITE_*, SMTP_*, EMAIL_FROM, *_API_KEY).
+              
               envFrom:
                 - secretRef:
                     name: predictionupdater-secret

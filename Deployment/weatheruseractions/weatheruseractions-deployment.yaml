@@ -22,7 +22,6 @@ spec:
     spec:
       imagePullSecrets:
         - name: dockerhub-secret
-
       # Runs before the app starts: applies pending EF Core migrations (creates the database on
       # the first run). If it fails, the app container never starts and the old pod keeps serving.
       initContainers:
