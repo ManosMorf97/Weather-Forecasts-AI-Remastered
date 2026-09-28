@@ -73,7 +73,6 @@ spec:
                 secretKeyRef:
                   name: weatheruseractions-secret
                   key: APPWRITE_API_KEY
-
             # SMTP - "__" maps to ":" in .NET config (Email__Host -> Email:Host).
             # If Email__Host is empty, Program.cs falls back to LoggingEmailSender (no real mail).
             - name: Email__Host
