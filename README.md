@@ -1,8 +1,6 @@
 # Weather Forecasts AI — Remastered
 
-A weather-aggregation platform that lets users track multiple cities across several partner
-forecasting APIs, rates each partner's accuracy, surfaces the best-rated forecast per city, and
-proactively warns subscribers about life-threatening conditions — built as two independently
+A weather-aggregation platform that lets users track multiple cities across several partner forecasting APIs, surfaces the best-rated forecast per city, and proactively warns subscribers about life-threatening conditions. Also users can rate each forecasting partner's accuracy.Built as two independently
 deployable backend services sharing one SQL Server database, plus a React frontend — all running
 on Kubernetes (DigitalOcean) behind HTTPS.
 
