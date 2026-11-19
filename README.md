@@ -18,6 +18,44 @@ on Kubernetes behind HTTPS.
 ![Kubernetes](https://img.shields.io/badge/Deploy-Kubernetes-326CE5)
 ![Built with Claude Code](https://img.shields.io/badge/Built_with-Claude_Code-D97757)
 
+### A taste of the app
+
+**Desktop**
+
+<table>
+  <tr>
+    <td width="50%"><img src="Images/desktop-login.png" alt="Login screen on desktop"></td>
+    <td width="50%"><img src="Images/desktop-forecasts.png" alt="Current forecasts per service and city"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Login</sub></td>
+    <td align="center"><sub>Your forecasts, per service and city</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="Images/desktop-suggested.png" alt="Suggested forecasts from the highest-rated service"></td>
+    <td width="50%"><img src="Images/desktop-ratings.png" alt="Rating forecasts with stars"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Suggested forecasts from the highest-rated service</sub></td>
+    <td align="center"><sub>Rating a forecast's accuracy</sub></td>
+  </tr>
+</table>
+
+**Mobile**
+
+<table>
+  <tr>
+    <td width="33%"><img src="Images/mobile-login.png" alt="Login screen on mobile"></td>
+    <td width="33%"><img src="Images/mobile-forecasts.png" alt="Current forecasts on mobile"></td>
+    <td width="33%"><img src="Images/mobile-suggested.png" alt="Suggested forecasts on mobile"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Login</sub></td>
+    <td align="center"><sub>Your forecasts</sub></td>
+    <td align="center"><sub>Suggested forecasts</sub></td>
+  </tr>
+</table>
+
 ---
 
 ## What it does

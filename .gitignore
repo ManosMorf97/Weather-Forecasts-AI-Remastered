@@ -73,3 +73,6 @@ Notes.txt
 scripts/get_jwt.py
 test_gmail_smtp.py
 scripts/bruno-guide.md
+# Windows folder metadata and raw screenshots (README uses the renamed copies in Images/)
+desktop.ini
+Images/Screenshot*
