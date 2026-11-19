@@ -1,10 +1,13 @@
 # Weather Forecasts AI — Remastered
 
 A weather-aggregation platform that lets users track multiple cities across several partner forecasting APIs, surfaces the best-rated forecast per city, and proactively warns subscribers about life-threatening conditions. Also users can rate each forecasting partner's accuracy.Built as two independently
-deployable backend services sharing one SQL Server database, plus a React frontend — all running
-on Kubernetes (DigitalOcean) behind HTTPS.
+deployable backend services sharing one SQL Server database, plus a React frontend — built to run
+on Kubernetes behind HTTPS.
 
-**Live:** https://weatherappmorf.duckdns.org
+**Demo videos:** the live deployment has been taken down; these recordings show the app running.
+
+- [Demo — part 1](https://vimeo.com/1248424921)
+- [Demo — part 2](https://vimeo.com/1248429896)
 
 [![CI/CD](https://github.com/ManosMorf97/Weather-Forecasts-AI-Remastered/actions/workflows/ci-cd-pipeline.yml/badge.svg)](https://github.com/ManosMorf97/Weather-Forecasts-AI-Remastered/actions/workflows/ci-cd-pipeline.yml)
 ![.NET 10](https://img.shields.io/badge/.NET-10-512BD4)
@@ -12,7 +15,7 @@ on Kubernetes (DigitalOcean) behind HTTPS.
 ![React](https://img.shields.io/badge/React-19-61DAFB)
 ![SQL Server](https://img.shields.io/badge/SQL_Server-EF_Core%20%2B%20Prisma-CC2927)
 ![Appwrite](https://img.shields.io/badge/Auth-Appwrite-FD366E)
-![Kubernetes](https://img.shields.io/badge/Kubernetes-DigitalOcean-326CE5)
+![Kubernetes](https://img.shields.io/badge/Deploy-Kubernetes-326CE5)
 ![Built with Claude Code](https://img.shields.io/badge/Built_with-Claude_Code-D97757)
 
 ---
@@ -124,11 +127,13 @@ requirements/              Use-case analysis, ER diagram, sequence/activity diag
 
 ## Deployment
 
-Everything runs on **DigitalOcean Kubernetes** in the `weather` namespace, deployed by the
-[CI/CD pipeline](.github/workflows/ci-cd-pipeline.yml) on every push to `main`.
+The app ran on **DigitalOcean Kubernetes** in the `weather` namespace, deployed by the
+[CI/CD pipeline](.github/workflows/ci-cd-pipeline.yml) on every push to `main`. That cluster has
+since been removed (see the [demo videos](#weather-forecasts-ai--remastered) above); the manifests
+and pipeline are kept, so the app can be redeployed to any Kubernetes cluster.
 
 ```
-Browser ──HTTPS──▶ DigitalOcean Load Balancer ──▶ ingress-nginx
+Browser ──HTTPS──▶ Cloud Load Balancer ──────────▶ ingress-nginx
                                                      ├─ /api/* ──▶ WeatherUserActions ─┐
                                                      └─ /*     ──▶ Frontend             ├──▶ SQL Server
                    PredictionUpdater (CronJob, 00:00/08:00/16:00 UTC) ─────────────────┘   (internal only)
@@ -145,8 +150,8 @@ Browser ──HTTPS──▶ DigitalOcean Load Balancer ──▶ ingress-nginx
 - **Images** are pushed to a private Docker Hub repository, tagged `<part>-<commit sha>`.
 - **Secrets** (DB password, Appwrite, SMTP, API keys) come from GitHub secrets and are created
   in the cluster by the pipeline — none are committed.
-- **Domain:** a free [DuckDNS](https://www.duckdns.org) subdomain pointing at the load balancer
-  IP, also registered as a Web app in Appwrite.
+- **Domain:** a free [DuckDNS](https://www.duckdns.org) subdomain pointed at the load balancer
+  IP, also registered as a Web app in Appwrite (no longer active).
 
 See [`Deployment/`](Deployment) for the manifests; each one explains its choices in comments.
 
